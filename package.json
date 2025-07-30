@@ -1,0 +1,13 @@
+{
+  "name": "cvbuilder-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm run start --workspace=frontend",
+    "build": "npm run build --workspace=frontend"
+  }
+}
