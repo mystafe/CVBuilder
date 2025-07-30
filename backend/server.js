@@ -12,7 +12,7 @@ const chromium = require('@sparticuz/chromium-min');
 const puppeteer = require('puppeteer-core'); // 'puppeteer' yerine 'puppeteer-core' kullanılıyor
 
 const app = express();
-const port = 5001;
+const port = process.env.PORT || 5001;
 
 // --- Middleware Ayarları ---
 const corsOptions = {
@@ -96,6 +96,15 @@ app.post('/api/generate-pdf', async (req, res) => {
     }
 
     // --- PUPPETEER GÜNCELLEMESİ (LAUNCH KISMI) ---
+    let executablePath = process.env.CHROME_BIN;
+    if (!executablePath) {
+      try {
+        executablePath = await chromium.executablePath();
+      } catch (err) {
+        console.error('Chromium path error:', err);
+      }
+    }
+
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
@@ -105,7 +114,7 @@ app.post('/api/generate-pdf', async (req, res) => {
         '--single-process'
       ],
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless, // 'new' yerine chromium.headless kullanmak daha uyumludur
     });
 
