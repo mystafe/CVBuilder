@@ -6,16 +6,23 @@ const cors = require('cors');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const OpenAI = require('openai');
+const fs = require('fs');
 
 // --- PUPPETEER GÜNCELLEMESİ (BULUT ORTAMLARI İÇİN) ---
 const chromium = require('@sparticuz/chromium-min');
 const puppeteer = require('puppeteer-core'); // 'puppeteer' yerine 'puppeteer-core' kullanılıyor
 
 const app = express();
-const port = 5001;
+const port = process.env.PORT || 5001;
 
 // --- Middleware Ayarları ---
-app.use(cors());
+const corsOptions = {
+  origin: '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  allowedHeaders: ['Content-Type'],
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // --- Multer Yapılandırması ---
@@ -89,7 +96,27 @@ app.post('/api/generate-pdf', async (req, res) => {
       cvData.summary = summaryResponse.choices[0].message.content.trim();
     }
 
+    const htmlContent = generateCvHtml(cvData);
+
     // --- PUPPETEER GÜNCELLEMESİ (LAUNCH KISMI) ---
+    let executablePath = process.env.CHROME_BIN;
+    if (!executablePath) {
+      try {
+        executablePath = await chromium.executablePath();
+      } catch (err) {
+        console.error('Chromium path error:', err);
+        const fallbackPaths = [
+          '/usr/bin/chromium-browser',
+          '/usr/bin/google-chrome',
+          '/usr/bin/chromium',
+        ];
+        executablePath = fallbackPaths.find((p) => fs.existsSync(p));
+      }
+    }
+    if (!executablePath) {
+      return res.status(500).send({ message: 'Chrome executable not found.' });
+    }
+
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
@@ -99,7 +126,7 @@ app.post('/api/generate-pdf', async (req, res) => {
         '--single-process'
       ],
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless, // 'new' yerine chromium.headless kullanmak daha uyumludur
     });
 
