@@ -1,0 +1,18 @@
+{
+  "mainTitle": "CV Uzmanı Asistanı",
+  "subtitle": "Yapay zeka destekli asistan ile CV'nizi baştan yaratın.",
+  "cvLanguageLabel": "Hedef CV Dili:",
+  "uploadButtonLabel": "CV Dosyanızı Yükleyin",
+  "uploadingButtonLabel": "Veriler Çıkarılıyor...",
+  "welcomeQuestion": "CV verilerinizi başarıyla ayrıştırdım. Şimdi, birlikte geliştirmeye başlayalım. İlk adım olarak, özet kısmında vurgulamak istediğiniz, kariyerinizdeki en önemli başarı nedir?",
+  "chatPlaceholder": "Cevabınızı buraya yazın...",
+  "answerButton": "Gönder",
+  "skipButton": "Soruyu Atla",
+  "finishButton": "CV'mi Oluştur",
+  "generatingPdfButton": "PDF Sonlandırılıyor...",
+  "finalMessage": "Harika! CV'nizi geliştirdik. Son halini şimdi indirebilirsiniz.",
+  "errorOccurred": "Bir hata oluştu. Lütfen tekrar deneyin.",
+  "chatError": "Sohbet sırasında bir hata oluştu.",
+  "pdfError": "PDF oluşturulurken bir hata oluştu.",
+  "footerText": "Mustafa Evleksiz tarafından geliştirilmiştir"
+} 
