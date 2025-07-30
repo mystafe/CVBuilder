@@ -15,7 +15,13 @@ const app = express();
 const port = 5001;
 
 // --- Middleware Ayarları ---
-app.use(cors());
+const corsOptions = {
+  origin: '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  allowedHeaders: ['Content-Type'],
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // --- Multer Yapılandırması ---
