@@ -7,10 +7,15 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import './App.css';
 
+// --- API Yapılandırması ---
+// Vercel'de deploy edildiğinde REACT_APP_API_URL değişkenini kullanır,
+// yerelde çalışırken ise varsayılan olarak localhost'a bağlanır.
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
 // --- Statik Ikon Bileşenleri ---
 const TypingIndicator = () => <div className="message ai typing"><span></span><span></span><span></span></div>;
 const SendIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="22" y1="2" x2="11" y2="13"></line>
     <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
   </svg>
@@ -24,7 +29,7 @@ function App() {
   const [cvData, setCvData] = useState(null);
   const [conversation, setConversation] = useState([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
-  const [loadingMessage, setLoadingMessage] = useState(''); // Yükleme durumunu yönetmek için string
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState('');
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -34,7 +39,7 @@ function App() {
 
   const fileInputRef = useRef(null);
   const chatContainerRef = useRef(null);
-  const isLoading = !!loadingMessage; // loadingMessage boş değilse true, boşsa false olur.
+  const isLoading = !!loadingMessage;
 
   // --- Efektler (Lifecycle) ---
   useEffect(() => {
@@ -56,17 +61,14 @@ function App() {
 
     setLoadingMessage(t('uploadingButtonLabel'));
     setError('');
-
     const formData = new FormData();
     formData.append('cv', file);
+    formData.append('appLanguage', i18n.language);
+    formData.append('cvLanguage', cvLanguage);
 
     try {
-      // Sadece ham veriyi çıkaran hızlı endpoint'i çağırıyoruz
-      const res = await axios.post('http://localhost:5001/api/initial-parse', formData, {
-        timeout: 45000, // 45 saniye zaman aşımı
-      });
+      const res = await axios.post(`${API_BASE_URL}/api/initial-parse`, formData, { timeout: 45000 });
       setCvData(res.data.parsedData);
-      // İlk soruyu artık AI değil, biz belirliyoruz. Bu tutarlılığı garantiler.
       setConversation([{ type: 'ai', text: t('welcomeQuestion') }]);
       setStep('chat');
     } catch (err) {
@@ -91,16 +93,14 @@ function App() {
     setError('');
 
     try {
-      // Artık akıllı "next-step" endpoint'ini çağırıyoruz
-      const res = await axios.post('http://localhost:5001/api/next-step', {
+      const res = await axios.post(`${API_BASE_URL}/api/next-step`, {
         conversationHistory: JSON.stringify(newConversation),
         cvData,
         appLanguage: i18n.language
       });
 
-      let updatedCvData = JSON.parse(JSON.stringify(cvData)); // Her zaman derin kopya ile başla
+      let updatedCvData = JSON.parse(JSON.stringify(cvData));
 
-      // Gelen talimatlar bir dizi olmalı, her birini uygula
       if (res.data.updateInstructions && Array.isArray(res.data.updateInstructions)) {
         res.data.updateInstructions.forEach(instruction => {
           if (instruction?.path && instruction.value !== undefined) {
@@ -113,8 +113,7 @@ function App() {
           }
         });
       }
-
-      setCvData(updatedCvData); // Tek seferde güncellenmiş state'i kaydet
+      setCvData(updatedCvData);
 
       const finalConversation = [...newConversation];
       if (res.data.nextQuestion) {
@@ -137,8 +136,7 @@ function App() {
     setLoadingMessage(t('generatingPdfButton'));
     setError('');
     try {
-      // PDF isteğine CV'nin hedef dilini göndererek özetin doğru dilde güncellenmesini sağlıyoruz
-      const response = await axios.post('http://localhost:5001/api/generate-pdf', { cvData, cvLanguage }, { responseType: 'blob' });
+      const response = await axios.post(`${API_BASE_URL}/api/generate-pdf`, { cvData, cvLanguage }, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
