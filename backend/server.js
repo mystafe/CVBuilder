@@ -1,4 +1,4 @@
-// --- NİHAİ, AKILLI ve "MONTAGE HATTI" MİMARİSİNE SAHİP server.js ---
+// --- NİHAİ, TAM ve "CLOUD-READY" server.js ---
 require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
@@ -6,57 +6,31 @@ const cors = require('cors');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const OpenAI = require('openai');
-const puppeteer = require('puppeteer');
+
+// --- PUPPETEER GÜNCELLEMESİ (BULUT ORTAMLARI İÇİN) ---
+const chromium = require('@sparticuz/chromium-min');
+const puppeteer = require('puppeteer-core'); // 'puppeteer' yerine 'puppeteer-core' kullanılıyor
 
 const app = express();
 const port = 5001;
+
+// --- Middleware Ayarları ---
 app.use(cors());
 app.use(express.json());
+
+// --- Multer Yapılandırması ---
 const upload = multer({ storage: multer.memoryStorage() });
+
+// --- OpenAI Yapılandırması ---
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// --- YENİ MİMARİ İÇİN AI PROMPTS ---
 
-// GÖREV 1: Hızlı ve Ham Veri Çıkarma. Sadece var olan veriyi, olduğu gibi JSON'a dönüştürür.
-const getInitialAnalysisPrompt = (cvText) => `
-  You are an expert data extraction bot. Your ONLY task is to parse the following raw text into a structured JSON object. Extract all sections you can find, including personalInfo, summary, experience, education, skills, projects, languages, and certificates.
-  CRITICAL: Do NOT change, rewrite, or enhance any of the text. Extract the data exactly as it appears in the source text.
-  The output MUST be only the valid JSON object.
-
-  Raw Text:
-  ---
-  ${cvText}
-  ---
-`;
-
-// GÖREV 2: Hafızalı, Stratejik Soru & Geliştirme.
-const getNextStepPrompt = (conversationHistory, cvData, appLanguage) => `
-  You are an expert CV writing assistant with a perfect memory, continuing a conversation.
-
-  **MISSION:**
-  1.  **Integrate User's Answer:** Analyze the user's LAST answer from the conversation history. Generate a precise 'updateInstruction' to integrate this new information into the CV data. This instruction MUST create new sections if they don't exist (e.g., if 'languages' section is missing, your instruction must create it as an array). The value can be a string, object, or an array of objects.
-  2.  **Polish a Section:** Review the entire CV data. Find ONE section that has not been polished yet (e.g., a raw job description, or the summary). Generate a second 'updateInstruction' to rewrite and enhance ONLY that specific section professionally. All text in this instruction MUST be in ${appLanguage}.
-  3.  **Ask Strategically:**
-      *   Review the FULL conversation history. **NEVER ask a question about a topic that has already been covered.**
-      *   Identify the next most critical topic that is missing or weak in the CV.
-      *   Formulate ONE new, generic question about that new topic.
-  4.  **LANGUAGE RULE:** The 'nextQuestion' text **MUST BE in ${appLanguage}**.
-
-  **OUTPUT FORMAT (MUST BE a single JSON object):**
-  {
-    "updateInstructions": [
-      { "path": "path.from.user.answer", "value": "value from user answer" },
-      { "path": "path.of.polished.section", "value": "the enhanced text in ${appLanguage}" }
-    ],
-    "nextQuestion": "Your next unique, strategic question in ${appLanguage}, or null."
-  }
-  
-  Current CV Data: ${JSON.stringify(cvData)}
-  Conversation History: ${conversationHistory}
-`;
+// --- AI PROMPTS (EN GÜNCEL HALİ) ---
+const getInitialAnalysisPrompt = (cvText) => `You are a fast and efficient CV data extractor. Your ONLY task is to parse the following raw text into a structured JSON object. Extract all sections you can find. CRITICAL: Do NOT change, rewrite, or enhance any of the text. Extract the data exactly as it appears in the source text. The output MUST be only the valid JSON object. Raw Text: --- ${cvText} ---`;
+const getNextStepPrompt = (conversationHistory, cvData, appLanguage) => `You are a helpful CV Improvement Coach with perfect memory. Your tasks are: 1. **REMEMBER**: Review the full conversation history. Note down every topic already discussed (e.g., 'projects', 'certificates', 'summary'). 2. **UPDATE**: Based on the user's **LAST** answer, generate a precise update instruction. * If the user adds an item to a list (e.g., a new certificate), the path should be the array name (e.g., "certificates") and the value should be the new item to be pushed. * If the user adds information for a section that doesn't exist yet (e.g., the CV has no 'languages' section), your instruction must create it. Example: { "path": "languages", "value": [{ "language": "English", "proficiency": "Advanced" }] }. 3. **ASK STRATEGICALLY**: * Examine the conversation history again. **NEVER ask a question about a topic that has already been covered.** * Identify the next most important topic that is missing or weak in the CV. * Formulate the next generic question about that new topic. * **LANGUAGE RULE:** The "nextQuestion" text **MUST BE in ${appLanguage}**. Output a single JSON object: { "updateInstruction": { "path": "path.to.update", "value": "the new data, can be a string or an object/array" }, "nextQuestion": "Your next unique and strategic question in ${appLanguage}, or null if finished." } Current CV Data: ${JSON.stringify(cvData)} Conversation History: ${conversationHistory}`;
 
 
-// --- DİNAMİK PDF HTML Şablonu ---
+// --- PDF HTML Şablonu (DİNAMİK) ---
 const generateCvHtml = (data) => {
   return `
     <html>
@@ -82,7 +56,6 @@ const generateCvHtml = (data) => {
 
 // --- API Endpoints ---
 
-// HIZLANDIRILMIŞ İLK ANALİZ
 app.post('/api/initial-parse', upload.single('cv'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: "Dosya bulunamadı." });
   try {
@@ -91,43 +64,57 @@ app.post('/api/initial-parse', upload.single('cv'), async (req, res) => {
     else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') { text = (await mammoth.extractRawText({ buffer: req.file.buffer })).value; }
     else { return res.status(400).send({ message: 'Desteklenmeyen dosya türü.' }); }
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo-0125',
-      messages: [{ role: 'user', content: getInitialAnalysisPrompt(text) }],
-      response_format: { type: "json_object" },
-    });
+    const response = await openai.chat.completions.create({ model: 'gpt-3.5-turbo-0125', messages: [{ role: 'user', content: getInitialAnalysisPrompt(text) }], response_format: { type: "json_object" }, });
     res.status(200).json({ parsedData: JSON.parse(response.choices[0].message.content) });
   } catch (error) { console.error("İlk analiz hatası:", error); res.status(500).send({ message: 'CV analizi sırasında sunucuda bir hata oluştu.' }); }
 });
 
-
-// YENİDEN İSİMLENDİRİLMİŞ ve AKILLI SOHBET ADIMI
 app.post('/api/next-step', async (req, res) => {
   try {
     const { conversationHistory, cvData, appLanguage } = req.body;
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo', // Bu karmaşık görev için GPT-4 Turbo şiddetle tavsiye edilir
-      messages: [{ role: 'user', content: getNextStepPrompt(JSON.stringify(conversationHistory), cvData, appLanguage) }],
-      response_format: { type: "json_object" },
-    });
+    const response = await openai.chat.completions.create({ model: 'gpt-4-turbo', messages: [{ role: 'user', content: getNextStepPrompt(JSON.stringify(conversationHistory), cvData, appLanguage) }], response_format: { type: "json_object" }, });
     res.json(JSON.parse(response.choices[0].message.content));
   } catch (error) { console.error("Sohbet adımı hatası:", error); res.status(500).send({ message: 'Sıradaki adım üretilemedi.' }); }
 });
 
-// PDF ÜRETİMİ (DEĞİŞİKLİK YOK)
 app.post('/api/generate-pdf', async (req, res) => {
   try {
-    const cvData = req.body.cvData;
-    const htmlContent = generateCvHtml(cvData);
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+    let cvData = req.body.cvData;
+    const cvLanguage = req.body.cvLanguage || 'en';
+
+    const summaryUpdatePrompt = `Based on the complete CV data provided below, rewrite the "summary" to be a powerful and concise professional pitch that reflects all experiences and skills. The summary **MUST BE in ${cvLanguage}**. Output only the new summary text. CV Data: ${JSON.stringify(cvData)}`;
+    const summaryResponse = await openai.chat.completions.create({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: summaryUpdatePrompt }], });
+
+    if (summaryResponse.choices[0].message.content) {
+      cvData.summary = summaryResponse.choices[0].message.content.trim();
+    }
+
+    // --- PUPPETEER GÜNCELLEMESİ (LAUNCH KISMI) ---
+    const browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--single-process'
+      ],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless, // 'new' yerine chromium.headless kullanmak daha uyumludur
+    });
+
     const page = await browser.newPage();
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
     await browser.close();
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=Gelistirilmis_CV.pdf');
     res.send(pdfBuffer);
-  } catch (error) { console.error("PDF üretimi hatası:", error); res.status(500).send({ message: 'PDF üretilemedi.' }); }
+  } catch (error) {
+    console.error("PDF üretimi hatası:", error);
+    res.status(500).send({ message: 'PDF üretilemedi. Sunucu loglarını kontrol edin.' });
+  }
 });
 
 
