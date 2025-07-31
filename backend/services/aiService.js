@@ -5,8 +5,7 @@ const { logStep } = require('../utils/logger');
 // OpenAI istemcisini yapılandır
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-
-// --- GÜÇLENDİRİLMİŞ VE DİL KİLİTLİ AI PROMPTS ---
+// --- GÖREV ODAKLI, GÜÇLENDİRİLMİŞ AI PROMPTS ---
 
 /**
  * GÖREV 1: Hızlı ve Ham Veri Çıkarma.
@@ -32,7 +31,7 @@ const getExtractionPrompt = (cvText, template) => `
  * belirtilen dilde sorular üretmesini söyler. DİL KURALI ÇOK KESİNDİR.
  */
 const getAiQuestionsPrompt = (cvData, appLanguage) => `
-  You are a senior career coach. Your task is to analyze the provided CV JSON data and generate improvement questions.
+  You are a senior career coach. Analyze the provided CV JSON data. Your goal is to identify up to 4 of the most critical weaknesses or missing information that would significantly improve this CV.
 
   **CRITICAL RULES:**
   1.  **LANGUAGE LOCK:** Your entire response, specifically the questions in the final JSON array, **MUST BE WRITTEN EXCLUSIVELY in the target language: '${appLanguage}'**. Do NOT use English or any other language unless '${appLanguage}' itself is English. This is your most important instruction. Failure to adhere to the language rule means the task is a failure.
@@ -50,7 +49,7 @@ const getAiQuestionsPrompt = (cvData, appLanguage) => `
 /**
  * GÖREV 3: Final CV'yi Mükemmelleştirme.
  * Yapay zekaya, toplanan tüm veriyi alıp, hedef dilde, profesyonel ve
- * hatasız bir nihai CV JSON'u oluşturmasını söyler. DİL KURALI ÇOK KESİNDİR.
+ * hatasız bir nihai CV JSON'u oluşturmasını söyler.
  */
 const getFinalizeCvPrompt = (cvData, targetLanguage) => `
   You are a master CV writer. Take the following structured CV JSON data, which includes user's answers to your questions, and transform it into a perfectly polished, professional CV.
@@ -64,50 +63,63 @@ const getFinalizeCvPrompt = (cvData, targetLanguage) => `
   ${JSON.stringify(cvData)}
 `;
 
+/**
+ * YENİ GÖREV: Ön Yazı Taslağı Oluşturma.
+ * Yapay zekaya, bitmiş CV verisine dayanarak, birinci ağızdan ve belirtilen dilde bir
+ * ön yazı giriş paragrafı yazmasını söyler.
+ */
+const getCoverLetterPrompt = (cvData, appLanguage) => `
+  You are a career coach helping a candidate write a cover letter introduction. Based on the finalized CV data below, write a short, compelling, first-person paragraph (2-4 sentences). This paragraph should serve as a cover letter template that the user can copy and adapt.
+
+  CRITICAL RULES:
+  1.  **LANGUAGE LOCK:** The entire paragraph MUST BE written exclusively in '${appLanguage}'. No other languages are permitted.
+  2.  **FIRST PERSON:** Write from the "I" perspective (e.g., "I am a seasoned software developer...", "Kıdemli bir yazılım geliştirici olarak...").
+  3.  **HIGHLIGHT STRENGTHS:** Briefly mention 1-2 key strengths or experiences from the CV that are most impressive.
+  4.  **TONE:** The tone should be professional, confident, and engaging.
+
+  Your final output must be ONLY the text of the paragraph, as a single string.
+
+  Final CV Data to use:
+  ${JSON.stringify(cvData)}
+`;
+
 // --- ASENKRON FONKSİYONLAR (API ÇAĞRILARI) ---
 
 async function extractRawCvData(cvText, template) {
   logStep("Yapay Zeka ile Ham Veri Çıkarılıyor.");
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: getExtractionPrompt(cvText, template) }],
-    response_format: { type: "json_object" },
-  });
+  const response = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: getExtractionPrompt(cvText, template) }], response_format: { type: "json_object" }, });
   logStep("Ham Veri Başarıyla Çıkarıldı.");
   return JSON.parse(response.choices[0].message.content);
 }
 
 async function generateAiQuestions(cvData, appLanguage) {
   logStep("AI için Stratejik Sorular Üretiliyor.");
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: getAiQuestionsPrompt(cvData, appLanguage) }],
-    response_format: { type: "json_object" },
-  });
+  const response = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: getAiQuestionsPrompt(cvData, appLanguage) }], response_format: { type: "json_object" }, });
   logStep("AI Soruları Üretildi.");
   return JSON.parse(response.choices[0].message.content);
 }
 
+// Bu fonksiyon artık 'analysis' üretmiyor, sadece CV'yi finalize ediyor.
 async function finalizeCvData(cvData, targetLanguage) {
   logStep("Final CV Metni Yapay Zeka ile Mükemmelleştiriliyor.");
   const finalizeResponse = await openai.chat.completions.create({
-    model: 'gpt-4-turbo', // En akıllı model, final ürün için kullanılıyor
+    model: 'gpt-4-turbo',
     messages: [{ role: 'user', content: getFinalizeCvPrompt(cvData, targetLanguage) }],
     response_format: { type: "json_object" },
   });
-  let finalCvData = JSON.parse(finalizeResponse.choices[0].message.content);
+  logStep("Final CV Metni Hazır.");
+  return JSON.parse(finalizeResponse.choices[0].message.content);
+}
 
-  // AI'dan son bir analiz ve övgü metni istiyoruz.
-  const analysisPrompt = `Provide a short professional analysis of this CV, highlighting its key strengths. The text MUST BE in ${targetLanguage}. CV Data (JSON): ${JSON.stringify(finalCvData)}`;
-  const analysisResponse = await openai.chat.completions.create({
+// Ön yazı metnini üreten yeni asenkron fonksiyon
+async function generateCoverLetterText(cvData, appLanguage) {
+  logStep("AI ile Ön Yazı Taslağı Oluşturuluyor.");
+  const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: analysisPrompt }],
+    messages: [{ role: 'user', content: getCoverLetterPrompt(cvData, appLanguage) }],
   });
-  if (analysisResponse.choices[0].message.content) {
-    finalCvData.analysis = analysisResponse.choices[0].message.content.trim();
-  }
-  logStep("Final CV Metni ve Analizi Hazır.");
-  return finalCvData;
+  logStep("Ön Yazı Taslağı Hazır.");
+  return response.choices[0].message.content.trim();
 }
 
 // Bu fonksiyonları dışa aktarıyoruz ki diğer dosyalar kullanabilsin.
@@ -115,4 +127,5 @@ module.exports = {
   extractRawCvData,
   generateAiQuestions,
   finalizeCvData,
+  generateCoverLetterText // Yeni fonksiyonu da dışa aktarıyoruz
 };

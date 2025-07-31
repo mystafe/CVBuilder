@@ -4,16 +4,19 @@
   "cvLanguageLabel": "Hedef CV Dili:",
   "uploadButtonLabel": "CV Dosyanızı Yükleyin",
   "uploadingButtonLabel": "Veriler Çıkarılıyor...",
-  "askName": "Belgede isminizi bulamadım. Lütfen adınızı ve soyadınızı yazar mısınız?",
   "welcomeQuestion": "CV verilerinizi başarıyla ayrıştırdım. Şimdi, birlikte geliştirmeye başlayalım. İlk adım olarak, özet kısmında vurgulamak istediğiniz, kariyerinizdeki en önemli başarı nedir?",
+  "askName": "Harika! CV'nizde bir isim bulunamadı. Lütfen tam adınızı yazar mısınız?",
+  "askEmail": "Anlaşıldı. İletişim için bir e-posta adresi ekleyelim mi?",
+  "askPhone": "Çok iyi. Telefon numaranızı da eklemek ister misiniz?",
   "chatPlaceholder": "Cevabınızı buraya yazın...",
   "answerButton": "Gönder",
   "skipButton": "Soruyu Atla",
-  "finishButton": "CV'mi Oluştur",
+  "finishButton": "CV'mi Oluştur & İndir",
   "generatingPdfButton": "PDF Sonlandırılıyor...",
-  "finalMessage": "Harika! CV'nizi geliştirdik. Son halini şimdi indirebilirsiniz.",
+  "coverLetterIntro": "İşte yeni CV'nize dayalı, ilgi çekici bir ön yazı girişi taslağı. Bunu kopyalayıp iş başvurularınız için uyarlayabilirsiniz:",
+  "finalMessage": "CV'niz başarıyla indirildi!",
   "errorOccurred": "Bir hata oluştu. Lütfen tekrar deneyin.",
   "chatError": "Sohbet sırasında bir hata oluştu.",
   "pdfError": "PDF oluşturulurken bir hata oluştu.",
   "footerText": "Mustafa Evleksiz tarafından geliştirilmiştir"
-} 
+}
