@@ -8,6 +8,7 @@ const mammoth = require('mammoth');
 const OpenAI = require('openai');
 const fs = require('fs');
 const path = require('path');
+const cvTemplate = JSON.parse(fs.readFileSync(path.join(__dirname, '../sample_cv_template.json'), 'utf8'));
 
 // --- PUPPETEER GÜNCELLEMESİ (BULUT ORTAMLARI İÇİN) ---
 const chromium = require('@sparticuz/chromium');
@@ -15,6 +16,10 @@ const puppeteer = require('puppeteer-core'); // 'puppeteer' yerine 'puppeteer-co
 
 const app = express();
 const port = process.env.PORT || 5001;
+
+function logStep(msg) {
+  console.log(`[LOG ${new Date().toISOString()}] ${msg}`);
+}
 
 // --- Middleware Ayarları ---
 const corsOptions = {
@@ -37,7 +42,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
 // --- AI PROMPTS (EN GÜNCEL HALİ) ---
-const getInitialAnalysisPrompt = (cvText) => `You are a fast and efficient CV data extractor. Your ONLY task is to parse the following raw text into a structured JSON object. Extract all sections you can find. CRITICAL: Do NOT change, rewrite, or enhance any of the text. Extract the data exactly as it appears in the source text. The output MUST be only the valid JSON object. Raw Text: --- ${cvText} ---`;
+const getInitialAnalysisPrompt = (cvText) => `You are a fast and efficient CV data extractor. Parse the raw text below into a JSON object following this template: ${JSON.stringify(cvTemplate)}. If you encounter two or three consecutive words in ALL CAPS near the beginning, treat them as the candidate's full name. CRITICAL: do not rewrite or omit anything. Output only valid JSON. Raw Text: --- ${cvText} ---`;
 const getNextStepPrompt = (conversationHistory, cvData, appLanguage) => `You are a helpful CV Improvement Coach with perfect memory. Your tasks are:
 1. **REMEMBER**: Review the full conversation history. Note down every topic already discussed (e.g., 'projects', 'certificates', 'summary').
 2. **UPDATE**: Based on the user's **LAST** answer, generate a precise update instruction. * If the user adds an item to a list (e.g., a new certificate), the path should be the array name (e.g., "certificates") and the value should be the new item to be pushed. * If the user adds information for a section that doesn't exist yet (e.g., the CV has no 'languages' section), your instruction must create it. Example: { "path": "languages", "value": [{ "language": "English", "proficiency": "Advanced" }] }.
@@ -78,6 +83,7 @@ const generateCvHtml = (data) => {
 app.post('/api/initial-parse', upload.single('cv'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: "Dosya bulunamadı." });
   try {
+    logStep('CV uploaded, saving to disk');
     const ext = path.extname(req.file.originalname);
     const base = path.basename(req.file.originalname, ext);
     const filePath = path.join(dataDir, `${base}_${Date.now()}${ext}`);
@@ -88,16 +94,22 @@ app.post('/api/initial-parse', upload.single('cv'), async (req, res) => {
     else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') { text = (await mammoth.extractRawText({ buffer: req.file.buffer })).value; }
     else { return res.status(400).send({ message: 'Desteklenmeyen dosya türü.' }); }
 
+    logStep('Running initial CV analysis');
     const response = await openai.chat.completions.create({ model: 'gpt-3.5-turbo-0125', messages: [{ role: 'user', content: getInitialAnalysisPrompt(text) }], response_format: { type: "json_object" }, });
+    logStep('Initial analysis completed');
     res.status(200).json({ parsedData: JSON.parse(response.choices[0].message.content) });
+    logStep('Initial analysis response sent');
   } catch (error) { console.error("İlk analiz hatası:", error); res.status(500).send({ message: 'CV analizi sırasında sunucuda bir hata oluştu.' }); }
 });
 
 app.post('/api/next-step', async (req, res) => {
   try {
     const { conversationHistory, cvData, appLanguage } = req.body;
+    logStep('Processing next conversation step');
     const response = await openai.chat.completions.create({ model: 'gpt-4-turbo', messages: [{ role: 'user', content: getNextStepPrompt(JSON.stringify(conversationHistory), cvData, appLanguage) }], response_format: { type: "json_object" }, });
+    logStep('Next step generated');
     res.json(JSON.parse(response.choices[0].message.content));
+    logStep('Next step response sent');
   } catch (error) { console.error("Sohbet adımı hatası:", error); res.status(500).send({ message: 'Sıradaki adım üretilemedi.' }); }
 });
 
@@ -105,6 +117,8 @@ app.post('/api/generate-pdf', async (req, res) => {
   try {
     let cvData = req.body.cvData;
     const cvLanguage = req.body.cvLanguage || 'en';
+
+    logStep('Generating final CV text');
 
     const summaryUpdatePrompt = `Based on the complete CV data provided below, rewrite the "summary" to be a powerful and concise professional pitch that reflects all experiences and skills. The summary **MUST BE in ${cvLanguage}**. Output only the new summary text. CV Data: ${JSON.stringify(cvData)}`;
     const summaryResponse = await openai.chat.completions.create({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: summaryUpdatePrompt }], });
@@ -121,6 +135,7 @@ app.post('/api/generate-pdf', async (req, res) => {
     }
 
     const htmlContent = generateCvHtml(cvData);
+    logStep('Rendering CV to PDF');
 
     // --- PUPPETEER GÜNCELLEMESİ (LAUNCH KISMI) ---
     let executablePath = process.env.CHROME_BIN;
@@ -159,9 +174,12 @@ app.post('/api/generate-pdf', async (req, res) => {
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
     await browser.close();
 
+    logStep('PDF generated successfully');
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=Gelistirilmis_CV.pdf');
     res.send(pdfBuffer);
+    logStep('PDF sent to client');
   } catch (error) {
     console.error("PDF üretimi hatası:", error);
     res.status(500).send({ message: 'PDF üretilemedi. Sunucu loglarını kontrol edin.' });
@@ -170,5 +188,5 @@ app.post('/api/generate-pdf', async (req, res) => {
 
 
 app.listen(port, () => {
-  console.log(`[BİLGİ] CVBUILDER Tam Sürüm Sunucu http://localhost:${port} adresinde çalışıyor`);
+  logStep(`Server running at http://localhost:${port}`);
 });
