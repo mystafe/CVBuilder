@@ -1,12 +1,12 @@
 // backend/services/pdfService.js
 const { logStep } = require('../utils/logger');
 
-// --- "ÇİFT MODLU" PUPPETEER YAPILANDIRMASI ---
-// Kodun nerede çalıştığını tespit et. Render'da NODE_ENV='production' olarak ayarlanır.
+// --- "ÇİFT MODLU" PUPPETEER ve YENİ CHROMIUM PAKETİ ---
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-// Ortama göre doğru puppeteer paketlerini yükle
 const puppeteer = IS_PRODUCTION ? require('puppeteer-core') : require('puppeteer');
-const chromium = IS_PRODUCTION ? require('chrome-aws-lambda') : null;
+// Eskimiş 'chrome-aws-lambda' yerine, aktif olarak geliştirilen ve daha güvenilir olan '@sparticuz/chromium' kullanılıyor
+const chromium = IS_PRODUCTION ? require('@sparticuz/chromium') : null;
+
 
 /**
  * Verilen CV JSON verisini, şık bir HTML şablonuna dönüştürür.
@@ -62,7 +62,7 @@ const generateCvHtml = (data) => {
 
 /**
  * Verilen CV verisinden bir PDF Buffer oluşturur.
- * Çalıştığı ortama göre doğru puppeteer yapılandırmasını seçer.
+ * Bu sürüm, en güvenilir Chromium paketi olan @sparticuz/chromium'u kullanır.
  * @param {object} data - CV verilerini içeren JSON nesnesi.
  * @returns {Promise<Buffer>} - Oluşturulan PDF dosyasının Buffer'ı.
  */
@@ -74,17 +74,13 @@ async function createPdf(data) {
         let launchOptions;
 
         if (IS_PRODUCTION) {
-            logStep("Canlı sunucu modu: chrome-aws-lambda kullanılıyor.");
-            const executablePath = await chromium.executablePath;
-            if (!executablePath) {
-                throw new Error("Chromium path could not be resolved from chrome-aws-lambda.");
-            }
+            logStep("Canlı sunucu modu: @sparticuz/chromium kullanılıyor.");
             launchOptions = {
                 args: chromium.args,
                 defaultViewport: chromium.defaultViewport,
-                executablePath: executablePath,
+                // @sparticuz/chromium paketi executablePath'i bir fonksiyon olarak sağlar
+                executablePath: await chromium.executablePath(),
                 headless: chromium.headless,
-                ignoreHTTPSErrors: true,
             };
         } else {
             logStep("Yerel geliştirme modu: Tam puppeteer paketi kullanılıyor.");
