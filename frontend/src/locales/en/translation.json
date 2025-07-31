@@ -4,6 +4,7 @@
   "cvLanguageLabel": "Target CV Language:",
   "uploadButtonLabel": "Upload Your CV",
   "uploadingButtonLabel": "Extracting Data...",
+  "askName": "I couldn't find your full name in the document. What is your first and last name?",
   "welcomeQuestion": "I've successfully parsed your CV data. Now, let's start improving it together. As a first step, what is the most significant achievement in your career you'd like to highlight in the summary?",
   "chatPlaceholder": "Type your answer here...",
   "answerButton": "Send",
