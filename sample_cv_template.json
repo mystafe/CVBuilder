@@ -1,0 +1,47 @@
+{
+  "personalInfo": {
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1 555-1234",
+    "location": "New York, USA"
+  },
+  "summary": "Experienced professional with a background in software engineering.",
+  "experience": [
+    {
+      "title": "Senior Developer",
+      "company": "Tech Corp",
+      "location": "New York, USA",
+      "date": "2022 - Present",
+      "description": "- Developed scalable web applications\n- Led a team of 5 engineers"
+    }
+  ],
+  "education": [
+    {
+      "degree": "B.Sc. Computer Science",
+      "institution": "State University",
+      "date": "2018"
+    }
+  ],
+  "certificates": [
+    "AWS Certified Solutions Architect"
+  ],
+  "skillsByCategory": [
+    {
+      "category": "Programming",
+      "skills": ["JavaScript", "Python", "Java"]
+    }
+  ],
+  "languages": [
+    {
+      "language": "English",
+      "proficiency": "Native"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project X",
+      "description": "An innovative platform for data analytics",
+      "url": "https://example.com"
+    }
+  ]
+}
