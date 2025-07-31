@@ -70,7 +70,12 @@ function App() {
     try {
       const res = await axios.post(`${API_BASE_URL}/api/initial-parse`, formData, { timeout: 45000 });
       setCvData(res.data.parsedData);
-      setConversation([{ type: 'ai', text: t('welcomeQuestion') }]);
+      const initialMsgs = [];
+      if (!res.data.parsedData?.personalInfo?.name && !res.data.parsedData?.personalInfo?.firstName) {
+        initialMsgs.push({ type: 'ai', text: t('askName') });
+      }
+      initialMsgs.push({ type: 'ai', text: t('welcomeQuestion') });
+      setConversation(initialMsgs);
       setStep('chat');
     } catch (err) {
       if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {

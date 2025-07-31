@@ -38,11 +38,18 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // --- AI PROMPTS (EN GÜNCEL HALİ) ---
 const getInitialAnalysisPrompt = (cvText) => `You are a fast and efficient CV data extractor. Your ONLY task is to parse the following raw text into a structured JSON object. Extract all sections you can find. CRITICAL: Do NOT change, rewrite, or enhance any of the text. Extract the data exactly as it appears in the source text. The output MUST be only the valid JSON object. Raw Text: --- ${cvText} ---`;
-const getNextStepPrompt = (conversationHistory, cvData, appLanguage) => `You are a helpful CV Improvement Coach with perfect memory. Your tasks are: 1. **REMEMBER**: Review the full conversation history. Note down every topic already discussed (e.g., 'projects', 'certificates', 'summary'). 2. **UPDATE**: Based on the user's **LAST** answer, generate a precise update instruction. * If the user adds an item to a list (e.g., a new certificate), the path should be the array name (e.g., "certificates") and the value should be the new item to be pushed. * If the user adds information for a section that doesn't exist yet (e.g., the CV has no 'languages' section), your instruction must create it. Example: { "path": "languages", "value": [{ "language": "English", "proficiency": "Advanced" }] }. 3. **ASK STRATEGICALLY**: * Examine the conversation history again. **NEVER ask a question about a topic that has already been covered.** * Identify the next most important topic that is missing or weak in the CV. * Formulate the next generic question about that new topic. * **LANGUAGE RULE:** The "nextQuestion" text **MUST BE in ${appLanguage}**. Output a single JSON object: { "updateInstruction": { "path": "path.to.update", "value": "the new data, can be a string or an object/array" }, "nextQuestion": "Your next unique and strategic question in ${appLanguage}, or null if finished." } Current CV Data: ${JSON.stringify(cvData)} Conversation History: ${conversationHistory}`;
+const getNextStepPrompt = (conversationHistory, cvData, appLanguage) => `You are a helpful CV Improvement Coach with perfect memory. Your tasks are:
+1. **REMEMBER**: Review the full conversation history. Note down every topic already discussed (e.g., 'projects', 'certificates', 'summary').
+2. **UPDATE**: Based on the user's **LAST** answer, generate a precise update instruction. * If the user adds an item to a list (e.g., a new certificate), the path should be the array name (e.g., "certificates") and the value should be the new item to be pushed. * If the user adds information for a section that doesn't exist yet (e.g., the CV has no 'languages' section), your instruction must create it. Example: { "path": "languages", "value": [{ "language": "English", "proficiency": "Advanced" }] }.
+3. **ASK STRATEGICALLY**: * Always ensure critical personal info like full name, email, and phone number are present. If any of these are missing in the CV data, your next question should request the missing details before moving to other topics. * Examine the conversation history again. **NEVER ask a question about a topic that has already been covered.** * Identify the next most important topic that is missing or weak in the CV. * Formulate the next generic question about that new topic. * **LANGUAGE RULE:** The "nextQuestion" text **MUST BE in ${appLanguage}**.
+Output a single JSON object: { "updateInstruction": { "path": "path.to.update", "value": "the new data, can be a string or an object/array" }, "nextQuestion": "Your next unique and strategic question in ${appLanguage}, or null if finished." }
+Current CV Data: ${JSON.stringify(cvData)}
+Conversation History: ${conversationHistory}`;
 
 
 // --- PDF HTML Şablonu (DİNAMİK) ---
 const generateCvHtml = (data) => {
+  const fullName = (data.personalInfo?.name || `${data.personalInfo?.firstName || ''} ${data.personalInfo?.lastName || ''}`.trim()).trim();
   return `
     <html>
     <head>
@@ -51,7 +58,7 @@ const generateCvHtml = (data) => {
     </head>
     <body>
     <div class="page">
-        ${data.personalInfo ? `<div class="header"><h1 class="name">${data.personalInfo.name}</h1><p class="contact-info">${data.personalInfo.email} | ${data.personalInfo.phone} | ${data.personalInfo.location}</p></div>` : ''}
+        ${fullName ? `<div class="header"><h1 class="name">${fullName}</h1><p class="contact-info">${data.personalInfo?.email || ''} | ${data.personalInfo?.phone || ''} | ${data.personalInfo?.location || ''}</p></div>` : ''}
         ${data.summary ? `<div class="section"><h2 class="section-title">Summary</h2><p>${data.summary}</p></div>` : ''}
         ${data.experience && data.experience.length > 0 ? `<div class="section"><h2 class="section-title">Experience</h2>${data.experience.map(exp => `<div class="item-container"><div class="item-content"><h3>${exp.title}</h3><div class="sub-header">${exp.company} | ${exp.location}</div><ul>${(exp.description || '').split('\\n').map(d => `<li>${d.replace(/^- /, '')}</li>`).join('')}</ul></div><div class="item-date">${exp.date}</div></div>`).join('')}</div>` : ''}
         ${data.education && data.education.length > 0 ? `<div class="section"><h2 class="section-title">Education</h2>${data.education.map(edu => `<div class="item-container"><div class="item-content"><h3>${edu.degree}</h3><p>${edu.institution}</p></div><div class="item-date">${edu.date || ''}</div></div>`).join('')}</div>` : ''}
