@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import Logo from './components/Logo';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import ThemeSwitcher from './components/ThemeSwitcher';
+import packageJson from '../package.json';
 import './App.css';
 
 // --- API Yapılandırması ---
@@ -178,7 +179,7 @@ function App() {
             {isLoading ? loadingMessage : t('uploadButtonLabel')}
           </label>
           {error && <p className="error-text">{error}</p>}
-          <footer>{t('footerText')}</footer>
+          <footer>{`${t('footerText')} - v${packageJson.version}`}</footer>
         </div>
       )}
       {(step === 'chat' || step === 'final') && (
@@ -218,7 +219,7 @@ function App() {
             </div>
             {error && <p className="error-text">{error}</p>}
           </div>
-          <footer>{t('footerText')}</footer>
+          <footer>{`${t('footerText')} - v${packageJson.version}`}</footer>
         </div>
       )}
     </div>
