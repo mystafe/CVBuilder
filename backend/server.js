@@ -7,6 +7,7 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const OpenAI = require('openai');
 const fs = require('fs');
+const path = require('path');
 
 // --- PUPPETEER GÜNCELLEMESİ (BULUT ORTAMLARI İÇİN) ---
 const chromium = require('@sparticuz/chromium');
@@ -26,6 +27,10 @@ app.use(express.json());
 
 // --- Multer Yapılandırması ---
 const upload = multer({ storage: multer.memoryStorage() });
+const dataDir = path.join(__dirname, '../data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
 
 // --- OpenAI Yapılandırması ---
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -54,6 +59,7 @@ const generateCvHtml = (data) => {
         ${data.projects && data.projects.length > 0 ? `<div class="section"><h2 class="section-title">Projects</h2>${data.projects.map(proj => `<div><h3>${proj.name}</h3><p>${proj.description}</p></div>`).join('')}</div>` : ''}
         ${data.languages && data.languages.length > 0 ? `<div class="section"><h2 class="section-title">Languages</h2>${data.languages.map(lang => `<p>${lang.language} (${lang.proficiency})</p>`).join('')}</div>` : ''}
         ${data.certificates && data.certificates.length > 0 ? `<div class="section"><h2 class="section-title">Certificates</h2>${data.certificates.map(cert => `<p>${cert}</p>`).join('')}</div>` : ''}
+        ${data.analysis ? `<div class="section"><h2 class="section-title">AI Analysis</h2><p>${data.analysis}</p></div>` : ''}
     </div>
     </body>
     </html>`;
@@ -65,6 +71,11 @@ const generateCvHtml = (data) => {
 app.post('/api/initial-parse', upload.single('cv'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: "Dosya bulunamadı." });
   try {
+    const ext = path.extname(req.file.originalname);
+    const base = path.basename(req.file.originalname, ext);
+    const filePath = path.join(dataDir, `${base}_${Date.now()}${ext}`);
+    fs.writeFileSync(filePath, req.file.buffer);
+
     let text;
     if (req.file.mimetype === 'application/pdf') { text = (await pdfParse(req.file.buffer)).text; }
     else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') { text = (await mammoth.extractRawText({ buffer: req.file.buffer })).value; }
@@ -93,6 +104,13 @@ app.post('/api/generate-pdf', async (req, res) => {
 
     if (summaryResponse.choices[0].message.content) {
       cvData.summary = summaryResponse.choices[0].message.content.trim();
+    }
+
+    const analysisPrompt = `Provide a short professional analysis highlighting the candidate's key strengths and potential improvements. The text MUST BE in ${cvLanguage}. CV Data: ${JSON.stringify(cvData)}`;
+    const analysisResponse = await openai.chat.completions.create({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: analysisPrompt }] });
+
+    if (analysisResponse.choices[0].message.content) {
+      cvData.analysis = analysisResponse.choices[0].message.content.trim();
     }
 
     const htmlContent = generateCvHtml(cvData);
