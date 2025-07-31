@@ -64,17 +64,19 @@ function App() {
     setError('');
     const formData = new FormData();
     formData.append('cv', file);
-    formData.append('appLanguage', i18n.language);
+    // send the language used for follow-up questions
+    formData.append('appLanguage', cvLanguage);
     formData.append('cvLanguage', cvLanguage);
 
     try {
       const res = await axios.post(`${API_BASE_URL}/api/initial-parse`, formData, { timeout: 45000 });
       setCvData(res.data.parsedData);
       const initialMsgs = [];
+      const tCv = i18n.getFixedT(cvLanguage);
       if (!res.data.parsedData?.personalInfo?.name && !res.data.parsedData?.personalInfo?.firstName) {
-        initialMsgs.push({ type: 'ai', text: t('askName') });
+        initialMsgs.push({ type: 'ai', text: tCv('askName') });
       }
-      initialMsgs.push({ type: 'ai', text: t('welcomeQuestion') });
+      initialMsgs.push({ type: 'ai', text: tCv('welcomeQuestion') });
       setConversation(initialMsgs);
       setStep('chat');
     } catch (err) {
@@ -102,7 +104,8 @@ function App() {
       const res = await axios.post(`${API_BASE_URL}/api/next-step`, {
         conversationHistory: JSON.stringify(newConversation),
         cvData,
-        appLanguage: i18n.language
+        // Use the target CV language for follow-up questions
+        appLanguage: cvLanguage
       });
 
       let updatedCvData = JSON.parse(JSON.stringify(cvData));
