@@ -9,7 +9,7 @@ const OpenAI = require('openai');
 const fs = require('fs');
 
 // --- PUPPETEER GÜNCELLEMESİ (BULUT ORTAMLARI İÇİN) ---
-const chromium = require('@sparticuz/chromium-min');
+const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core'); // 'puppeteer' yerine 'puppeteer-core' kullanılıyor
 
 const app = express();
