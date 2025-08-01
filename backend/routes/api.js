@@ -68,7 +68,7 @@ router.post('/generate-cover-letter-pdf', async (req, res) => {
     const pdfBuffer = await pdfService.createCoverLetterPdf(coverLetterText);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=Cover_Letter.pdf');
-    logStep('Ön Yazı PDF buffer'ı oluşturuldu ve gönderiliyor.');
+    logStep("Ön Yazı PDF buffer'ı oluşturuldu ve gönderiliyor.");
     res.send(pdfBuffer);
   } catch (error) {
     console.error("Ön Yazı PDF Hatası:", error);
