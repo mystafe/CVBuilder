@@ -21,6 +21,7 @@ function App() {
   const [cvLanguage, setCvLanguage] = useState('tr');
   const [step, setStep] = useState('upload'); // 'upload', 'scriptedQuestions', 'aiQuestions', 'final'
   const [cvData, setCvData] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
   const [questionQueue, setQuestionQueue] = useState([]);
   const [conversation, setConversation] = useState([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
@@ -67,6 +68,7 @@ function App() {
     const formData = new FormData(); formData.append('cv', file);
     try {
       const res = await axios.post(`${API_BASE_URL}/api/extract-raw`, formData, { timeout: 45000 });
+      setSessionId(res.data.sessionId);
       startScriptedQuestions(res.data.parsedData);
     } catch (err) {
       setError(err.response?.data?.message || t('errorOccurred'));
@@ -77,7 +79,7 @@ function App() {
   const fetchAiQuestions = async (currentData) => {
     setLoadingMessage("AI CV'nizi Analiz Ediyor...");
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/generate-ai-questions`, { cvData: currentData, appLanguage: i18n.language });
+      const res = await axios.post(`${API_BASE_URL}/api/generate-ai-questions`, { cvData: currentData, appLanguage: i18n.language, sessionId });
       const aiQuestions = (res.data.questions || []).map(q => ({ key: q, isAi: true }));
 
       if (aiQuestions.length > 0) {
@@ -142,17 +144,19 @@ function App() {
 
     try {
       // ADIM 1: PDF'i oluştur ve indir
-      const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, { cvData, cvLanguage }, { responseType: 'blob' });
+      const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, { cvData, cvLanguage, sessionId }, { responseType: 'blob' });
 
       const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
-      const link = document.createElement('a');
-      link.href = url;
       const fileName = (get(cvData, 'personalInfo.name') || 'Super_CV').replace(/\s+/g, '_') + '.pdf';
-      link.setAttribute('download', fileName);
-      link.setAttribute('target', '_blank');
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+      const newTab = window.open(url, '_blank');
+      if (!newTab) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
       window.URL.revokeObjectURL(url);
 
       // PDF indirildikten sonra sadece bir "typing" mesajı göster
@@ -162,8 +166,9 @@ function App() {
       // ADIM 2: Arka planda ön yazı metnini iste
       try {
         const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/generate-cover-letter`, {
-          cvData, // AI'ın son CV'yi kullanması için cvData'yı gönderiyoruz
-          appLanguage: i18n.language
+          cvData,
+          appLanguage: i18n.language,
+          sessionId
         });
 
         // ADIM 3: Ön yazıyı al ve "typing" göstergesini kaldırarak sohbete ekle
@@ -182,16 +187,19 @@ function App() {
           try {
             const pdfRes = await axios.post(`${API_BASE_URL}/api/generate-cover-letter-pdf`, {
               cvData,
-              appLanguage: i18n.language
+              appLanguage: i18n.language,
+              sessionId
             }, { responseType: 'blob' });
             const pdfUrl = window.URL.createObjectURL(new Blob([pdfRes.data], { type: 'application/pdf' }));
-            const pdfLink = document.createElement('a');
-            pdfLink.href = pdfUrl;
-            pdfLink.setAttribute('download', 'Cover_Letter.pdf');
-            document.body.appendChild(pdfLink);
-            pdfLink.setAttribute('target', '_blank');
-            pdfLink.click();
-            pdfLink.parentNode.removeChild(pdfLink);
+            const newTabCL = window.open(pdfUrl, '_blank');
+            if (!newTabCL) {
+              const pdfLink = document.createElement('a');
+              pdfLink.href = pdfUrl;
+              pdfLink.setAttribute('download', 'Cover_Letter.pdf');
+              document.body.appendChild(pdfLink);
+              pdfLink.click();
+              pdfLink.remove();
+            }
             window.URL.revokeObjectURL(pdfUrl);
           } catch (pdfErr) {
             // ignore PDF download errors
@@ -212,6 +220,7 @@ function App() {
 
   return (
     <div className="app-container">
+      {isLoading && <div className="loading-overlay"><div className="spinner"></div></div>}
       {step === 'upload' ? (
         <div className="upload-step fade-in">
           <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>

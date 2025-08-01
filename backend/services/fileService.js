@@ -18,15 +18,40 @@ if (!fs.existsSync(dataDir)) {
 // Dosyayı sunucunun belleğinde geçici olarak tutarız, diske yazma işlemi manuel yapılır.
 const upload = multer({ storage: multer.memoryStorage() });
 
+function ensureSessionDir(sessionId) {
+  const sessionPath = path.join(dataDir, sessionId);
+  if (!fs.existsSync(sessionPath)) {
+    fs.mkdirSync(sessionPath, { recursive: true });
+  }
+  return sessionPath;
+}
+
+function createSession() {
+  const sessionId = Date.now().toString();
+  ensureSessionDir(sessionId);
+  return sessionId;
+}
+
 /**
- * Bellekte tutulan bir dosyayı, belirlenen /data klasörüne kaydeder.
+ * Bellekte tutulan bir dosyayı verilen oturum klasörüne kaydeder.
+ * Oturum belirtilmezse yeni bir oturum oluşturulur.
  * @param {object} file - Multer tarafından işlenmiş dosya nesnesi.
- * @returns {Promise<string>} - Kaydedilen dosyanın tam yolu.
+ * @param {string} [sessionId]
+ * @returns {Promise<{filePath:string, sessionId:string}>}
  */
-async function saveFile(file) {
-  // Çakışmaları önlemek için dosya adının başına bir tarih damgası ekliyoruz.
-  const filePath = path.join(dataDir, `${Date.now()}_${file.originalname}`);
+async function saveFile(file, sessionId) {
+  const id = sessionId || createSession();
+  const sessionPath = ensureSessionDir(id);
+  const filePath = path.join(sessionPath, file.originalname);
   await fs.promises.writeFile(filePath, file.buffer);
+  logStep(`Dosya şuraya kaydedildi: ${filePath}`);
+  return { filePath, sessionId: id };
+}
+
+async function saveBuffer(sessionId, fileName, buffer) {
+  const sessionPath = ensureSessionDir(sessionId);
+  const filePath = path.join(sessionPath, fileName);
+  await fs.promises.writeFile(filePath, buffer);
   logStep(`Dosya şuraya kaydedildi: ${filePath}`);
   return filePath;
 }
@@ -67,6 +92,8 @@ function getTemplate() {
 module.exports = {
   upload,
   saveFile,
+  saveBuffer,
+  createSession,
   getTextFromFile,
   getTemplate
 };
