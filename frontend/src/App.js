@@ -154,25 +154,30 @@ function App() {
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      // PDF indirildikten sonra sohbeti son adıma taşı ve "typing" göster
-      setConversation(prev => [...prev, { type: 'ai', text: t('finalMessage') }, { type: 'typing' }]);
+      // PDF indirildikten sonra sadece bir "typing" mesajı göster
+      setConversation(prev => [...prev, { type: 'typing' }]);
       setStep('final');
 
       // ADIM 2: Arka planda ön yazı metnini iste
-      const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/generate-cover-letter`, {
-        cvData, // AI'ın son CV'yi kullanması için cvData'yı gönderiyoruz
-        appLanguage: i18n.language
-      });
+      try {
+        const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/generate-cover-letter`, {
+          cvData, // AI'ın son CV'yi kullanması için cvData'yı gönderiyoruz
+          appLanguage: i18n.language
+        });
 
-      // ADIM 3: Ön yazıyı al ve "typing" göstergesini kaldırarak sohbete ekle
-      setConversation(prev => {
-        const newConversation = prev.filter(msg => msg.type !== 'typing'); // typing'i kaldır
-        if (coverLetterResponse.data.coverLetter) {
-          const fullCoverLetterMessage = `${t('coverLetterIntro')}\n\n"${coverLetterResponse.data.coverLetter}"`;
-          newConversation.push({ type: 'ai', text: fullCoverLetterMessage });
-        }
-        return newConversation;
-      });
+        // ADIM 3: Ön yazıyı al ve "typing" göstergesini kaldırarak sohbete ekle
+        setConversation(prev => {
+          const newConversation = prev.filter(msg => msg.type !== 'typing'); // typing'i kaldır
+          if (coverLetterResponse.data.coverLetter) {
+            const fullCoverLetterMessage = `${t('coverLetterIntro')}\n\n"${coverLetterResponse.data.coverLetter}"`;
+            newConversation.push({ type: 'ai', text: fullCoverLetterMessage });
+          }
+          return newConversation;
+        });
+      } catch (coverErr) {
+        // Ön yazı alınamazsa sadece typing'i kaldır, hata göstermeye gerek yok
+        setConversation(prev => prev.filter(msg => msg.type !== 'typing'));
+      }
 
     } catch (err) {
       setConversation(prev => prev.filter(msg => msg.type !== 'typing')); // Hata durumunda da typing'i kaldır
