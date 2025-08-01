@@ -46,10 +46,10 @@ const generateCvHtml = (data, language = 'en') => {
             @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
             body { font-family: 'Roboto', 'Helvetica Neue', sans-serif; margin: 0; background-color: #fff; font-size: 10.5pt; line-height: 1.4; color: #333; }
             .page { max-width: 8.5in; min-height: 11in; padding: 0.8in; margin: auto; box-sizing: border-box; }
-            .header { text-align: left; margin-bottom: 0.4in; }
+            .header { text-align: left; margin-bottom: 0.2in; }
             .header .name { font-size: 32pt; font-weight: 700; margin: 0 0 5px 0; color: #2c3e50; }
             .header .contact-info { font-size: 10pt; color: #555; }
-            .section-title { font-size: 14pt; font-weight: 700; color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 4px; margin-top: 0.3in; margin-bottom: 0.2in; }
+            .section-title { font-size: 14pt; font-weight: 700; color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 4px; margin-top: 0.15in; margin-bottom: 0.15in; }
             .item-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.15in; }
             .item-content { flex-basis: 100%; }
             .item-content h3 { font-size: 11pt; font-weight: 700; margin: 0; }
