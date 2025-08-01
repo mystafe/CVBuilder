@@ -50,6 +50,7 @@ router.post('/generate-cover-letter', async (req, res) => {
     const { cvData, appLanguage } = req.body;
     logStep("Ön Yazı Metni için istek alındı.");
     const coverLetterText = await aiService.generateCoverLetterText(cvData, appLanguage);
+    logStep(`Ön Yazı Metni oluşturuldu: ${coverLetterText.slice(0,40)}...`);
     // Ön yazıyı bir JSON nesnesi içinde geri gönderiyoruz
     res.status(200).json({ coverLetter: coverLetterText });
   } catch (error) {
@@ -67,6 +68,7 @@ router.post('/generate-cover-letter-pdf', async (req, res) => {
     const pdfBuffer = await pdfService.createCoverLetterPdf(coverLetterText);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=Cover_Letter.pdf');
+    logStep('Ön Yazı PDF buffer'ı oluşturuldu ve gönderiliyor.');
     res.send(pdfBuffer);
   } catch (error) {
     console.error("Ön Yazı PDF Hatası:", error);
