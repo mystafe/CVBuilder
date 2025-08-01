@@ -166,12 +166,17 @@ function App() {
 
       const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
       const fileName = (get(cvData, 'personalInfo.name') || 'Super_CV').replace(/\s+/g, '_') + '.pdf';
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.open(url, '_blank');
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
       window.URL.revokeObjectURL(url);
 
       // PDF indirildikten sonra sadece bir "typing" mesajı göster
@@ -232,7 +237,11 @@ function App() {
 
   return (
     <div className="app-container">
-      {isLoading && <div className="loading-overlay"><div className="dot-spinner"><div></div><div></div><div></div></div></div>}
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="ring-spinner"></div>
+        </div>
+      )}
       {step === 'upload' ? (
         <div className="upload-step fade-in">
           <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
