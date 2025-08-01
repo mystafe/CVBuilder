@@ -38,3 +38,16 @@ export async function finalizeAndCreatePdf(cvData, cvLanguage) {
   });
   return response.data;
 }
+
+/**
+ * CV verisine göre ön yazı PDF'i oluşturur ve indirir.
+ */
+export async function generateCoverLetterPdf(cvData, appLanguage) {
+  const response = await axios.post(`${API_BASE_URL}/api/generate-cover-letter-pdf`, {
+    cvData,
+    appLanguage
+  }, {
+    responseType: 'blob'
+  });
+  return response.data;
+}

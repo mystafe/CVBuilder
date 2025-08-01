@@ -166,14 +166,35 @@ function App() {
         });
 
         // ADIM 3: Ön yazıyı al ve "typing" göstergesini kaldırarak sohbete ekle
+        let coverLetterText = coverLetterResponse.data.coverLetter;
         setConversation(prev => {
           const newConversation = prev.filter(msg => msg.type !== 'typing'); // typing'i kaldır
-          if (coverLetterResponse.data.coverLetter) {
-            const fullCoverLetterMessage = `${t('coverLetterIntro')}\n\n"${coverLetterResponse.data.coverLetter}"`;
+          if (coverLetterText) {
+            const fullCoverLetterMessage = `${t('coverLetterIntro')}\n\n"${coverLetterText}"`;
             newConversation.push({ type: 'ai', text: fullCoverLetterMessage });
           }
           return newConversation;
         });
+
+        // ADIM 4: Ön yazı PDF'i indir
+        if (coverLetterText) {
+          try {
+            const pdfRes = await axios.post(`${API_BASE_URL}/api/generate-cover-letter-pdf`, {
+              cvData,
+              appLanguage: i18n.language
+            }, { responseType: 'blob' });
+            const pdfUrl = window.URL.createObjectURL(new Blob([pdfRes.data], { type: 'application/pdf' }));
+            const pdfLink = document.createElement('a');
+            pdfLink.href = pdfUrl;
+            pdfLink.setAttribute('download', 'Cover_Letter.pdf');
+            document.body.appendChild(pdfLink);
+            pdfLink.click();
+            pdfLink.parentNode.removeChild(pdfLink);
+            window.URL.revokeObjectURL(pdfUrl);
+          } catch (pdfErr) {
+            // ignore PDF download errors
+          }
+        }
       } catch (coverErr) {
         // Ön yazı alınamazsa sadece typing'i kaldır, hata göstermeye gerek yok
         setConversation(prev => prev.filter(msg => msg.type !== 'typing'));
