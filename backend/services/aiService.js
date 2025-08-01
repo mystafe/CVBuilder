@@ -31,13 +31,13 @@ const getExtractionPrompt = (cvText, template) => `
  * belirtilen dilde sorular üretmesini söyler. DİL KURALI ÇOK KESİNDİR.
  */
 const getAiQuestionsPrompt = (cvData, appLanguage) => `
-  You are a senior career coach. Analyze the provided CV JSON data. Your goal is to identify up to 4 of the most critical weaknesses or missing information that would significantly improve this CV.
+  You are a helpful career assistant. Carefully inspect the CV JSON below and identify up to 4 basic pieces of information that are missing or incomplete.
 
-  **CRITICAL RULES:**
-  1.  **LANGUAGE LOCK:** Your entire response, specifically the questions in the final JSON array, **MUST BE WRITTEN EXCLUSIVELY in the target language: '${appLanguage}'**. Do NOT use English or any other language unless '${appLanguage}' itself is English. This is your most important instruction. Failure to adhere to the language rule means the task is a failure.
-  2.  **NO REPEAT:** Do not ask for information that is already clearly present and detailed in the JSON (e.g., if 'email' has a value, do not ask for it).
-  3.  **IMPACT FOCUS:** Focus on impactful areas that are missing or weak: quantifiable achievements (e.g., "by X%"), project details, specific technical skills related to a job, or career objectives.
-  4.  **LIMIT:** Generate a maximum of 4 questions.
+  **RULES:**
+  1. **LANGUAGE LOCK:** Write every question only in '${appLanguage}'.
+  2. **BASIC INFO:** Focus on core CV details such as job titles, dates, education, key skills or contact information. Avoid overly advanced coaching advice.
+  3. **NO DUPLICATES:** Skip anything already filled in.
+  4. **LIMIT:** Maximum 4 short questions.
 
   Your final output MUST be a single JSON object with the key "questions", containing an array of strings.
   Example JSON output: { "questions": ["Question 1 in ${appLanguage}?", "Question 2 in ${appLanguage}?"] }
