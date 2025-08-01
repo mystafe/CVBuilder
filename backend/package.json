@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "CV Builder backend",
   "main": "server.js",
   "scripts": {
@@ -13,18 +13,18 @@
   "engines": {
     "node": "20.x"
   },
-"dependencies": {
-  "@sparticuz/chromium": "^123.0.1",
-  "cors": "^2.8.5",
-  "dotenv": "^16.4.5",
-  "express": "^4.19.2",
-  "mammoth": "^1.8.0",
-  "multer": "^1.4.5-lts.1",
-  "openai": "^4.52.7",
-  "pdf-parse": "^1.1.1",
-  "puppeteer": "^22.13.1",
-  "puppeteer-core": "^22.13.1"
-},
+  "dependencies": {
+    "@sparticuz/chromium": "^123.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mammoth": "^1.8.0",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^4.52.7",
+    "pdf-parse": "^1.1.1",
+    "puppeteer": "^22.13.1",
+    "puppeteer-core": "^22.13.1"
+  },
   "devDependencies": {
     "nodemon": "^3.1.4"
   }
