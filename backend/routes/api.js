@@ -57,6 +57,22 @@ router.post('/generate-cover-letter', async (req, res) => {
     res.status(500).send({ message: 'Ön yazı metni üretilemedi.' });
   }
 });
+
+// Ön Yazı PDF'ini üretip indiren yeni uç nokta
+router.post('/generate-cover-letter-pdf', async (req, res) => {
+  try {
+    const { cvData, appLanguage } = req.body;
+    logStep("Ön Yazı PDF'i için istek alındı.");
+    const coverLetterText = await aiService.generateCoverLetterText(cvData, appLanguage);
+    const pdfBuffer = await pdfService.createCoverLetterPdf(coverLetterText);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=Cover_Letter.pdf');
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Ön Yazı PDF Hatası:", error);
+    res.status(500).send({ message: 'Ön yazı PDFi üretilemedi.' });
+  }
+});
 // --- YENİ BÖLÜMÜN SONU ---
 
 

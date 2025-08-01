@@ -8,6 +8,21 @@ const puppeteer = IS_PRODUCTION ? require('puppeteer-core') : require('puppeteer
 const chromium = IS_PRODUCTION ? require('@sparticuz/chromium') : null;
 
 
+const generateCoverLetterHtml = (text) => {
+    const paragraphs = text.split('\n').map(p => `<p>${p}</p>`).join('');
+    return `
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+            body { font-family: 'Roboto', 'Helvetica Neue', sans-serif; font-size: 11pt; padding: 1in; color: #333; }
+        </style>
+    </head>
+    <body>${paragraphs}</body>
+    </html>`;
+};
+
 /**
  * Verilen CV JSON verisini, şık bir HTML şablonuna dönüştürür.
  * @param {object} data - CV verilerini içeren JSON nesnesi.
@@ -111,7 +126,50 @@ async function createPdf(data) {
     }
 }
 
+async function createCoverLetterPdf(text) {
+    let browser = null;
+    logStep("Ön Yazı PDF oluşturma süreci başladı.");
+    try {
+        const htmlContent = generateCoverLetterHtml(text);
+        let launchOptions;
+
+        if (IS_PRODUCTION) {
+            logStep("Canlı sunucu modu: @sparticuz/chromium kullanılıyor.");
+            launchOptions = {
+                args: chromium.args,
+                defaultViewport: chromium.defaultViewport,
+                executablePath: await chromium.executablePath(),
+                headless: chromium.headless,
+            };
+        } else {
+            logStep("Yerel geliştirme modu: Tam puppeteer paketi kullanılıyor.");
+            launchOptions = { headless: 'new' };
+        }
+
+        browser = await puppeteer.launch(launchOptions);
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        const pdfBuffer = await page.pdf({
+            format: 'A4',
+            printBackground: true,
+            margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' }
+        });
+
+        logStep("Ön Yazı PDF buffer'ı başarıyla oluşturuldu.");
+        return pdfBuffer;
+    } catch (error) {
+        logStep(`Ön Yazı PDF OLUŞTURMA HATASI: ${error.message}`);
+        throw error;
+    } finally {
+        if (browser) {
+            await browser.close();
+            logStep("Tarayıcı kapatıldı.");
+        }
+    }
+}
+
 // Bu fonksiyonu dışa aktararak api.js'in kullanmasını sağlıyoruz
 module.exports = {
-    createPdf
+    createPdf,
+    createCoverLetterPdf
 };
