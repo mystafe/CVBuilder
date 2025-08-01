@@ -28,7 +28,13 @@ const generateCoverLetterHtml = (text) => {
  * @param {object} data - CV verilerini içeren JSON nesnesi.
  * @returns {string} - PDF'e dönüştürülmeye hazır HTML string'i.
  */
-const generateCvHtml = (data) => {
+const headingMap = {
+    en: { summary: 'Summary', experience: 'Experience', education: 'Education', skills: 'Skills', projects: 'Projects', languages: 'Languages', certificates: 'Certificates', analysis: 'AI Analysis' },
+    tr: { summary: 'Özet', experience: 'Deneyim', education: 'Eğitim', skills: 'Yetenekler', projects: 'Projeler', languages: 'Diller', certificates: 'Sertifikalar', analysis: 'AI Analizi' }
+};
+
+const generateCvHtml = (data, language = 'en') => {
+    const t = headingMap[language] || headingMap.en;
     const fullName = (data.personalInfo?.name || `${data.personalInfo?.firstName || ''} ${data.personalInfo?.lastName || ''}`.trim()).trim();
     // HTML şablonu, sohbet sırasında eklenen yeni bölümleri (projects, languages vb.)
     // dinamik olarak render edebilir.
@@ -62,14 +68,14 @@ const generateCvHtml = (data) => {
     <body>
     <div class="page">
         ${fullName ? `<div class="header"><h1 class="name">${fullName}</h1><p class="contact-info">${data.personalInfo?.email || ''} | ${data.personalInfo?.phone || ''} | ${data.personalInfo?.location || ''}</p></div>` : ''}
-        ${data.summary ? `<div class="section"><h2 class="section-title">Summary</h2><p>${data.summary}</p></div>` : ''}
-        ${data.experience && data.experience.length > 0 ? `<div class="section"><h2 class="section-title">Experience</h2>${data.experience.map(exp => `<div class="item-container"><div class="item-content"><h3>${exp.title}</h3><div class="sub-header">${exp.company} | ${exp.location}</div><ul>${(exp.description || '').split('\\n').filter(d => d.trim() !== '').map(d => `<li>${d.replace(/^- /, '')}</li>`).join('')}</ul></div><div class="item-date">${exp.date || ''}</div></div>`).join('')}</div>` : ''}
-        ${data.education && data.education.length > 0 ? `<div class="section"><h2 class="section-title">Education</h2>${data.education.map(edu => `<div class="item-container"><div class="item-content"><h3>${edu.degree}</h3><p>${edu.institution}</p></div><div class="item-date">${edu.date || ''}</div></div>`).join('')}</div>` : ''}
-        ${data.skillsByCategory && data.skillsByCategory.length > 0 ? `<div class="section"><h2 class="section-title">Skills</h2><div class="skills-container">${data.skillsByCategory.map(cat => `<div class="skills-category"><h4>${cat.category}</h4><ul>${(cat.skills || []).map(s => `<li>${s}</li>`).join('')}</ul></div>`).join('')}</div></div>` : ''}
-        ${data.projects && data.projects.length > 0 ? `<div class="section projects"><h2 class="section-title">Projects</h2>${data.projects.map(proj => `<div><h3>${proj.name}</h3><p>${proj.description}</p></div>`).join('')}</div>` : ''}
-        ${data.languages && data.languages.length > 0 ? `<div class="section"><h2 class="section-title">Languages</h2>${data.languages.map(lang => `<p>${lang.language} (${lang.proficiency})</p>`).join('')}</div>` : ''}
-        ${data.certificates && data.certificates.length > 0 ? `<div class="section"><h2 class="section-title">Certificates</h2>${data.certificates.map(cert => `<p>${cert}</p>`).join('')}</div>` : ''}
-        ${data.analysis ? `<div class="section"><h2 class="section-title">AI Analysis</h2><p>${data.analysis}</p></div>` : ''}
+        ${data.summary ? `<div class="section"><h2 class="section-title">${t.summary}</h2><p>${data.summary}</p></div>` : ''}
+        ${data.experience && data.experience.length > 0 ? `<div class="section"><h2 class="section-title">${t.experience}</h2>${data.experience.map(exp => `<div class="item-container"><div class="item-content"><h3>${exp.title || ''}</h3><div class="sub-header">${exp.company || ''} | ${exp.location || ''}</div><ul>${(exp.description || '').split('\\n').filter(d => d.trim() !== '').map(d => `<li>${d.replace(/^- /, '')}</li>`).join('')}</ul></div><div class="item-date">${exp.date || ''}</div></div>`).join('')}</div>` : ''}
+        ${data.education && data.education.length > 0 ? `<div class="section"><h2 class="section-title">${t.education}</h2>${data.education.map(edu => `<div class="item-container"><div class="item-content"><h3>${edu.degree || ''}</h3><p>${edu.institution || ''}</p></div><div class="item-date">${edu.date || ''}</div></div>`).join('')}</div>` : ''}
+        ${data.skillsByCategory && data.skillsByCategory.length > 0 ? `<div class="section"><h2 class="section-title">${t.skills}</h2><div class="skills-container">${data.skillsByCategory.map(cat => `<div class="skills-category"><h4>${cat.category || ''}</h4><ul>${(cat.skills || []).map(s => `<li>${s}</li>`).join('')}</ul></div>`).join('')}</div></div>` : ''}
+        ${data.projects && data.projects.length > 0 ? `<div class="section projects"><h2 class="section-title">${t.projects}</h2>${data.projects.map(proj => `<div><h3>${proj.name || ''}</h3><p>${proj.description || ''}</p></div>`).join('')}</div>` : ''}
+        ${data.languages && data.languages.length > 0 ? `<div class="section"><h2 class="section-title">${t.languages}</h2>${data.languages.map(lang => `<p>${(lang.language || '')} ${lang.proficiency ? '(' + lang.proficiency + ')' : ''}</p>`).join('')}</div>` : ''}
+        ${data.certificates && data.certificates.length > 0 ? `<div class="section"><h2 class="section-title">${t.certificates}</h2>${data.certificates.map(cert => `<p>${cert || ''}</p>`).join('')}</div>` : ''}
+        ${data.analysis ? `<div class="section"><h2 class="section-title">${t.analysis}</h2><p>${data.analysis}</p></div>` : ''}
     </div>
     </body>
     </html>`;
@@ -81,11 +87,11 @@ const generateCvHtml = (data) => {
  * @param {object} data - CV verilerini içeren JSON nesnesi.
  * @returns {Promise<Buffer>} - Oluşturulan PDF dosyasının Buffer'ı.
  */
-async function createPdf(data) {
+async function createPdf(data, language = 'en') {
     let browser = null;
     logStep("PDF oluşturma süreci başladı.");
     try {
-        const htmlContent = generateCvHtml(data);
+        const htmlContent = generateCvHtml(data, language);
         let launchOptions;
 
         if (IS_PRODUCTION) {
