@@ -14,7 +14,7 @@
   "finishButton": "CV'mi Oluştur & İndir",
   "generatingPdfButton": "PDF Sonlandırılıyor...",
   "coverLetterIntro": "İşte yeni CV'nize dayalı, ilgi çekici bir ön yazı girişi taslağı. Bunu kopyalayıp iş başvurularınız için uyarlayabilirsiniz:",
-  "finalMessage": "CV'niz başarıyla oluşutuldu ve indirmeye hazır!",
+  "finalMessage": "CV'niz başarıyla oluşturuldu ve indirmeye hazır!",
   "errorOccurred": "Bir hata oluştu. Lütfen tekrar deneyin.",
   "chatError": "Sohbet sırasında bir hata oluştu.",
   "pdfError": "PDF oluşturulurken bir hata oluştu.",
