@@ -191,16 +191,21 @@ input[type="file"] { display: none; }
     z-index: 9999;
 }
 
-.spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid var(--primary-color);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
+.dot-spinner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.dot-spinner div {
+    width: 10px;
+    height: 10px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    animation: dotBounce 0.6s infinite alternate;
+}
+.dot-spinner div:nth-child(2) { animation-delay: 0.2s; }
+.dot-spinner div:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotBounce { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-6px); opacity: 0.3; } }
 
 /* Mobil Uyumluluk */
 @media (max-width: 768px) {

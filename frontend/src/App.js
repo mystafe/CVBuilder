@@ -135,6 +135,24 @@ function App() {
     }
   };
 
+  const mergeLanguagesFromAdditions = (data) => {
+    if (!data || (data.languages && data.languages.length > 0) || !Array.isArray(data.userAdditions)) {
+      return data;
+    }
+    const langEntry = data.userAdditions.find(u => /language|dil/i.test(u.question));
+    if (!langEntry) return data;
+    const parts = langEntry.answer.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+    if (parts.length === 0) return data;
+    data.languages = parts.map(p => {
+      const m = p.match(/(.+?)\s*\((.+)\)/);
+      if (m) {
+        return { language: m[1].trim(), proficiency: m[2].trim() };
+      }
+      return { language: p, proficiency: '' };
+    });
+    return data;
+  };
+
   // YENİ ve ÇİFT ADIMLI PDF/ÖN YAZI MANTIĞI
   const handleGeneratePdf = async () => {
     if (!cvData) { setError(t('pdfError')); return; }
@@ -143,20 +161,17 @@ function App() {
     setError('');
 
     try {
-      // ADIM 1: PDF'i oluştur ve indir
-      const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, { cvData, cvLanguage, sessionId }, { responseType: 'blob' });
+      const preparedData = mergeLanguagesFromAdditions(JSON.parse(JSON.stringify(cvData)));
+      const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, { cvData: preparedData, cvLanguage, sessionId }, { responseType: 'blob' });
 
       const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
       const fileName = (get(cvData, 'personalInfo.name') || 'Super_CV').replace(/\s+/g, '_') + '.pdf';
-      const newTab = window.open(url, '_blank');
-      if (!newTab) {
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', fileName);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
       window.URL.revokeObjectURL(url);
 
       // PDF indirildikten sonra sadece bir "typing" mesajı göster
@@ -165,8 +180,8 @@ function App() {
 
       // ADIM 2: Arka planda ön yazı metnini iste
       try {
-        const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/generate-cover-letter`, {
-          cvData,
+          const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/generate-cover-letter`, {
+          cvData: preparedData,
           appLanguage: i18n.language,
           sessionId
         });
@@ -186,20 +201,17 @@ function App() {
         if (coverLetterText) {
           try {
             const pdfRes = await axios.post(`${API_BASE_URL}/api/generate-cover-letter-pdf`, {
-              cvData,
+              cvData: preparedData,
               appLanguage: i18n.language,
               sessionId
             }, { responseType: 'blob' });
             const pdfUrl = window.URL.createObjectURL(new Blob([pdfRes.data], { type: 'application/pdf' }));
-            const newTabCL = window.open(pdfUrl, '_blank');
-            if (!newTabCL) {
-              const pdfLink = document.createElement('a');
-              pdfLink.href = pdfUrl;
-              pdfLink.setAttribute('download', 'Cover_Letter.pdf');
-              document.body.appendChild(pdfLink);
-              pdfLink.click();
-              pdfLink.remove();
-            }
+            const pdfLink = document.createElement('a');
+            pdfLink.href = pdfUrl;
+            pdfLink.setAttribute('download', 'Cover_Letter.pdf');
+            document.body.appendChild(pdfLink);
+            pdfLink.click();
+            pdfLink.remove();
             window.URL.revokeObjectURL(pdfUrl);
           } catch (pdfErr) {
             // ignore PDF download errors
@@ -220,7 +232,7 @@ function App() {
 
   return (
     <div className="app-container">
-      {isLoading && <div className="loading-overlay"><div className="spinner"></div></div>}
+      {isLoading && <div className="loading-overlay"><div className="dot-spinner"><div></div><div></div><div></div></div></div>}
       {step === 'upload' ? (
         <div className="upload-step fade-in">
           <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
