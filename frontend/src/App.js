@@ -149,6 +149,7 @@ function App() {
       link.href = url;
       const fileName = (get(cvData, 'personalInfo.name') || 'Super_CV').replace(/\s+/g, '_') + '.pdf';
       link.setAttribute('download', fileName);
+      link.setAttribute('target', '_blank');
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
@@ -188,6 +189,7 @@ function App() {
             pdfLink.href = pdfUrl;
             pdfLink.setAttribute('download', 'Cover_Letter.pdf');
             document.body.appendChild(pdfLink);
+            pdfLink.setAttribute('target', '_blank');
             pdfLink.click();
             pdfLink.parentNode.removeChild(pdfLink);
             window.URL.revokeObjectURL(pdfUrl);
