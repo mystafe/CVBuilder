@@ -103,4 +103,18 @@ router.post('/generate-cover-letter-pdf', async (req, res) => {
 // --- YENİ BÖLÜMÜN SONU ---
 
 
+// Feedback toplama
+router.post('/feedback', (req, res) => {
+  try {
+    const { name, email, description, language, theme, deviceInfo, sessionId } = req.body;
+    const ip = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || req.ip;
+    const text = `Name: ${name || ''}\nEmail: ${email || ''}\nDescription: ${description}\nIP: ${ip}\nDevice: ${deviceInfo}\nLanguage: ${language}\nTheme: ${theme}\nSession: ${sessionId || ''}`;
+    fileService.saveFeedback(text);
+    res.status(200).json({ message: 'Feedback kaydedildi.' });
+  } catch (error) {
+    console.error('Feedback Hatası:', error);
+    res.status(500).send({ message: 'Feedback kaydedilemedi.' });
+  }
+});
+
 module.exports = router;

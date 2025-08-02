@@ -4,15 +4,17 @@ import { useTranslation } from 'react-i18next';
 import Logo from './Logo';
 import LanguageSwitcher from './LanguageSwitcher';
 import ThemeSwitcher from './ThemeSwitcher';
+import Feedback from './Feedback';
 import packageJson from '../../package.json';
 
 const UploadStep = ({ onFileSelect, cvLanguage, setCvLanguage, isLoading, loadingMessage, error, theme, setTheme }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const fileInputRef = useRef(null);
 
   return (
     <div className="upload-step fade-in">
       <div className="settings-bar">
+        <Feedback sessionId={null} language={i18n.language} theme={theme} />
         <ThemeSwitcher theme={theme} setTheme={setTheme} />
         <LanguageSwitcher />
       </div>
