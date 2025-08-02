@@ -88,6 +88,18 @@ function getTemplate() {
   return JSON.parse(fs.readFileSync(templatePath, 'utf8'));
 }
 
+function saveFeedback(text) {
+  const feedbackDir = path.join(dataDir, 'feedbacks');
+  if (!fs.existsSync(feedbackDir)) {
+    fs.mkdirSync(feedbackDir, { recursive: true });
+  }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const filePath = path.join(feedbackDir, `Feedback_${timestamp}.txt`);
+  fs.writeFileSync(filePath, text);
+  logStep(`Feedback kaydedildi: ${filePath}`);
+  return filePath;
+}
+
 // Bu fonksiyonları dışa aktarıyoruz ki api.js tarafından kullanılabilsin.
 module.exports = {
   upload,
@@ -95,5 +107,6 @@ module.exports = {
   saveBuffer,
   createSession,
   getTextFromFile,
-  getTemplate
+  getTemplate,
+  saveFeedback
 };

@@ -122,13 +122,23 @@ async function extractRawCvData(cvText, template) {
 
 async function generateAiQuestions(cvData, appLanguage, askedQuestions = [], maxQuestions = 4) {
   logStep("AI için Stratejik Sorular Üretiliyor.");
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: getAiQuestionsPrompt(cvData, appLanguage, askedQuestions, maxQuestions) }],
-    response_format: { type: "json_object" },
-  });
-  logStep("AI Soruları Üretildi.");
-  return JSON.parse(response.choices[0].message.content);
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: getAiQuestionsPrompt(cvData, appLanguage, askedQuestions, maxQuestions) }],
+      response_format: { type: "json_object" },
+    });
+    const content = response.choices[0].message.content;
+    logStep(`AI Soruları Üretildi: ${content}`);
+    return JSON.parse(content);
+  } catch (error) {
+    if (error.response?.data) {
+      logStep(`AI Soruları Hatası: ${JSON.stringify(error.response.data)}`);
+    } else {
+      logStep(`AI Soruları Hatası: ${error.message}`);
+    }
+    throw error;
+  }
 }
 
 // Bu fonksiyon artık 'analysis' üretmiyor, sadece CV'yi finalize ediyor.
