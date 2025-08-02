@@ -29,6 +29,18 @@ router.post('/generate-ai-questions', async (req, res) => {
   } catch (error) { console.error("Adım 2 Hatası:", error); res.status(500).send({ message: 'AI soruları üretilemedi.' }); }
 });
 
+// CV'yi puanlayan yeni uç nokta
+router.post('/score-cv', async (req, res) => {
+  try {
+    const { cvData, appLanguage } = req.body;
+    const result = await aiService.scoreCvData(cvData, appLanguage);
+    res.json(result);
+  } catch (error) {
+    console.error("CV Puanlama Hatası:", error);
+    res.status(500).send({ message: 'CV puanı alınamadı.' });
+  }
+});
+
 // ADIM 3: Final PDF'i Oluştur (Mevcut ve Doğru)
 router.post('/finalize-and-create-pdf', async (req, res) => {
   try {
