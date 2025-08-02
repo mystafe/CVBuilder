@@ -131,7 +131,7 @@ footer {
     display: flex;
     flex-direction: column;
 }
-.upload-step h1 { margin-top: 0; font-size: 2.2rem; color: var(--text-primary-color); font-family: 'Playfair Display', serif; }
+.upload-step h1 { margin-top: 0; font-size: 2rem; color: var(--text-primary-color); font-family: 'Playfair Display', serif; }
 .upload-step p { color: var(--text-secondary-color); }
 .language-controls { display: flex; justify-content: center; margin: 2rem 0; gap: 1rem; }
 .control-group { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
@@ -240,11 +240,13 @@ input[type="file"] { display: none; }
 .demo-badge {
     background-color: var(--primary-color);
     color: #fff;
-    font-size: 0.75rem;
-    padding: 2px 6px;
+    font-size: 0.65rem;
+    padding: 1px 4px;
     border-radius: 4px;
     margin-left: 8px;
     vertical-align: middle;
+    position: relative;
+    top: -2px;
 }
 
 .button-group button.blue {
