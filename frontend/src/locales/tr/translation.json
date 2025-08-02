@@ -23,7 +23,8 @@
   "demoBadge": "Demo",
   "cvScore": "CV'niz {{score}}/100 puan aldı.",
   "errorOccurred": "Bir hata oluştu. Lütfen tekrar deneyin.",
-  "chatError": "Sohbet sırasında bir hata oluştu.",
-  "pdfError": "PDF oluşturulurken bir hata oluştu.",
+    "chatError": "Sohbet sırasında bir hata oluştu.",
+    "noContentError": "Yüklenen CV'den anlamlı bilgi çıkarılamadı. Lütfen farklı bir dosya deneyin.",
+    "pdfError": "PDF oluşturulurken bir hata oluştu.",
   "footerText": "Mustafa Evleksiz tarafından geliştirilmiştir"
 }
