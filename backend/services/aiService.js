@@ -38,9 +38,10 @@ const getAiQuestionsPrompt = (cvData, appLanguage, askedQuestions = [], maxQuest
   2. **BASIC INFO:** Focus on core CV details such as job titles, dates, education, key skills, or contact information. Avoid diving into detailed coaching or advanced strategies.
   3. **NO DUPLICATES:** Skip anything already filled in and do not repeat any of these questions: ${askedQuestions.join(' | ')}.
   4. **LIMIT:** Maximum ${maxQuestions} short questions.
+  5. **TONE:** Phrase each item as an observation followed by a polite request. Example: "Education section appears empty; could you share it?".
 
   Your final output MUST be a single JSON object with the key "questions", containing an array of strings.
-  Example JSON output: { "questions": ["Question 1 in ${appLanguage}?", "Question 2 in ${appLanguage}?"] }
+  Example JSON output: { "questions": ["Education section appears empty; could you share it?", "Question 2 in ${appLanguage}?"] }
 
   CV Data to analyze (in JSON format):
   ${JSON.stringify(cvData)}
@@ -56,10 +57,21 @@ const getFinalizeCvPrompt = (cvData, targetLanguage) => `
   - **LANGUAGE RULE**: The final output's every single string value (summaries, descriptions, titles, categories, etc.) **MUST BE IN ${targetLanguage}**. No exceptions or other languages are permitted.
   - **ACTION**: Rewrite all job descriptions to start with strong action verbs. Integrate quantifiable achievements provided by the user. Polish the language to be professional and concise.
   - **SUMMARY**: Create a powerful new summary that encapsulates the candidate's strongest skills and most impressive experiences from the entire dataset.
+  - **INTEGRATION**: If a 'userAdditions' array exists, interpret each {question, answer} pair and integrate the answers into the most relevant fields so no user-provided detail is lost.
   - **CLEANUP**: Ensure consistent formatting throughout. Remove any notes or irrelevant information (like a 'userAdditions' field).
   - Return only the final, polished JSON object. The structure should remain the same as the input.
   
   CV Data to finalize (in JSON format):
+  ${JSON.stringify(cvData)}
+`;
+
+// CV puanlama promptu
+const getScoreCvPrompt = (cvData, appLanguage) => `
+  You are an expert CV critic. Review the CV data below and provide a quality assessment.
+  - Return a JSON object with keys "score" (0-100 integer) and "comment" (a short remark in ${appLanguage}).
+  - Be concise and base your judgement solely on the provided data.
+
+  CV Data:
   ${JSON.stringify(cvData)}
 `;
 
@@ -126,10 +138,23 @@ async function generateCoverLetterText(cvData, appLanguage) {
   return response.choices[0].message.content.trim();
 }
 
+// CV'yi puanlayan yeni asenkron fonksiyon
+async function scoreCvData(cvData, appLanguage) {
+  logStep("CV Puanlaması için AI çağrılıyor.");
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: getScoreCvPrompt(cvData, appLanguage) }],
+    response_format: { type: "json_object" },
+  });
+  logStep("CV Puanı Alındı.");
+  return JSON.parse(response.choices[0].message.content);
+}
+
 // Bu fonksiyonları dışa aktarıyoruz ki diğer dosyalar kullanabilsin.
 module.exports = {
   extractRawCvData,
   generateAiQuestions,
   finalizeCvData,
-  generateCoverLetterText // Yeni fonksiyonu da dışa aktarıyoruz
+  generateCoverLetterText, // Yeni fonksiyonu da dışa aktarıyoruz
+  scoreCvData
 };

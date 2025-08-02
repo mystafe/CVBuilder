@@ -1,5 +1,5 @@
 {
-  "mainTitle": "Yapay Zeka CV Rehberi",
+  "mainTitle": "AI destekli CV Rehberi",
   "subtitle": "Yapay zeka destekli asistan ile CV'nizi baştan yaratın.",
   "cvLanguageLabel": "Hedef CV Dili:",
   "uploadButtonLabel": "CV Dosyanızı Yükleyin",
@@ -20,6 +20,8 @@
   "coverLetterIntro": "İşte yeni CV'nize dayalı, ilgi çekici bir ön yazı girişi taslağı. Bunu kopyalayıp iş başvurularınız için uyarlayabilirsiniz:",
   "finalMessage": "CV’niz için gerekli geri bildirimler alındı. Nasıl devam edelim?",
   "improveButton": "CV’mi mükemmelleştir",
+  "demoBadge": "Demo",
+  "cvScore": "CV'niz {{score}}/100 puan aldı.",
   "errorOccurred": "Bir hata oluştu. Lütfen tekrar deneyin.",
   "chatError": "Sohbet sırasında bir hata oluştu.",
   "pdfError": "PDF oluşturulurken bir hata oluştu.",
