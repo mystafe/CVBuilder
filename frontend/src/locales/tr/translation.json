@@ -18,7 +18,7 @@
   "restartButton": "Yeniden başla",
   "generatingPdfButton": "PDF Sonlandırılıyor...",
   "coverLetterIntro": "İşte yeni CV'nize dayalı, ilgi çekici bir ön yazı girişi taslağı. Bunu kopyalayıp iş başvurularınız için uyarlayabilirsiniz:",
-  "finalMessage": "CV’niz için gerekli geri bildirimler alındı. Nasıl devam edelim?",
+  "finalMessage": "CV’niz için yapay zekadan notlar alındı. Nasıl ilerleyelim?",
   "improveButton": "CV’mi mükemmelleştir",
   "demoBadge": "Demo",
   "cvScore": "CV'niz {{score}}/100 puan aldı.",
