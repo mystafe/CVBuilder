@@ -80,11 +80,11 @@ body {
     font-weight: 600;
     color: var(--text-primary-color);
 }
-.logo-container .beta-tag {
+.logo-container .rotating-badge {
     margin-left: 8px;
-    font-size: 0.9rem;
-    color: var(--primary-color);
-    animation: betaBlink 2s ease-in-out infinite;
+    width: 130px;
+    text-align: center;
+    animation: betaBlink 6s ease-in-out infinite;
 }
 @keyframes betaBlink {
     0%,100% { opacity: 1; }
