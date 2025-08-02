@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
 
 :root {
     --primary-color: #007bff;
@@ -13,6 +14,8 @@
     --border-color: #dee2e6;
     --ai-message-bg: #e9ecef;
     --user-message-bg: var(--primary-color);
+    --accent-color: #ff9800;
+    --accent-hover-color: #e08e00;
     --font-family: 'Poppins', sans-serif;
     --shadow: 0 8px 32px rgba(0,0,0,0.1);
 }
@@ -30,6 +33,8 @@ body.dark {
     --border-color: #343a40;
     --ai-message-bg: #343a40;
     --shadow: 0 8px 32px rgba(0,0,0,0.25);
+    --accent-color: #ffa726;
+    --accent-hover-color: #ff9800;
 }
 
 body {
@@ -106,9 +111,10 @@ body {
 .language-switcher button svg { width: 100%; height: 100%; display: block; object-fit: cover; }
 footer {
     text-align: center;
-    padding: 1rem;
-    font-size: 0.8rem;
+    padding: 0.5rem 0;
+    font-size: 0.7rem;
     color: var(--text-secondary-color);
+    opacity: 0.7;
     margin-top: auto; /* Konteynerin dibine iter */
 }
 
@@ -125,14 +131,14 @@ footer {
     display: flex;
     flex-direction: column;
 }
-.upload-step h1 { margin-top: 0; font-size: 1.8rem; color: var(--text-primary-color); }
+.upload-step h1 { margin-top: 0; font-size: 2.2rem; color: var(--text-primary-color); font-family: 'Playfair Display', serif; }
 .upload-step p { color: var(--text-secondary-color); }
 .language-controls { display: flex; justify-content: center; margin: 2rem 0; gap: 1rem; }
 .control-group { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
 .control-group label { font-weight: 500; color: var(--text-secondary-color); }
 .control-group select { padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); font-family: var(--font-family); background-color: var(--surface-color); color: var(--text-primary-color);}
 input[type="file"] { display: none; }
-.file-upload-label { display: inline-block; padding: 1rem 2rem; background-color: var(--primary-color); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background-color 0.3s; }
+.file-upload-label { display: inline-block; padding: 1rem 2rem; background-color: var(--primary-color); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background-color 0.3s; position: relative; overflow: hidden; }
 .file-upload-label:hover { background-color: var(--primary-hover-color); }
 .file-upload-label.disabled { background-color: var(--secondary-color); cursor: not-allowed; opacity: 0.7; }
 
@@ -161,13 +167,30 @@ input[type="file"] { display: none; }
 .chat-input-area { padding: 1rem; border-top: 1px solid var(--border-color); background-color: rgba(0,0,0,0.02); flex-shrink: 0;}
 .chat-input-area textarea { width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); font-family: var(--font-family); box-sizing: border-box; resize: none; min-height: 50px; background-color: var(--surface-color); color: var(--text-primary-color); }
 .button-group { display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
-.button-group button { padding: 0.6rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-family: var(--font-family); transition: all 0.2s; }
+.button-group button { padding: 0.5rem 0.9rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-family: var(--font-family); transition: all 0.2s; position: relative; overflow: hidden; }
 .button-group button.primary { background-color: var(--green-color); color: white; }
 .button-group button.primary:hover { background-color: var(--green-hover-color); }
 .button-group button.secondary { background-color: transparent; color: var(--secondary-color); border: 1px solid var(--secondary-color); }
+.button-group button.accent { background-color: var(--accent-color); color: white; }
+.button-group button.accent:hover { background-color: var(--accent-hover-color); }
 .button-group button.reply-button { background-color: var(--primary-color); color: white; display: flex; align-items: center; gap: 8px; padding: 0.7rem 1.2rem; font-size: 1rem; }
 .button-group button.reply-button:hover { background-color: var(--primary-hover-color); }
 .button-group button:disabled { opacity: 0.5; cursor: not-allowed; }
+.loading::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.4), rgba(255,255,255,0));
+    animation: loadingShine 1s infinite;
+}
+@keyframes loadingShine {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+}
 
 /* Diğer Stiller */
 .typing { display: flex; align-items: center; }
