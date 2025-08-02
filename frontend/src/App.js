@@ -28,6 +28,7 @@ function App() {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState('');
   const [coverLetterPdfUrl, setCoverLetterPdfUrl] = useState('');
+  const [hasGeneratedPdf, setHasGeneratedPdf] = useState(false);
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     const userPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
@@ -55,6 +56,7 @@ function App() {
     setCvData(data);
     setQuestionQueue(queue);
     setStep('scriptedQuestions');
+    setHasGeneratedPdf(false);
 
     if (queue.length > 0) {
       setConversation([{ type: 'ai', text: tApp(queue[0].key) }]);
@@ -156,7 +158,7 @@ function App() {
 
   // YENİ ve ÇİFT ADIMLI PDF/ÖN YAZI MANTIĞI
   const handleGeneratePdf = async () => {
-    if (!cvData) { setError(t('pdfError')); return; }
+    if (!cvData || hasGeneratedPdf) { return; }
 
     setLoadingMessage(t('generatingPdfButton'));
     setError('');
@@ -184,6 +186,7 @@ function App() {
       // PDF indirildikten sonra sadece bir "typing" mesajı göster
       setConversation(prev => [...prev, { type: 'typing' }]);
       setStep('final');
+      setHasGeneratedPdf(true);
 
       // ADIM 2: Arka planda ön yazı metnini iste
       try {
@@ -270,7 +273,7 @@ function App() {
             <div className="button-group">
               {step !== 'final' && (<> <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button> <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button> </>)}
               {(step === 'final' || questionQueue.length === 0) && (
-                <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className="primary">
+                <button onClick={handleGeneratePdf} disabled={isLoading || !cvData || hasGeneratedPdf} className="primary">
                   {isLoading && <span className="button-spinner"></span>}
                   {isLoading ? loadingMessage : t('finishButton')}
                 </button>
