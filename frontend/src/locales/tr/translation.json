@@ -12,6 +12,7 @@
   "answerButton": "Gönder",
   "skipButton": "Soruyu Atla",
   "finishButton": "CV'mi Oluştur & İndir",
+  "downloadCoverLetterButton": "Ön Yazıyı İndir",
   "generatingPdfButton": "PDF Sonlandırılıyor...",
   "coverLetterIntro": "İşte yeni CV'nize dayalı, ilgi çekici bir ön yazı girişi taslağı. Bunu kopyalayıp iş başvurularınız için uyarlayabilirsiniz:",
   "finalMessage": "CV'niz başarıyla oluşturuldu ve indirmeye hazır!",
