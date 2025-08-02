@@ -27,6 +27,7 @@ function App() {
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState('');
+  const [coverLetterPdfUrl, setCoverLetterPdfUrl] = useState('');
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     const userPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
@@ -159,6 +160,7 @@ function App() {
 
     setLoadingMessage(t('generatingPdfButton'));
     setError('');
+    setCoverLetterPdfUrl('');
 
     try {
       const preparedData = mergeLanguagesFromAdditions(JSON.parse(JSON.stringify(cvData)));
@@ -202,7 +204,7 @@ function App() {
           return newConversation;
         });
 
-        // ADIM 4: Ön yazı PDF'i indir
+        // ADIM 4: Ön yazı PDF'ini yeni sekmede aç ve indirme bağlantısını hazırla
         if (coverLetterText) {
           try {
             const pdfRes = await axios.post(`${API_BASE_URL}/api/generate-cover-letter-pdf`, {
@@ -211,13 +213,8 @@ function App() {
               sessionId
             }, { responseType: 'blob' });
             const pdfUrl = window.URL.createObjectURL(new Blob([pdfRes.data], { type: 'application/pdf' }));
-            const pdfLink = document.createElement('a');
-            pdfLink.href = pdfUrl;
-            pdfLink.setAttribute('download', 'Cover_Letter.pdf');
-            document.body.appendChild(pdfLink);
-            pdfLink.click();
-            pdfLink.remove();
-            window.URL.revokeObjectURL(pdfUrl);
+            window.open(pdfUrl, '_blank');
+            setCoverLetterPdfUrl(pdfUrl);
           } catch (pdfErr) {
             // ignore PDF download errors
           }
@@ -233,6 +230,18 @@ function App() {
     } finally {
       setLoadingMessage(''); // Her durumda yükleme mesajını temizle
     }
+  };
+
+  const handleDownloadCoverLetter = () => {
+    if (!coverLetterPdfUrl) return;
+    const link = document.createElement('a');
+    link.href = coverLetterPdfUrl;
+    link.setAttribute('download', 'Cover_Letter.pdf');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(coverLetterPdfUrl);
+    setCoverLetterPdfUrl('');
   };
 
   return (
@@ -264,6 +273,11 @@ function App() {
                 <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className="primary">
                   {isLoading && <span className="button-spinner"></span>}
                   {isLoading ? loadingMessage : t('finishButton')}
+                </button>
+              )}
+              {coverLetterPdfUrl && (
+                <button onClick={handleDownloadCoverLetter} className="secondary">
+                  {t('downloadCoverLetterButton')}
                 </button>
               )}
             </div>
