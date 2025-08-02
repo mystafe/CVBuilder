@@ -315,9 +315,9 @@ function App() {
               {step === 'review' && (
                 <>
                   <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
-                    {isLoading ? loadingMessage : t('downloadCvButton')}
+                    {isLoading ? loadingMessage : t('generateCvButton')}
                   </button>
-                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className="secondary">{t('improveButton')}</button>}
+                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className="accent">{t('improveButton')}</button>}
                 </>
               )}
 
@@ -325,7 +325,7 @@ function App() {
                 <>
                   <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className="primary">{t('downloadCvButton')}</button>
                   <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="accent">{t('downloadCoverLetterButton')}</button>
-                  <button onClick={handleRestart} className="secondary">{t('restartButton')}</button>
+                  <button onClick={handleRestart} className="accent">{t('restartButton')}</button>
                 </>
               )}
             </div>

@@ -1,5 +1,5 @@
 {
-  "mainTitle": "AI CV Assistant",
+  "mainTitle": "AI CV Guide",
   "subtitle": "Recreate your CV from scratch with our AI-powered assistant.",
   "cvLanguageLabel": "Target CV Language:",
   "uploadButtonLabel": "Upload Your CV",
@@ -13,6 +13,7 @@
   "skipButton": "Skip Question",
   "finishButton": "Prepare My CV with AI",
   "downloadCvButton": "Download My CV",
+  "generateCvButton": "Prepare My CV",
   "downloadCoverLetterButton": "Download Cover Letter",
   "restartButton": "Start Over",
   "generatingPdfButton": "Finalizing PDF...",
