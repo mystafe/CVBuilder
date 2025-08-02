@@ -301,9 +301,10 @@ function App() {
 
   return (
     <div className="app-container">
-          {step === 'upload' ? (
+      <Feedback sessionId={sessionId} language={i18n.language} theme={theme} />
+      {step === 'upload' ? (
         <div className="upload-step fade-in">
-          <div className="settings-bar"><Feedback sessionId={sessionId} language={i18n.language} theme={theme} /><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
+          <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
           <Logo />
           <h1><span>{t('mainTitle')}</span><span className="demo-badge">{t('demoBadge')}</span></h1>
           <p>{t('subtitle')}</p>
@@ -318,7 +319,7 @@ function App() {
         </div>
       ) : (
         <div className="chat-step fade-in">
-          <div className="chat-header"><Logo /><div className="settings-bar"><Feedback sessionId={sessionId} language={i18n.language} theme={theme} /><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
+          <div className="chat-header"><Logo /><div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
           <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
           <div className="chat-input-area">
             {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
