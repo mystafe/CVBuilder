@@ -44,6 +44,7 @@ export default function Feedback({ sessionId, language, theme, open, setOpen }) 
       {open && (
         <div className="feedback-modal" onClick={() => setOpen(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="close-button" onClick={() => setOpen(false)}>×</button>
             {sent ? (
               <p>{t('feedbackThanks')}</p>
             ) : (
