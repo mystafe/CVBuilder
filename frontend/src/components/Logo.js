@@ -1,14 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const Logo = ({ onBadgeClick }) => {
   const { t } = useTranslation();
-  const [showFeedback, setShowFeedback] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => setShowFeedback(prev => !prev), 6000);
-    return () => clearInterval(interval);
-  }, []);
+  const [hovered, setHovered] = useState(false);
 
   return (
     <div className="logo-container">
@@ -22,9 +17,11 @@ const Logo = ({ onBadgeClick }) => {
       <button
         className="demo-badge rotating-badge"
         onClick={onBadgeClick}
-        style={{ fontSize: showFeedback ? '0.45rem' : '0.8rem' }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{ fontSize: hovered ? '0.45rem' : '0.8rem' }}
       >
-        {showFeedback ? t('giveFeedback') : t('demoBadge')}
+        {hovered ? t('giveFeedback') : t('demoBadge')}
       </button>
     </div>
   );

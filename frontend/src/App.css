@@ -84,11 +84,6 @@ body {
     margin-left: 8px;
     width: 130px;
     text-align: center;
-    animation: betaBlink 6s ease-in-out infinite;
-}
-@keyframes betaBlink {
-    0%,100% { opacity: 1; }
-    50% { opacity: 0; }
 }
 .settings-bar {
     position: absolute;
@@ -155,6 +150,7 @@ body {
     flex-direction: column;
     gap: 0.5rem;
     font-size: 0.9rem;
+    position: relative;
 }
 .feedback-modal input,
 .feedback-modal textarea {
@@ -186,6 +182,20 @@ body {
 .feedback-modal button:disabled {
     background: var(--secondary-color);
     cursor: not-allowed;
+}
+
+.feedback-modal .close-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    color: var(--text-secondary-color);
+}
+.feedback-modal .close-button:hover {
+    color: var(--text-primary-color);
 }
 footer {
     text-align: center;
@@ -335,6 +345,12 @@ input[type="file"] { display: none; }
     top: -2px;
     border: none;
     cursor: pointer;
+    opacity: 0.4;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.demo-badge:hover {
+    opacity: 1;
 }
 
 .button-group button.blue {
