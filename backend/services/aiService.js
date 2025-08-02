@@ -34,20 +34,20 @@ const getExtractionPrompt = (cvText, template) => `
  * Yapay zekaya, mevcut CV'yi analiz edip en önemli eksikleri bulmasını ve bu eksikler için
  * belirtilen dilde sorular üretmesini söyler. DİL KURALI ÇOK KESİNDİR.
  */
-const getAiQuestionsPrompt = (cvData, appLanguageCode, askedQuestions = [], maxQuestions = 3) => {
+const getAiQuestionsPrompt = (cvData, appLanguageCode, askedQuestions = [], maxQuestions = 4) => {
   const appLanguage = normalizeLanguage(appLanguageCode);
   return `
   You are a helpful career assistant. Carefully inspect the CV JSON below and identify up to ${maxQuestions} basic pieces of information that are missing or incomplete.
 
   **RULES:**
   1. **LANGUAGE LOCK:** Write every question only in '${appLanguage}'.
-  2. **BASIC INFO:** Focus on core CV details such as job titles, dates, education, key skills, or contact information. Avoid diving into detailed coaching or advanced strategies.
+  2. **BASIC INFO:** Give priority to these core CV sections: summary, references, education, work experience, certifications, projects, languages, and skills.
   3. **NO DUPLICATES:** Skip anything already filled in and do not repeat any of these questions: ${askedQuestions.join(' | ')}.
-  4. **LIMIT:** Maximum ${maxQuestions} short questions.
-  5. **TONE:** Phrase each item as an observation followed by a polite request. Example: "Education section appears empty; could you share it?".
+  4. **ORDER:** Start with the most important missing section and proceed in descending importance.
+  5. **LIMIT:** Maximum ${maxQuestions} short questions.
+  6. **TONE:** Phrase each item as an observation followed by a polite request, using the correct section name.
 
-  Your final output MUST be a single JSON object with the key "questions", containing an array of strings.
-  Example JSON output: { "questions": ["Education section appears empty; could you share it?", "Question 2 in ${appLanguage}?"] }
+  Your final output MUST be a single JSON object with the key "questions", containing an array of strings written in ${appLanguage}.
 
   CV Data to analyze (in JSON format):
   ${JSON.stringify(cvData)}
@@ -120,7 +120,7 @@ async function extractRawCvData(cvText, template) {
   return JSON.parse(response.choices[0].message.content);
 }
 
-async function generateAiQuestions(cvData, appLanguage, askedQuestions = [], maxQuestions = 3) {
+async function generateAiQuestions(cvData, appLanguage, askedQuestions = [], maxQuestions = 4) {
   logStep("AI için Stratejik Sorular Üretiliyor.");
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',

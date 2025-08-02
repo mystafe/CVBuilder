@@ -22,7 +22,7 @@ router.post('/extract-raw', fileService.upload.single('cv'), async (req, res) =>
 // ADIM 2: AI Sorularını Üret (Mevcut ve Doğru)
 router.post('/generate-ai-questions', async (req, res) => {
   try {
-    const { cvData, appLanguage, askedQuestions = [], maxQuestions = 3 } = req.body; // sessionId can be sent but is optional
+    const { cvData, appLanguage, askedQuestions = [], maxQuestions = 4 } = req.body; // sessionId can be sent but is optional
     logStep("ADIM 2: AI için stratejik sorular üretiliyor.");
     const questionsData = await aiService.generateAiQuestions(cvData, appLanguage, askedQuestions, maxQuestions);
     res.json(questionsData);
