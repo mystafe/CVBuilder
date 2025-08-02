@@ -85,7 +85,7 @@ function App() {
     }
   };
 
-  const fetchAiQuestions = async (currentData, maxQuestions = 3) => {
+  const fetchAiQuestions = async (currentData, maxQuestions = 4) => {
     setLoadingMessage("AI CV'nizi Analiz Ediyor...");
     try {
       const res = await axios.post(`${API_BASE_URL}/api/generate-ai-questions`, {
