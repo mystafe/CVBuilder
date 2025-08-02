@@ -133,7 +133,7 @@ footer {
 }
 .upload-step h1 {
     margin-top: 0;
-    font-size: 2rem;
+    font-size: 1.4rem;
     color: var(--text-primary-color);
     font-family: 'Playfair Display', serif;
     display: inline-flex;
