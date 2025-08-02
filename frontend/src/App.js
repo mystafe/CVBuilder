@@ -306,7 +306,7 @@ function App() {
         <div className="upload-step fade-in">
           <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
           <Logo onBadgeClick={() => setFeedbackOpen(true)} />
-          <h1><span>{t('mainTitle')}</span><button className="demo-badge" onClick={() => setFeedbackOpen(true)}>{t('demoBadge')}</button></h1>
+          <h1><span>{t('mainTitle')}</span></h1>
           <p>{t('subtitle')}</p>
           <div className="language-controls"><div className="control-group"><label htmlFor="cv-lang">{t('cvLanguageLabel')}</label><select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading}><option value="tr">Türkçe</option><option value="en">English</option></select></div></div>
           <input type="file" id="file-upload" ref={fileInputRef} onChange={handleInitialParse} disabled={isLoading} accept=".pdf,.docx" style={{ display: 'none' }} />
