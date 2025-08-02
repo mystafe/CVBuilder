@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import packageJson from '../../package.json';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -51,7 +52,10 @@ export default function Feedback({ sessionId, language, theme, open, setOpen }) 
                 <input placeholder={t('feedbackNamePlaceholder')} value={name} onChange={e => setName(e.target.value)} />
                 <input placeholder={t('feedbackEmailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} />
                 <textarea placeholder={t('feedbackDescPlaceholder')} value={desc} onChange={e => setDesc(e.target.value)} />
-                <button onClick={handleSubmit} disabled={desc.trim().length < 5 || sending}>{t('feedbackSubmit')}</button>
+                <div className="feedback-actions">
+                  <span className="feedback-version">v{packageJson.version}</span>
+                  <button onClick={handleSubmit} disabled={desc.trim().length < 5 || sending}>{t('feedbackSubmit')}</button>
+                </div>
               </>
             )}
           </div>
