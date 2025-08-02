@@ -305,7 +305,7 @@ function App() {
       {step === 'upload' ? (
         <div className="upload-step fade-in">
           <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
-          <Logo />
+          <Logo onBadgeClick={() => setFeedbackOpen(true)} />
           <h1><span>{t('mainTitle')}</span><button className="demo-badge" onClick={() => setFeedbackOpen(true)}>{t('demoBadge')}</button></h1>
           <p>{t('subtitle')}</p>
           <div className="language-controls"><div className="control-group"><label htmlFor="cv-lang">{t('cvLanguageLabel')}</label><select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading}><option value="tr">Türkçe</option><option value="en">English</option></select></div></div>
@@ -319,7 +319,7 @@ function App() {
         </div>
       ) : (
         <div className="chat-step fade-in">
-          <div className="chat-header"><Logo /><div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
+          <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} /><div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
           <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
           <div className="chat-input-area">
             {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
