@@ -1,14 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 const Logo = ({ onBadgeClick }) => {
   const { t } = useTranslation();
-  const [showFeedback, setShowFeedback] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => setShowFeedback(prev => !prev), 6000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="logo-container">
@@ -19,12 +13,9 @@ const Logo = ({ onBadgeClick }) => {
         <path d="M9 14.5C9 13.5056 9.48281 12.8716 10.3392 12.3392C11.1957 11.8067 12 11.5 12 11.5C12 11.5 12.8043 11.8067 13.6608 12.3392C14.5172 12.8716 15 13.5056 15 14.5V18H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span className="logo-text">CV Builder</span>
-      <button
-        className="demo-badge rotating-badge"
-        onClick={onBadgeClick}
-        style={{ fontSize: showFeedback ? '0.45rem' : '0.8rem' }}
-      >
-        {showFeedback ? t('giveFeedback') : t('demoBadge')}
+      <button className="demo-badge rotating-badge" onClick={onBadgeClick}>
+        {t('demoBadge')} ℹ️
+        <span className="badge-tooltip">{t('giveFeedback')}</span>
       </button>
     </div>
   );
