@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
-export default function Feedback({ sessionId, language, theme }) {
-  const [open, setOpen] = useState(false);
+export default function Feedback({ sessionId, language, theme, open, setOpen }) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [desc, setDesc] = useState('');
@@ -39,23 +40,18 @@ export default function Feedback({ sessionId, language, theme }) {
 
   return (
     <>
-      <div className="feedback-icon" title="feedback ver" onClick={() => setOpen(true)}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-          <path d="M8 0a8 8 0 1 0 4.906 14.32L16 16l-1.68-3.094A8 8 0 0 0 8 0zm0 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13z"/>
-        </svg>
-      </div>
       {open && (
-        <div className="feedback-modal">
-          <div className="modal-content">
+        <div className="feedback-modal" onClick={() => setOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
             {sent ? (
-              <p>Geri bildirimin için teşekkürler!</p>
+              <p>{t('feedbackThanks')}</p>
             ) : (
               <>
-                <p>Hata mı aldın/ Bir fikrin mi var? Geri bildirimin çok değerli.<br/>Uygulamamı geliştirmeme yardımcı olacak.</p>
-                <input placeholder="İsim" value={name} onChange={e => setName(e.target.value)} />
-                <input placeholder="Mail (Opsiyonel)" value={email} onChange={e => setEmail(e.target.value)} />
-                <textarea placeholder="Açıklama (En az 5 karakter)" value={desc} onChange={e => setDesc(e.target.value)} />
-                <button onClick={handleSubmit} disabled={desc.trim().length < 5 || sending}>Gönder</button>
+                <p dangerouslySetInnerHTML={{ __html: t('feedbackPrompt') }} />
+                <input placeholder={t('feedbackNamePlaceholder')} value={name} onChange={e => setName(e.target.value)} />
+                <input placeholder={t('feedbackEmailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} />
+                <textarea placeholder={t('feedbackDescPlaceholder')} value={desc} onChange={e => setDesc(e.target.value)} />
+                <button onClick={handleSubmit} disabled={desc.trim().length < 5 || sending}>{t('feedbackSubmit')}</button>
               </>
             )}
           </div>
