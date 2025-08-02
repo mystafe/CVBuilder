@@ -116,6 +116,67 @@ body {
 .language-switcher button.active { border-color: var(--primary-color); transform: scale(1.1); }
 .theme-switcher:hover { border-color: var(--primary-color); }
 .language-switcher button svg { width: 100%; height: 100%; display: block; object-fit: cover; }
+.feedback-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background-color: var(--surface-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary-color);
+    transition: border-color 0.2s ease-in-out;
+}
+.feedback-icon:hover { border-color: var(--primary-color); }
+
+/* Feedback modal */
+.feedback-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.feedback-modal .modal-content {
+    background: var(--surface-color);
+    padding: 1rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.feedback-modal input,
+.feedback-modal textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--background-color);
+    color: var(--text-primary-color);
+}
+.feedback-modal textarea { min-height: 80px; resize: vertical; }
+.feedback-modal button {
+    align-self: flex-end;
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.feedback-modal button:disabled {
+    background: var(--secondary-color);
+    cursor: not-allowed;
+}
 footer {
     text-align: center;
     padding: 0.5rem 0;
@@ -143,8 +204,9 @@ footer {
     font-size: 1.4rem;
     color: var(--text-primary-color);
     font-family: 'Playfair Display', serif;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
 }
 .upload-step p { color: var(--text-secondary-color); }
