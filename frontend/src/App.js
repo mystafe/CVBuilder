@@ -28,6 +28,7 @@ function App() {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState('');
   const [coverLetterPdfUrl, setCoverLetterPdfUrl] = useState('');
+  const [cvPdfUrl, setCvPdfUrl] = useState('');
   const [hasGeneratedPdf, setHasGeneratedPdf] = useState(false);
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -163,12 +164,15 @@ function App() {
     setLoadingMessage(t('generatingPdfButton'));
     setError('');
     setCoverLetterPdfUrl('');
+    if (cvPdfUrl) window.URL.revokeObjectURL(cvPdfUrl);
+    setCvPdfUrl('');
 
     try {
       const preparedData = mergeLanguagesFromAdditions(JSON.parse(JSON.stringify(cvData)));
       const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, { cvData: preparedData, cvLanguage, sessionId }, { responseType: 'blob' });
 
       const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
+      setCvPdfUrl(url);
       const fileName = (get(cvData, 'personalInfo.name') || 'Super_CV').replace(/\s+/g, '_') + '.pdf';
       const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isMobile) {
@@ -181,7 +185,6 @@ function App() {
         link.click();
         link.remove();
       }
-      window.URL.revokeObjectURL(url);
 
       // PDF indirildikten sonra sadece bir "typing" mesajı göster
       setConversation(prev => [...prev, { type: 'typing' }]);
@@ -243,8 +246,34 @@ function App() {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.URL.revokeObjectURL(coverLetterPdfUrl);
+  };
+
+  const handleDownloadCv = () => {
+    if (!cvPdfUrl) return;
+    const fileName = (get(cvData, 'personalInfo.name') || 'Super_CV').replace(/\s+/g, '_') + '.pdf';
+    const link = document.createElement('a');
+    link.href = cvPdfUrl;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const handleRestart = () => {
+    if (cvPdfUrl) window.URL.revokeObjectURL(cvPdfUrl);
+    if (coverLetterPdfUrl) window.URL.revokeObjectURL(coverLetterPdfUrl);
+    setCvPdfUrl('');
     setCoverLetterPdfUrl('');
+    setCvData(null);
+    setSessionId(null);
+    setQuestionQueue([]);
+    setConversation([]);
+    setCurrentAnswer('');
+    setLoadingMessage('');
+    setError('');
+    setHasGeneratedPdf(false);
+    setStep('upload');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -271,17 +300,26 @@ function App() {
           <div className="chat-input-area">
             {step !== 'final' && (<textarea value={currentAnswer} onChange={(e) => setCurrentAnswer(e.target.value)} placeholder={t('chatPlaceholder')} disabled={isLoading} onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), processNextStep())} />)}
             <div className="button-group">
-              {step !== 'final' && (<> <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button> <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button> </>)}
-              {(step === 'final' || questionQueue.length === 0) && (
-                <button onClick={handleGeneratePdf} disabled={isLoading || !cvData || hasGeneratedPdf} className="primary">
-                  {isLoading && <span className="button-spinner"></span>}
-                  {isLoading ? loadingMessage : t('finishButton')}
-                </button>
+              {step !== 'final' && (
+                <>
+                  <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
+                  <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
+                </>
               )}
-              {coverLetterPdfUrl && (
-                <button onClick={handleDownloadCoverLetter} className="secondary">
-                  {t('downloadCoverLetterButton')}
-                </button>
+
+              {step === 'final' && hasGeneratedPdf ? (
+                <>
+                  <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className="primary">{t('downloadCvButton')}</button>
+                  <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="secondary">{t('downloadCoverLetterButton')}</button>
+                  <button onClick={handleRestart} className="secondary">{t('restartButton')}</button>
+                </>
+              ) : (
+                (step === 'final' || questionQueue.length === 0) && (
+                  <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className="primary">
+                    {isLoading && <span className="button-spinner"></span>}
+                    {isLoading ? loadingMessage : t('finishButton')}
+                  </button>
+                )
               )}
             </div>
             {error && <p className="error-text">{error}</p>}
