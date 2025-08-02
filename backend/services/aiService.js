@@ -115,9 +115,25 @@ const getCoverLetterPrompt = (cvData, appLanguageCode) => {
 
 async function extractRawCvData(cvText, template) {
   logStep("Yapay Zeka ile Ham Veri Çıkarılıyor.");
-  const response = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: getExtractionPrompt(cvText, template) }], response_format: { type: "json_object" }, });
-  logStep("Ham Veri Başarıyla Çıkarıldı.");
-  return JSON.parse(response.choices[0].message.content);
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: getExtractionPrompt(cvText, template) }],
+      response_format: { type: "json_object" },
+    });
+    const content = response.choices[0].message.content;
+    logStep(`Ham Veri Yanıtı: ${content}`);
+    const parsed = JSON.parse(content);
+    logStep("Ham Veri Başarıyla Çıkarıldı.");
+    return parsed;
+  } catch (error) {
+    if (error.response?.data) {
+      logStep(`Ham Veri Hatası: ${JSON.stringify(error.response.data)}`);
+    } else {
+      logStep(`Ham Veri Hatası: ${error.message}`);
+    }
+    throw error;
+  }
 }
 
 async function generateAiQuestions(cvData, appLanguage, askedQuestions = [], maxQuestions = 4) {

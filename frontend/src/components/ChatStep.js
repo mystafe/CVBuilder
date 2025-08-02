@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import Logo from './Logo';
 import LanguageSwitcher from './LanguageSwitcher';
 import ThemeSwitcher from './ThemeSwitcher';
-import packageJson from '../../package.json';
 
 const TypingIndicator = () => <div className="message ai typing"><span></span><span></span><span></span></div>;
 const SendIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <line x1="22" y1="2" x2="11" y2="13"></line> <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon> </svg>);
@@ -57,7 +56,7 @@ const ChatStep = ({
         </div>
         {error && <p className="error-text">{error}</p>}
       </div>
-      <footer>{`${t('footerText')} - v${packageJson.version}`}</footer>
+      <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
     </div>
   );
 };
