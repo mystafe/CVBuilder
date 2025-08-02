@@ -136,7 +136,26 @@ footer {
 .language-controls { display: flex; justify-content: center; margin: 2rem 0; gap: 1rem; }
 .control-group { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
 .control-group label { font-weight: 500; color: var(--text-secondary-color); }
-.control-group select { padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); font-family: var(--font-family); background-color: var(--surface-color); color: var(--text-primary-color);}
+.control-group select {
+    padding: 0.6rem 2.2rem 0.6rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-family: var(--font-family);
+    background-color: var(--surface-color);
+    color: var(--text-primary-color);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23333' d='M6 8L0 0h12z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+}
+.control-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
 input[type="file"] { display: none; }
 .file-upload-label { display: inline-block; padding: 1rem 2rem; background-color: var(--primary-color); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background-color 0.3s; position: relative; overflow: hidden; }
 .file-upload-label:hover { background-color: var(--primary-hover-color); }
@@ -204,30 +223,19 @@ input[type="file"] { display: none; }
 
 .button-spinner {
     display: inline-block;
-    position: relative;
     width: 16px;
-    height: 8px;
+    height: 16px;
     margin-right: 8px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
     vertical-align: middle;
 }
 
-.button-spinner::before,
-.button-spinner::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    animation: buttonBounce 0.6s infinite alternate;
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
-
-.button-spinner { background: var(--primary-color); border-radius: 50%; animation: buttonBounce 0.6s infinite alternate; }
-.button-spinner::before { left: -8px; animation-delay: -0.2s; }
-.button-spinner::after { left: 8px; animation-delay: 0.2s; }
-
-@keyframes buttonBounce { to { transform: translateY(-4px); } }
 
 .demo-badge {
     background-color: var(--primary-color);

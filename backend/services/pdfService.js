@@ -74,7 +74,11 @@ const generateCvHtml = (data, language = 'en') => {
         ${data.skillsByCategory && data.skillsByCategory.length > 0 ? `<div class="section"><h2 class="section-title">${t.skills}</h2><div class="skills-container">${data.skillsByCategory.map(cat => `<div class="skills-category"><h4>${cat.category || ''}</h4><ul>${(cat.skills || []).map(s => `<li>${s}</li>`).join('')}</ul></div>`).join('')}</div></div>` : ''}
         ${data.projects && data.projects.length > 0 ? `<div class="section projects"><h2 class="section-title">${t.projects}</h2>${data.projects.map(proj => `<div><h3>${proj.name || ''}</h3><p>${proj.description || ''}</p>${proj.url ? `<p><a href="${proj.url}">${proj.url}</a></p>` : ''}</div>`).join('')}</div>` : ''}
         ${data.languages && data.languages.length > 0 ? `<div class="section"><h2 class="section-title">${t.languages}</h2>${data.languages.map(lang => `<p>${(lang.language || '')} ${lang.proficiency ? '(' + lang.proficiency + ')' : ''}</p>`).join('')}</div>` : ''}
-        ${data.certificates && data.certificates.length > 0 ? `<div class="section"><h2 class="section-title">${t.certificates}</h2>${data.certificates.map(cert => `<p>${cert || ''}</p>`).join('')}</div>` : ''}
+        ${data.certificates && data.certificates.length > 0 ? `<div class="section"><h2 class="section-title">${t.certificates}</h2>${data.certificates.map(cert => {
+            if (typeof cert === 'string') { return `<p>${cert}</p>`; }
+            const parts = [cert.name || cert.title, cert.issuer, cert.date].filter(Boolean);
+            return `<p>${parts.join(' - ')}</p>`;
+        }).join('')}</div>` : ''}
         ${data.analysis ? `<div class="section"><h2 class="section-title">${t.analysis}</h2><p>${data.analysis}</p></div>` : ''}
     </div>
     </body>
