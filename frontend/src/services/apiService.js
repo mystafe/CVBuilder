@@ -18,7 +18,7 @@ export async function extractRawData(file) {
 /**
  * Mevcut CV verisine göre AI'dan stratejik sorular ister.
  */
-export async function fetchAiQuestions(cvData, appLanguage, askedQuestions = [], maxQuestions = 3) {
+export async function fetchAiQuestions(cvData, appLanguage, askedQuestions = [], maxQuestions = 4) {
   const response = await axios.post(`${API_BASE_URL}/api/generate-ai-questions`, {
     cvData,
     appLanguage,
