@@ -17,7 +17,7 @@
   "downloadCoverLetterButton": "Download Cover Letter",
   "restartButton": "Start Over",
   "generatingPdfButton": "Finalizing PDF...",
-  "finalMessage": "We've gathered the essential feedback for your CV. How would you like to proceed?",
+  "finalMessage": "The AI's notes on your CV are ready. How shall we proceed?",
   "improveButton": "Perfect My CV",
   "demoBadge": "Demo",
   "cvScore": "Your CV scored {{score}}/100.",
