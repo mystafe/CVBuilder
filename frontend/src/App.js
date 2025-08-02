@@ -19,10 +19,12 @@ function App() {
   // --- State & Ref Yönetimi ---
   const { t, i18n } = useTranslation();
   const [cvLanguage, setCvLanguage] = useState('tr');
-  const [step, setStep] = useState('upload'); // 'upload', 'scriptedQuestions', 'aiQuestions', 'final'
+  const [step, setStep] = useState('upload'); // 'upload', 'scriptedQuestions', 'aiQuestions', 'review', 'final'
   const [cvData, setCvData] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [questionQueue, setQuestionQueue] = useState([]);
+  const [askedAiQuestions, setAskedAiQuestions] = useState([]);
+  const [canRefine, setCanRefine] = useState(true);
   const [conversation, setConversation] = useState([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [loadingMessage, setLoadingMessage] = useState('');
@@ -56,6 +58,8 @@ function App() {
 
     setCvData(data);
     setQuestionQueue(queue);
+    setAskedAiQuestions([]);
+    setCanRefine(true);
     setStep('scriptedQuestions');
     setHasGeneratedPdf(false);
 
@@ -80,24 +84,32 @@ function App() {
     }
   };
 
-  const fetchAiQuestions = async (currentData) => {
+  const fetchAiQuestions = async (currentData, maxQuestions = 3) => {
     setLoadingMessage("AI CV'nizi Analiz Ediyor...");
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/generate-ai-questions`, { cvData: currentData, appLanguage: i18n.language, sessionId });
+      const res = await axios.post(`${API_BASE_URL}/api/generate-ai-questions`, {
+        cvData: currentData,
+        appLanguage: i18n.language,
+        askedQuestions: askedAiQuestions,
+        maxQuestions,
+        sessionId
+      });
       const aiQuestions = (res.data.questions || []).map(q => ({ key: q, isAi: true }));
 
       if (aiQuestions.length > 0) {
         setQuestionQueue(aiQuestions);
+        setAskedAiQuestions(prev => [...prev, ...aiQuestions.map(q => q.key)]);
         setStep('aiQuestions');
         setConversation(prev => [...prev, { type: 'ai', text: aiQuestions[0].key }]);
       } else {
+        setCanRefine(false);
         setConversation(prev => [...prev, { type: 'ai', text: t('finalMessage') }]);
-        setStep('final');
+        setStep('review');
       }
     } catch (err) {
       setError(err.response?.data?.message || t('chatError'));
-      setConversation(prev => [...prev, { type: 'ai', text: t('finalMessage') }]); // Hata durumunda da final adımına geç
-      setStep('final');
+      setConversation(prev => [...prev, { type: 'ai', text: t('finalMessage') }]); // Hata durumunda da review adımına geç
+      setStep('review');
     } finally {
       setLoadingMessage('');
     }
@@ -134,7 +146,7 @@ function App() {
         fetchAiQuestions(updatedCvData);
       } else {
         setConversation([...newConversation, { type: 'ai', text: t('finalMessage') }]);
-        setStep('final');
+        setStep('review');
       }
     }
   };
@@ -173,18 +185,7 @@ function App() {
 
       const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
       setCvPdfUrl(url);
-      const fileName = (get(cvData, 'personalInfo.name') || 'Super_CV').replace(/\s+/g, '_') + '.pdf';
-      const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isMobile) {
-        window.open(url, '_blank');
-      } else {
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', fileName);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }
+      window.open(url, '_blank');
 
       // PDF indirildikten sonra sadece bir "typing" mesajı göster
       setConversation(prev => [...prev, { type: 'typing' }]);
@@ -240,23 +241,17 @@ function App() {
 
   const handleDownloadCoverLetter = () => {
     if (!coverLetterPdfUrl) return;
-    const link = document.createElement('a');
-    link.href = coverLetterPdfUrl;
-    link.setAttribute('download', 'Cover_Letter.pdf');
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    window.open(coverLetterPdfUrl, '_blank');
   };
 
   const handleDownloadCv = () => {
     if (!cvPdfUrl) return;
-    const fileName = (get(cvData, 'personalInfo.name') || 'Super_CV').replace(/\s+/g, '_') + '.pdf';
-    const link = document.createElement('a');
-    link.href = cvPdfUrl;
-    link.setAttribute('download', fileName);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    window.open(cvPdfUrl, '_blank');
+  };
+
+  const handleRefine = () => {
+    if (!cvData) return;
+    fetchAiQuestions(cvData, 2);
   };
 
   const handleRestart = () => {
@@ -272,6 +267,8 @@ function App() {
     setLoadingMessage('');
     setError('');
     setHasGeneratedPdf(false);
+    setAskedAiQuestions([]);
+    setCanRefine(true);
     setStep('upload');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -286,7 +283,7 @@ function App() {
           <p>{t('subtitle')}</p>
           <div className="language-controls"><div className="control-group"><label htmlFor="cv-lang">{t('cvLanguageLabel')}</label><select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading}><option value="tr">Türkçe</option><option value="en">English</option></select></div></div>
           <input type="file" id="file-upload" ref={fileInputRef} onChange={handleInitialParse} disabled={isLoading} accept=".pdf,.docx" style={{ display: 'none' }} />
-          <label htmlFor="file-upload" className={`file-upload-label ${isLoading ? 'disabled' : ''}`}>
+          <label htmlFor="file-upload" className={`file-upload-label ${isLoading ? 'loading disabled' : ''}`}>
             {isLoading && <span className="button-spinner"></span>}
             {isLoading ? loadingMessage : t('uploadButtonLabel')}
           </label>
@@ -298,28 +295,38 @@ function App() {
           <div className="chat-header"><Logo /><div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
           <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
           <div className="chat-input-area">
-            {step !== 'final' && (<textarea value={currentAnswer} onChange={(e) => setCurrentAnswer(e.target.value)} placeholder={t('chatPlaceholder')} disabled={isLoading} onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), processNextStep())} />)}
+            {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
+              <textarea
+                value={currentAnswer}
+                onChange={(e) => setCurrentAnswer(e.target.value)}
+                placeholder={t('chatPlaceholder')}
+                disabled={isLoading}
+                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), processNextStep())}
+              />
+            )}
             <div className="button-group">
-              {step !== 'final' && (
+              {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
                 <>
                   <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
                   <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
                 </>
               )}
 
-              {step === 'final' && hasGeneratedPdf ? (
+              {step === 'review' && (
+                <>
+                  <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
+                    {isLoading ? loadingMessage : t('downloadCvButton')}
+                  </button>
+                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className="secondary">{t('improveButton')}</button>}
+                </>
+              )}
+
+              {step === 'final' && hasGeneratedPdf && (
                 <>
                   <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className="primary">{t('downloadCvButton')}</button>
-                  <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="secondary">{t('downloadCoverLetterButton')}</button>
+                  <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="accent">{t('downloadCoverLetterButton')}</button>
                   <button onClick={handleRestart} className="secondary">{t('restartButton')}</button>
                 </>
-              ) : (
-                (step === 'final' || questionQueue.length === 0) && (
-                  <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className="primary">
-                    {isLoading && <span className="button-spinner"></span>}
-                    {isLoading ? loadingMessage : t('finishButton')}
-                  </button>
-                )
               )}
             </div>
             {error && <p className="error-text">{error}</p>}
