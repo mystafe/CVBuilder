@@ -104,13 +104,21 @@ function App() {
         setConversation(prev => [...prev, { type: 'ai', text: aiQuestions[0].key }]);
       } else {
         setCanRefine(false);
-        setConversation(prev => [...prev, { type: 'ai', text: t('finalMessage') }]);
+        setConversation(prev => [
+          ...prev,
+          { type: 'ai', text: t('noContentError') },
+          { type: 'ai', text: t('finalMessage') }
+        ]);
         setStep('review');
         scoreCv(cvData);
       }
     } catch (err) {
       setError(err.response?.data?.message || t('chatError'));
-      setConversation(prev => [...prev, { type: 'ai', text: t('finalMessage') }]); // Hata durumunda da review adımına geç
+      setConversation(prev => [
+        ...prev,
+        { type: 'ai', text: t('chatError') },
+        { type: 'ai', text: t('finalMessage') }
+      ]);
       setStep('review');
       scoreCv(cvData);
     } finally {
@@ -187,6 +195,7 @@ function App() {
   const handleGeneratePdf = async () => {
     if (!cvData || hasGeneratedPdf) { return; }
 
+    setConversation(prev => [...prev, { type: 'user', text: t('generateCvButton') }]);
     setLoadingMessage(t('generatingPdfButton'));
     setError('');
     setCoverLetterPdfUrl('');
@@ -265,6 +274,7 @@ function App() {
 
   const handleRefine = () => {
     if (!cvData) return;
+    setConversation(prev => [...prev, { type: 'user', text: t('improveButton') }]);
     fetchAiQuestions(cvData, 2);
   };
 
