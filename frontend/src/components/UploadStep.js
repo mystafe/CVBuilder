@@ -5,7 +5,6 @@ import Logo from './Logo';
 import LanguageSwitcher from './LanguageSwitcher';
 import ThemeSwitcher from './ThemeSwitcher';
 import Feedback from './Feedback';
-import packageJson from '../../package.json';
 
 const UploadStep = ({ onFileSelect, cvLanguage, setCvLanguage, isLoading, loadingMessage, error, theme, setTheme }) => {
   const { t, i18n } = useTranslation();
@@ -44,7 +43,7 @@ const UploadStep = ({ onFileSelect, cvLanguage, setCvLanguage, isLoading, loadin
         {isLoading ? loadingMessage : t('uploadButtonLabel')} 
       </label>
       {error && <p className="error-text">{error}</p>}
-      <footer>{`${t('footerText')} - v${packageJson.version}`}</footer>
+      <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
     </div>
   );
 };
