@@ -118,10 +118,10 @@ function App() {
     }
   };
 
-  const processNextStep = (skipped = false) => {
+  const processNextStep = (skipped = false, presetAnswer) => {
     if (questionQueue.length === 0) return;
     const currentQuestion = questionQueue[0];
-    const userAnswer = skipped ? '(atlandı)' : currentAnswer;
+    const userAnswer = presetAnswer !== undefined ? presetAnswer : (skipped ? t('skipButton') : currentAnswer);
     if (!userAnswer && !skipped) return;
 
     const newConversation = [...conversation, { type: 'user', text: userAnswer }];
