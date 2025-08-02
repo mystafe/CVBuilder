@@ -20,6 +20,7 @@
   "finalMessage": "The AI's notes on your CV are ready. How shall we proceed?",
   "improveButton": "Perfect My CV",
   "demoBadge": "Beta",
+  "giveFeedback": "give feedback",
   "feedbackPrompt": "Did you encounter an error or have an idea? Your feedback is valuable.<br/>It will help us improve this app.",
   "feedbackNamePlaceholder": "Name",
   "feedbackEmailPlaceholder": "Email (Optional)",
