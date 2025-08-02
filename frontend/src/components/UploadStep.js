@@ -37,8 +37,9 @@ const UploadStep = ({ onFileSelect, cvLanguage, setCvLanguage, isLoading, loadin
         accept=".pdf,.docx"
         style={{ display: 'none' }}
       />
-      <label htmlFor="file-upload" className={`file-upload-label ${isLoading ? 'disabled' : ''}`}>
-        {isLoading ? loadingMessage : t('uploadButtonLabel')}
+      <label htmlFor="file-upload" className={`file-upload-label ${isLoading ? 'disabled' : ''}`}> 
+        {isLoading && <span className="button-spinner"></span>}
+        {isLoading ? loadingMessage : t('uploadButtonLabel')} 
       </label>
       {error && <p className="error-text">{error}</p>}
       <footer>{`${t('footerText')} - v${packageJson.version}`}</footer>

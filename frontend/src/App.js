@@ -67,7 +67,7 @@ function App() {
     setLoadingMessage(t('uploadingButtonLabel')); setError('');
     const formData = new FormData(); formData.append('cv', file);
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/extract-raw`, formData, { timeout: 45000 });
+      const res = await axios.post(`${API_BASE_URL}/api/extract-raw`, formData, { timeout: 120000 });
       setSessionId(res.data.sessionId);
       startScriptedQuestions(res.data.parsedData);
     } catch (err) {
@@ -237,11 +237,6 @@ function App() {
 
   return (
     <div className="app-container">
-      {isLoading && (
-        <div className="loading-overlay">
-          <div className="ring-spinner"></div>
-        </div>
-      )}
       {step === 'upload' ? (
         <div className="upload-step fade-in">
           <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
@@ -250,7 +245,10 @@ function App() {
           <p>{t('subtitle')}</p>
           <div className="language-controls"><div className="control-group"><label htmlFor="cv-lang">{t('cvLanguageLabel')}</label><select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading}><option value="tr">Türkçe</option><option value="en">English</option></select></div></div>
           <input type="file" id="file-upload" ref={fileInputRef} onChange={handleInitialParse} disabled={isLoading} accept=".pdf,.docx" style={{ display: 'none' }} />
-          <label htmlFor="file-upload" className={`file-upload-label ${isLoading ? 'disabled' : ''}`}>{isLoading ? loadingMessage : t('uploadButtonLabel')}</label>
+          <label htmlFor="file-upload" className={`file-upload-label ${isLoading ? 'disabled' : ''}`}>
+            {isLoading && <span className="button-spinner"></span>}
+            {isLoading ? loadingMessage : t('uploadButtonLabel')}
+          </label>
           {error && <p className="error-text">{error}</p>}
           <footer>{`${t('footerText')} - v${packageJson.version}`}</footer>
         </div>
@@ -264,6 +262,7 @@ function App() {
               {step !== 'final' && (<> <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button> <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button> </>)}
               {(step === 'final' || questionQueue.length === 0) && (
                 <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className="primary">
+                  {isLoading && <span className="button-spinner"></span>}
                   {isLoading ? loadingMessage : t('finishButton')}
                 </button>
               )}
