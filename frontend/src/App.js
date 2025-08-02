@@ -32,6 +32,7 @@ function App() {
   const [coverLetterPdfUrl, setCoverLetterPdfUrl] = useState('');
   const [cvPdfUrl, setCvPdfUrl] = useState('');
   const [hasGeneratedPdf, setHasGeneratedPdf] = useState(false);
+  const [cvScore, setCvScore] = useState(null);
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     const userPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
@@ -105,11 +106,13 @@ function App() {
         setCanRefine(false);
         setConversation(prev => [...prev, { type: 'ai', text: t('finalMessage') }]);
         setStep('review');
+        scoreCv(cvData);
       }
     } catch (err) {
       setError(err.response?.data?.message || t('chatError'));
       setConversation(prev => [...prev, { type: 'ai', text: t('finalMessage') }]); // Hata durumunda da review adımına geç
       setStep('review');
+      scoreCv(cvData);
     } finally {
       setLoadingMessage('');
     }
@@ -147,6 +150,7 @@ function App() {
       } else {
         setConversation([...newConversation, { type: 'ai', text: t('finalMessage') }]);
         setStep('review');
+        scoreCv(updatedCvData);
       }
     }
   };
@@ -167,6 +171,16 @@ function App() {
       return { language: p, proficiency: '' };
     });
     return data;
+  };
+
+  const scoreCv = async (data) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/score-cv`, { cvData: data, appLanguage: i18n.language });
+      setCvScore(res.data.score);
+      setConversation(prev => [...prev, { type: 'ai', text: `${t('cvScore', { score: res.data.score })} ${res.data.comment}` }]);
+    } catch (err) {
+      // ignore scoring errors
+    }
   };
 
   // YENİ ve ÇİFT ADIMLI PDF/ÖN YAZI MANTIĞI
@@ -196,7 +210,7 @@ function App() {
       try {
           const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/generate-cover-letter`, {
           cvData: preparedData,
-          appLanguage: i18n.language,
+          appLanguage: cvLanguage,
           sessionId
         });
 
@@ -216,7 +230,7 @@ function App() {
           try {
             const pdfRes = await axios.post(`${API_BASE_URL}/api/generate-cover-letter-pdf`, {
               cvData: preparedData,
-              appLanguage: i18n.language,
+              appLanguage: cvLanguage,
               sessionId
             }, { responseType: 'blob' });
             const pdfUrl = window.URL.createObjectURL(new Blob([pdfRes.data], { type: 'application/pdf' }));
@@ -269,6 +283,7 @@ function App() {
     setHasGeneratedPdf(false);
     setAskedAiQuestions([]);
     setCanRefine(true);
+    setCvScore(null);
     setStep('upload');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -279,7 +294,7 @@ function App() {
         <div className="upload-step fade-in">
           <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
           <Logo />
-          <h1>{t('mainTitle')}</h1>
+          <h1>{t('mainTitle')} <span className="demo-badge">{t('demoBadge')}</span></h1>
           <p>{t('subtitle')}</p>
           <div className="language-controls"><div className="control-group"><label htmlFor="cv-lang">{t('cvLanguageLabel')}</label><select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading}><option value="tr">Türkçe</option><option value="en">English</option></select></div></div>
           <input type="file" id="file-upload" ref={fileInputRef} onChange={handleInitialParse} disabled={isLoading} accept=".pdf,.docx" style={{ display: 'none' }} />
@@ -317,14 +332,14 @@ function App() {
                   <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
                     {isLoading ? loadingMessage : t('generateCvButton')}
                   </button>
-                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className="accent">{t('improveButton')}</button>}
+                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`accent ${cvScore !== null && cvScore < 80 ? 'highlight' : ''}`}>{t('improveButton')}</button>}
                 </>
               )}
 
               {step === 'final' && hasGeneratedPdf && (
                 <>
-                  <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className="primary">{t('downloadCvButton')}</button>
-                  <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="accent">{t('downloadCoverLetterButton')}</button>
+                  <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`primary ${cvScore !== null && cvScore >= 80 ? 'highlight' : ''}`}>{t('downloadCvButton')}</button>
+                  <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
                   <button onClick={handleRestart} className="accent">{t('restartButton')}</button>
                 </>
               )}

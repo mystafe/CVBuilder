@@ -1,5 +1,5 @@
 {
-  "mainTitle": "AI CV Guide",
+  "mainTitle": "AI-assisted CV Guide",
   "subtitle": "Recreate your CV from scratch with our AI-powered assistant.",
   "cvLanguageLabel": "Target CV Language:",
   "uploadButtonLabel": "Upload Your CV",
@@ -19,6 +19,8 @@
   "generatingPdfButton": "Finalizing PDF...",
   "finalMessage": "We've gathered the essential feedback for your CV. How would you like to proceed?",
   "improveButton": "Perfect My CV",
+  "demoBadge": "Demo",
+  "cvScore": "Your CV scored {{score}}/100.",
   "coverLetterIntro": "Here is a draft for a compelling cover letter introduction based on your new CV. You can copy and adapt it for your job applications:",
   "errorOccurred": "An error occurred. Please try again.",
   "chatError": "An error occurred during the chat.",
