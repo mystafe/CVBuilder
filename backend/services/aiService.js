@@ -30,18 +30,18 @@ const getExtractionPrompt = (cvText, template) => `
  * Yapay zekaya, mevcut CV'yi analiz edip en önemli eksikleri bulmasını ve bu eksikler için
  * belirtilen dilde sorular üretmesini söyler. DİL KURALI ÇOK KESİNDİR.
  */
-const getAiQuestionsPrompt = (cvData, appLanguage) => `
-  You are a helpful career assistant. Carefully inspect the CV JSON below and identify up to 4 basic pieces of information that are missing or incomplete.
+const getAiQuestionsPrompt = (cvData, appLanguage, askedQuestions = [], maxQuestions = 3) => `
+  You are a helpful career assistant. Carefully inspect the CV JSON below and identify up to ${maxQuestions} basic pieces of information that are missing or incomplete.
 
   **RULES:**
   1. **LANGUAGE LOCK:** Write every question only in '${appLanguage}'.
-  2. **BASIC INFO:** Focus on core CV details such as job titles, dates, education, key skills or contact information. Avoid overly advanced coaching advice.
-  3. **NO DUPLICATES:** Skip anything already filled in.
-  4. **LIMIT:** Maximum 4 short questions.
+  2. **BASIC INFO:** Focus on core CV details such as job titles, dates, education, key skills, or contact information. Avoid diving into detailed coaching or advanced strategies.
+  3. **NO DUPLICATES:** Skip anything already filled in and do not repeat any of these questions: ${askedQuestions.join(' | ')}.
+  4. **LIMIT:** Maximum ${maxQuestions} short questions.
 
   Your final output MUST be a single JSON object with the key "questions", containing an array of strings.
   Example JSON output: { "questions": ["Question 1 in ${appLanguage}?", "Question 2 in ${appLanguage}?"] }
-  
+
   CV Data to analyze (in JSON format):
   ${JSON.stringify(cvData)}
 `;
@@ -92,9 +92,13 @@ async function extractRawCvData(cvText, template) {
   return JSON.parse(response.choices[0].message.content);
 }
 
-async function generateAiQuestions(cvData, appLanguage) {
+async function generateAiQuestions(cvData, appLanguage, askedQuestions = [], maxQuestions = 3) {
   logStep("AI için Stratejik Sorular Üretiliyor.");
-  const response = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: getAiQuestionsPrompt(cvData, appLanguage) }], response_format: { type: "json_object" }, });
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: getAiQuestionsPrompt(cvData, appLanguage, askedQuestions, maxQuestions) }],
+    response_format: { type: "json_object" },
+  });
   logStep("AI Soruları Üretildi.");
   return JSON.parse(response.choices[0].message.content);
 }
