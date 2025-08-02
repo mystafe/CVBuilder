@@ -34,6 +34,7 @@ function App() {
   const [cvPdfUrl, setCvPdfUrl] = useState('');
   const [hasGeneratedPdf, setHasGeneratedPdf] = useState(false);
   const [cvScore, setCvScore] = useState(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     const userPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
@@ -301,11 +302,12 @@ function App() {
 
   return (
     <div className="app-container">
-          {step === 'upload' ? (
+      <Feedback open={feedbackOpen} setOpen={setFeedbackOpen} sessionId={sessionId} language={i18n.language} theme={theme} />
+      {step === 'upload' ? (
         <div className="upload-step fade-in">
-          <div className="settings-bar"><Feedback sessionId={sessionId} language={i18n.language} theme={theme} /><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
+          <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
           <Logo />
-          <h1><span>{t('mainTitle')}</span><span className="demo-badge">{t('demoBadge')}</span></h1>
+          <h1><span>{t('mainTitle')}</span><button className="demo-badge" onClick={() => setFeedbackOpen(true)}>{t('demoBadge')}</button></h1>
           <p>{t('subtitle')}</p>
           <div className="language-controls"><div className="control-group"><label htmlFor="cv-lang">{t('cvLanguageLabel')}</label><select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading}><option value="tr">Türkçe</option><option value="en">English</option></select></div></div>
           <input type="file" id="file-upload" ref={fileInputRef} onChange={handleInitialParse} disabled={isLoading} accept=".pdf,.docx" style={{ display: 'none' }} />
@@ -318,7 +320,7 @@ function App() {
         </div>
       ) : (
         <div className="chat-step fade-in">
-          <div className="chat-header"><Logo /><div className="settings-bar"><Feedback sessionId={sessionId} language={i18n.language} theme={theme} /><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
+          <div className="chat-header"><Logo /><div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
           <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
           <div className="chat-input-area">
             {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
