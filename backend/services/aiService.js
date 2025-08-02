@@ -7,6 +7,10 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // --- GÖREV ODAKLI, GÜÇLENDİRİLMİŞ AI PROMPTS ---
 
+// Dil kodlarını OpenAI'nin anlayacağı tam dillere çeviren yardımcı fonksiyon
+const langMap = { tr: 'Turkish', en: 'English' };
+const normalizeLanguage = (code) => langMap[code] || code;
+
 /**
  * GÖREV 1: Hızlı ve Ham Veri Çıkarma.
  * Yapay zekaya sadece ve sadece metni, verilen şablona göre JSON'a dökmesini söyler.
@@ -30,7 +34,9 @@ const getExtractionPrompt = (cvText, template) => `
  * Yapay zekaya, mevcut CV'yi analiz edip en önemli eksikleri bulmasını ve bu eksikler için
  * belirtilen dilde sorular üretmesini söyler. DİL KURALI ÇOK KESİNDİR.
  */
-const getAiQuestionsPrompt = (cvData, appLanguage, askedQuestions = [], maxQuestions = 3) => `
+const getAiQuestionsPrompt = (cvData, appLanguageCode, askedQuestions = [], maxQuestions = 3) => {
+  const appLanguage = normalizeLanguage(appLanguageCode);
+  return `
   You are a helpful career assistant. Carefully inspect the CV JSON below and identify up to ${maxQuestions} basic pieces of information that are missing or incomplete.
 
   **RULES:**
@@ -46,13 +52,16 @@ const getAiQuestionsPrompt = (cvData, appLanguage, askedQuestions = [], maxQuest
   CV Data to analyze (in JSON format):
   ${JSON.stringify(cvData)}
 `;
+};
 
 /**
  * GÖREV 3: Final CV'yi Mükemmelleştirme.
  * Yapay zekaya, toplanan tüm veriyi alıp, hedef dilde, profesyonel ve
  * hatasız bir nihai CV JSON'u oluşturmasını söyler.
  */
-const getFinalizeCvPrompt = (cvData, targetLanguage) => `
+const getFinalizeCvPrompt = (cvData, targetLanguageCode) => {
+  const targetLanguage = normalizeLanguage(targetLanguageCode);
+  return `
   You are a master CV writer. Take the following structured CV JSON data, which includes user's answers to your questions, and transform it into a perfectly polished, professional CV.
   - **LANGUAGE RULE**: The final output's every single string value (summaries, descriptions, titles, categories, etc.) **MUST BE IN ${targetLanguage}**. No exceptions or other languages are permitted.
   - **ACTION**: Rewrite all job descriptions to start with strong action verbs. Integrate quantifiable achievements provided by the user. Polish the language to be professional and concise.
@@ -60,13 +69,16 @@ const getFinalizeCvPrompt = (cvData, targetLanguage) => `
   - **INTEGRATION**: If a 'userAdditions' array exists, interpret each {question, answer} pair and integrate the answers into the most relevant fields so no user-provided detail is lost.
   - **CLEANUP**: Ensure consistent formatting throughout. Remove any notes or irrelevant information (like a 'userAdditions' field).
   - Return only the final, polished JSON object. The structure should remain the same as the input.
-  
+
   CV Data to finalize (in JSON format):
   ${JSON.stringify(cvData)}
 `;
+};
 
 // CV puanlama promptu
-const getScoreCvPrompt = (cvData, appLanguage) => `
+const getScoreCvPrompt = (cvData, appLanguageCode) => {
+  const appLanguage = normalizeLanguage(appLanguageCode);
+  return `
   You are an expert CV critic. Review the CV data below and provide a quality assessment.
   - Return a JSON object with keys "score" (0-100 integer) and "comment" (a short remark in ${appLanguage}).
   - Be concise and base your judgement solely on the provided data.
@@ -74,13 +86,16 @@ const getScoreCvPrompt = (cvData, appLanguage) => `
   CV Data:
   ${JSON.stringify(cvData)}
 `;
+};
 
 /**
  * YENİ GÖREV: Ön Yazı Taslağı Oluşturma.
  * Yapay zekaya, bitmiş CV verisine dayanarak, birinci ağızdan ve belirtilen dilde bir
  * ön yazı giriş paragrafı yazmasını söyler.
  */
-const getCoverLetterPrompt = (cvData, appLanguage) => `
+const getCoverLetterPrompt = (cvData, appLanguageCode) => {
+  const appLanguage = normalizeLanguage(appLanguageCode);
+  return `
   You are a career coach helping a candidate write a cover letter introduction. Based on the finalized CV data below, write a short, compelling, first-person paragraph (2-4 sentences). This paragraph should serve as a cover letter template that the user can copy and adapt.
 
   CRITICAL RULES:
@@ -94,6 +109,7 @@ const getCoverLetterPrompt = (cvData, appLanguage) => `
   Final CV Data to use:
   ${JSON.stringify(cvData)}
 `;
+};
 
 // --- ASENKRON FONKSİYONLAR (API ÇAĞRILARI) ---
 
