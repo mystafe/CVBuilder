@@ -84,6 +84,7 @@ function App() {
       startScriptedQuestions(res.data.parsedData);
     } catch (err) {
       setError(err.response?.data?.message || t('errorOccurred'));
+    } finally {
       setLoadingMessage('');
     }
   };
