@@ -45,6 +45,12 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+@media (min-width: 769px) {
+    body {
+        font-size: 17px;
+    }
+}
+
 #root {
     display: flex;
     justify-content: center;
@@ -349,7 +355,7 @@ input[type="file"] { display: none; }
     cursor: pointer;
     opacity: 1;
     transition: opacity 0.2s ease-in-out;
-    font-weight: 700;
+    font-weight: 400;
 }
 
 .demo-badge:hover {
@@ -377,6 +383,11 @@ input[type="file"] { display: none; }
 .demo-badge:hover .badge-tooltip {
     visibility: visible;
     opacity: 1;
+}
+
+.demo-badge .info-icon {
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
 }
 
 .button-group button.blue {
