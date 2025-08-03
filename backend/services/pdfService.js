@@ -33,6 +33,22 @@ const headingMap = {
     tr: { summary: 'Özet', experience: 'Deneyim', education: 'Eğitim', skills: 'Yetenekler', projects: 'Projeler', languages: 'Diller', certificates: 'Sertifikalar', analysis: 'AI Analizi' }
 };
 
+const renderSkills = (skills = []) => {
+    const grouped = skills.reduce((acc, skill) => {
+        const category = skill.category || '';
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(skill);
+        return acc;
+    }, {});
+    return `<div class="skills-container">` +
+        Object.entries(grouped).map(([category, list]) => `
+            <div class="skills-category">
+                ${category ? `<h4>${category}</h4>` : ''}
+                <ul>${list.map(s => `<li>${s.name}${s.level ? ` - ${s.level}` : ''}</li>`).join('')}</ul>
+            </div>`).join('') +
+        `</div>`;
+};
+
 const generateCvHtml = (data, language = 'en') => {
     const t = headingMap[language] || headingMap.en;
     const fullName = (data.personalInfo?.name || `${data.personalInfo?.firstName || ''} ${data.personalInfo?.lastName || ''}`.trim()).trim();
@@ -71,7 +87,7 @@ const generateCvHtml = (data, language = 'en') => {
         ${data.summary ? `<div class="section"><h2 class="section-title">${t.summary}</h2><p>${data.summary}</p></div>` : ''}
         ${data.experience && data.experience.length > 0 ? `<div class="section"><h2 class="section-title">${t.experience}</h2>${data.experience.map(exp => `<div class="item-container"><div class="item-content"><h3>${exp.title || ''}</h3><div class="sub-header">${exp.company || ''} | ${exp.location || ''}</div><ul>${(exp.description || '').split('\\n').filter(d => d.trim() !== '').map(d => `<li>${d.replace(/^- /, '')}</li>`).join('')}</ul></div><div class="item-date">${exp.date || ''}</div></div>`).join('')}</div>` : ''}
         ${data.education && data.education.length > 0 ? `<div class="section"><h2 class="section-title">${t.education}</h2>${data.education.map(edu => `<div class="item-container"><div class="item-content"><h3>${edu.degree || ''}</h3><p>${edu.institution || ''}</p></div><div class="item-date">${edu.date || ''}</div></div>`).join('')}</div>` : ''}
-        ${data.skillsByCategory && data.skillsByCategory.length > 0 ? `<div class="section"><h2 class="section-title">${t.skills}</h2><div class="skills-container">${data.skillsByCategory.map(cat => `<div class="skills-category"><h4>${cat.category || ''}</h4><ul>${(cat.skills || []).map(s => `<li>${s}</li>`).join('')}</ul></div>`).join('')}</div></div>` : ''}
+        ${data.skills && data.skills.length > 0 ? `<div class="section"><h2 class="section-title">${t.skills}</h2>${renderSkills(data.skills)}</div>` : ''}
         ${data.projects && data.projects.length > 0 ? `<div class="section projects"><h2 class="section-title">${t.projects}</h2>${data.projects.map(proj => `<div><h3>${proj.name || ''}</h3><p>${proj.description || ''}</p>${proj.url ? `<p><a href="${proj.url}">${proj.url}</a></p>` : ''}</div>`).join('')}</div>` : ''}
         ${data.languages && data.languages.length > 0 ? `<div class="section"><h2 class="section-title">${t.languages}</h2>${data.languages.map(lang => `<p>${(lang.language || '')} ${lang.proficiency ? '(' + lang.proficiency + ')' : ''}</p>`).join('')}</div>` : ''}
         ${data.certificates && data.certificates.length > 0 ? `<div class="section"><h2 class="section-title">${t.certificates}</h2>${data.certificates.map(cert => {
