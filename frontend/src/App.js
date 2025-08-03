@@ -164,21 +164,37 @@ function App() {
     }
   };
 
-  const mergeLanguagesFromAdditions = (data) => {
-    if (!data || (data.languages && data.languages.length > 0) || !Array.isArray(data.userAdditions)) {
+  const applyUserAdditions = (data) => {
+    if (!data || !Array.isArray(data.userAdditions)) {
       return data;
     }
-    const langEntry = data.userAdditions.find(u => /language|dil/i.test(u.question));
-    if (!langEntry) return data;
-    const parts = langEntry.answer.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
-    if (parts.length === 0) return data;
-    data.languages = parts.map(p => {
-      const m = p.match(/(.+?)\s*\((.+)\)/);
-      if (m) {
-        return { language: m[1].trim(), proficiency: m[2].trim() };
+
+    if (!data.languages || data.languages.length === 0) {
+      const langEntry = data.userAdditions.find(u => /language|dil/i.test(u.question));
+      if (langEntry) {
+        const parts = langEntry.answer.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+        if (parts.length > 0) {
+          data.languages = parts.map(p => {
+            const m = p.match(/(.+?)\s*\((.+)\)/);
+            if (m) {
+              return { language: m[1].trim(), proficiency: m[2].trim() };
+            }
+            return { language: p, proficiency: '' };
+          });
+        }
       }
-      return { language: p, proficiency: '' };
-    });
+    }
+
+    if (!data.references || data.references.length === 0) {
+      const refEntry = data.userAdditions.find(u => /referans|reference/i.test(u.question));
+      if (refEntry) {
+        const refs = refEntry.answer.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+        if (refs.length > 0) {
+          data.references = refs.map(r => ({ name: r, contact: '', relationship: '' }));
+        }
+      }
+    }
+
     return data;
   };
 
@@ -204,7 +220,7 @@ function App() {
     setCvPdfUrl('');
 
     try {
-      const preparedData = mergeLanguagesFromAdditions(JSON.parse(JSON.stringify(cvData)));
+      const preparedData = applyUserAdditions(JSON.parse(JSON.stringify(cvData)));
       const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, { cvData: preparedData, cvLanguage, sessionId }, { responseType: 'blob' });
 
       const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
