@@ -25,10 +25,11 @@
   "certificates": [
     "AWS Certified Solutions Architect"
   ],
-  "skillsByCategory": [
+  "skills": [
     {
+      "name": "JavaScript",
       "category": "Programming",
-      "skills": ["JavaScript", "Python", "Java"]
+      "level": "Advanced"
     }
   ],
   "languages": [
