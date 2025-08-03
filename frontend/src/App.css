@@ -243,6 +243,7 @@ footer {
     color: var(--text-primary-color);
     box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     cursor: pointer;
+    min-width: 120px;
     appearance: none;
     background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23333' d='M6 8L0 0h12z'/></svg>");
     background-repeat: no-repeat;
@@ -346,7 +347,7 @@ input[type="file"] { display: none; }
     top: -2px;
     border: none;
     cursor: pointer;
-    opacity: 0.6;
+    opacity: 1;
     transition: opacity 0.2s ease-in-out;
     font-weight: 700;
 }
