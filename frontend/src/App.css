@@ -339,7 +339,7 @@ input[type="file"] { display: none; }
 .demo-badge {
     background-color: var(--primary-color);
     color: #fff;
-    font-size: 0.55rem;
+    font-size: 0.65rem;
     padding: 1px 4px;
     border-radius: 4px;
     vertical-align: middle;
