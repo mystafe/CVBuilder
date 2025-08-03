@@ -8,6 +8,7 @@
   "askName": "Great! A name was not found in your CV. Please provide your full name.",
   "askEmail": "Got it. Let's add a contact email address.",
   "askPhone": "Perfect. Would you like to add your phone number as well?",
+  "askLocation": "Great. Could you share your location?",
   "chatPlaceholder": "Type your answer here...",
   "answerButton": "Send",
   "skipButton": "Skip Question",
