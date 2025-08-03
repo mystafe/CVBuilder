@@ -57,6 +57,8 @@ function App() {
     const hasName = get(data, 'personalInfo.name') || get(data, 'personalInfo.firstName');
     if (!hasName) { queue.push({ key: 'askName', path: 'personalInfo.name' }); }
     if (!get(data, 'personalInfo.email')) { queue.push({ key: 'askEmail', path: 'personalInfo.email' }); }
+    if (!get(data, 'personalInfo.location')) { queue.push({ key: 'askLocation', path: 'personalInfo.location' }); }
+    if (!get(data, 'personalInfo.phone')) { queue.push({ key: 'askPhone', path: 'personalInfo.phone' }); }
 
     setCvData(data);
     setQuestionQueue(queue);
