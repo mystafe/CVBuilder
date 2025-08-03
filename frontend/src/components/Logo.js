@@ -14,7 +14,7 @@ const Logo = ({ onBadgeClick }) => {
       </svg>
       <span className="logo-text">CV Builder</span>
       <button className="demo-badge rotating-badge" onClick={onBadgeClick}>
-        {t('demoBadge')} ℹ️
+        {t('demoBadge')} |ℹ︎
         <span className="badge-tooltip">{t('giveFeedback')}</span>
       </button>
     </div>
