@@ -46,6 +46,8 @@ const getAiQuestionsPrompt = (cvData, appLanguageCode, askedQuestions = [], maxQ
   4. **ORDER:** Start with the most important missing section and proceed in descending importance.
   5. **LIMIT:** Maximum ${maxQuestions} short questions.
   6. **TONE:** Phrase each item as an observation followed by a polite request, using the correct section name.
+  7. **SPECIFICITY:** Mention the exact item missing information (e.g., project name) so the user knows what to provide.
+  8. **QUALITY CHECK:** If a section exists but looks weak, tell the user it doesn't look good and suggest how to improve it, then ask for a better version.
 
   Your final output MUST be a single JSON object with the key "questions", containing an array of strings written in ${appLanguage}.
 
@@ -65,8 +67,10 @@ const getFinalizeCvPrompt = (cvData, targetLanguageCode) => {
   You are a master CV writer. Take the following structured CV JSON data, which includes user's answers to your questions, and transform it into a perfectly polished, professional CV.
   - **LANGUAGE RULE**: The final output's every single string value (summaries, descriptions, titles, categories, etc.) **MUST BE IN ${targetLanguage}**. No exceptions or other languages are permitted.
   - **ACTION**: Rewrite all job descriptions to start with strong action verbs. Integrate quantifiable achievements provided by the user. Polish the language to be professional and concise.
-  - **SUMMARY**: Create a powerful new summary that encapsulates the candidate's strongest skills and most impressive experiences from the entire dataset.
+  - **SUMMARY**: Create a powerful new summary that encapsulates the candidate's strongest skills and most impressive experiences from the entire dataset, written from a first-person perspective.
+  - **FIRST PERSON:** Ensure all narrative text, including summaries and descriptions, reads as if written by the candidate using "I" statements where appropriate.
   - **INTEGRATION**: If a 'userAdditions' array exists, interpret each {question, answer} pair and integrate the answers into the most relevant fields so no user-provided detail is lost.
+  - **REFERENCES**: Include any provided reference information in a dedicated references section.
   - **CLEANUP**: Ensure consistent formatting throughout. Remove any notes or irrelevant information (like a 'userAdditions' field).
   - Return only the final, polished JSON object. The structure should remain the same as the input.
 
