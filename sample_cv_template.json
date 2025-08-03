@@ -37,6 +37,13 @@
       "proficiency": "Native"
     }
   ],
+  "references": [
+    {
+      "name": "Jane Smith",
+      "contact": "jane.smith@example.com",
+      "relationship": "Former Manager"
+    }
+  ],
   "projects": [
     {
       "name": "Project X",
