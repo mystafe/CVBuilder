@@ -4,6 +4,7 @@ import { useCVForm } from '../hooks/useCVForm';
 import MainLayout from './layout/MainLayout';
 import CVPreview from './CVPreview';
 import CVForm from './CVForm';
+import { Skeleton } from './ui/skeleton';
 
 const PDFExportButton = lazy(() => import('./PDFExportButton'));
 
@@ -18,7 +19,7 @@ export default function CVBuilder() {
         <>
           <CVPreview data={data} />
           <div className="mt-4">
-            <Suspense fallback={<div>{t('generatingPdfButton')}</div>}>
+            <Suspense fallback={<Skeleton className="h-12 w-full" />}>
               <PDFExportButton data={data} t={t} />
             </Suspense>
           </div>
