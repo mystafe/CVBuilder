@@ -58,7 +58,12 @@ export default function Feedback({ sessionId, language, theme, open, setOpen }) 
               <p className="mb-4" dangerouslySetInnerHTML={{ __html: t('feedbackPrompt') }} />
               <Input className="mb-2" placeholder={t('feedbackNamePlaceholder')} value={name} onChange={e => setName(e.target.value)} />
               <Input className="mb-2" placeholder={t('feedbackEmailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} />
-              <textarea className="w-full border rounded-md p-2 mb-4" placeholder={t('feedbackDescPlaceholder')} value={desc} onChange={e => setDesc(e.target.value)} />
+              <textarea
+                className="w-full rounded-lg border border-gray-300 bg-white dark:bg-zinc-900 p-4 mb-4 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                placeholder={t('feedbackDescPlaceholder')}
+                value={desc}
+                onChange={e => setDesc(e.target.value)}
+              />
               <DialogFooter>
                 <span className="text-sm text-gray-500">v{packageJson.version}</span>
                 <Button onClick={handleSubmit} disabled={desc.trim().length < 5 || sending}>{t('feedbackSubmit')}</Button>
