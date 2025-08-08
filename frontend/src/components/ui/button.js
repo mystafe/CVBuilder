@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
+import { motion } from "framer-motion";
 import { cva } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 
@@ -26,16 +27,28 @@ const buttonVariants = cva(
   }
 );
 
-const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
-  const Comp = asChild ? Slot : "button";
-  return (
-    <Comp
-      className={cn(buttonVariants({ variant, size, className }))}
-      ref={ref}
-      {...props}
-    />
-  );
-});
+const Button = React.forwardRef(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    if (asChild) {
+      return (
+        <Slot
+          ref={ref}
+          className={cn(buttonVariants({ variant, size, className }))}
+          {...props}
+        />
+      );
+    }
+    return (
+      <motion.button
+        ref={ref}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...props}
+      />
+    );
+  }
+);
 Button.displayName = "Button";
 
 export { Button, buttonVariants };

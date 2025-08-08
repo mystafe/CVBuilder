@@ -1,8 +1,19 @@
 import * as React from "react";
+import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
 
 const Card = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("rounded-xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow", className)} {...props} />
+  <motion.div
+    ref={ref}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+    className={cn(
+      "rounded-xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow",
+      className
+    )}
+    {...props}
+  />
 ));
 Card.displayName = "Card";
 
