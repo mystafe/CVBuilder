@@ -1,20 +1,18 @@
 import React from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
 
 export default function ListSection({ field, items, keys, addItem, updateItem, duplicateItem, onDragEnd, t }) {
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => addItem(field)}
-        className="mb-2 px-2 py-1 bg-blue-500 text-white rounded"
-      >
+      <Button type="button" onClick={() => addItem(field)} className="mb-4">
         {t('add')}
-      </button>
+      </Button>
       <DragDropContext onDragEnd={onDragEnd(field)}>
         <Droppable droppableId={field}>
           {provided => (
-            <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-2">
+            <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-4">
               {items.map((item, index) => (
                 <Draggable key={index} draggableId={`${field}-${index}`} index={index}>
                   {provided => (
@@ -22,25 +20,25 @@ export default function ListSection({ field, items, keys, addItem, updateItem, d
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
-                      className="p-2 border rounded"
+                      className="space-y-2 rounded-lg bg-white dark:bg-zinc-900 p-4 shadow-sm"
                     >
                       {keys.map(k => (
-                        <input
+                        <Input
                           key={k}
                           name={k}
                           placeholder={t(k)}
                           value={item[k] || ''}
                           onChange={e => updateItem(field, index, k, e.target.value)}
-                          className="block w-full mb-1 p-1 border rounded"
+                          className="mb-2"
                         />
                       ))}
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() => duplicateItem(field, index)}
-                        className="mt-1 px-2 py-1 bg-gray-200 rounded"
                       >
                         {t('duplicate')}
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </Draggable>

@@ -35,7 +35,7 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
       >
-        <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-md">
+        <div className="relative w-full max-w-md rounded-lg bg-white dark:bg-zinc-900 p-4 shadow-sm">
           {children}
         </div>
       </motion.div>
@@ -45,11 +45,11 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }) => (
-  <div className={cn("flex flex-col space-y-1.5", className)} {...props} />
+  <div className={cn("flex flex-col gap-4", className)} {...props} />
 );
 
 const DialogFooter = ({ className, ...props }) => (
-  <div className={cn("flex items-center justify-between", className)} {...props} />
+  <div className={cn("flex items-center justify-between gap-4", className)} {...props} />
 );
 
 const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (

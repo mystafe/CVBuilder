@@ -4,6 +4,7 @@ import PersonalSection from './sections/PersonalSection';
 import ExperienceSection from './sections/ExperienceSection';
 import EducationSection from './sections/EducationSection';
 import SkillsSection from './sections/SkillsSection';
+import { Button } from './ui/button';
 
 function CVForm({ step, data, addItem, updateItem, duplicateItem, onDragEnd, next, prev, resetAll, personalForm, stepKeys }) {
   const { t } = useTranslation();
@@ -52,17 +53,13 @@ function CVForm({ step, data, addItem, updateItem, duplicateItem, onDragEnd, nex
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="w-full bg-gray-200 h-2 rounded mr-4">
+      <div className="flex items-center gap-4">
+        <div className="w-full bg-gray-200 h-2 rounded">
           <div className="bg-blue-500 h-2 rounded" style={{ width: `${progress}%` }} />
         </div>
-        <button
-          type="button"
-          onClick={resetAll}
-          className="px-2 py-1 bg-red-500 text-white rounded text-sm"
-        >
+        <Button size="sm" variant="outline" onClick={resetAll}>
           {t('resetAll')}
-        </button>
+        </Button>
       </div>
       <h2 className="text-xl font-semibold">
         {t('step', { number: step + 1, name: steps[step] })}
@@ -70,14 +67,14 @@ function CVForm({ step, data, addItem, updateItem, duplicateItem, onDragEnd, nex
       {renderStep()}
       <div className="flex justify-between">
         {step > 0 && (
-          <button type="button" onClick={prev} className="px-4 py-2 bg-gray-200 rounded">
+          <Button type="button" onClick={prev} variant="outline">
             {t('back')}
-          </button>
+          </Button>
         )}
         {step < steps.length - 1 && (
-          <button type="button" onClick={next} className="ml-auto px-4 py-2 bg-blue-500 text-white rounded">
+          <Button type="button" onClick={next} className="ml-auto">
             {t('next')}
-          </button>
+          </Button>
         )}
       </div>
     </div>
