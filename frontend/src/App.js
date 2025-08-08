@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import MultiStepForm from './components/MultiStepForm';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import LanguageSwitcher from './components/LanguageSwitcher';
+import CVBuilder from './components/CVBuilder';
+import ErrorBoundary from './components/ErrorBoundary';
+import ErrorScreen from './components/ErrorScreen';
 
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
@@ -14,13 +16,15 @@ function App() {
   }, [theme]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <div className="flex justify-end space-x-2 p-4">
-        <LanguageSwitcher />
-        <ThemeSwitcher theme={theme} setTheme={setTheme} />
+    <ErrorBoundary fallback={<ErrorScreen />}>
+      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <div className="flex justify-end space-x-2 p-4">
+          <LanguageSwitcher />
+          <ThemeSwitcher theme={theme} setTheme={setTheme} />
+        </div>
+        <CVBuilder />
       </div>
-      <MultiStepForm />
-    </div>
+    </ErrorBoundary>
   );
 }
 
