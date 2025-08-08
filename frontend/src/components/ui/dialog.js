@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -9,25 +10,35 @@ const DialogClose = DialogPrimitive.Close;
 const DialogPortal = DialogPrimitive.Portal;
 
 const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
-    ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/50", className)}
-    {...props}
-  />
+  <DialogPrimitive.Overlay asChild>
+    <motion.div
+      ref={ref}
+      className={cn("fixed inset-0 z-50 bg-black/50", className)}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      {...props}
+    />
+  </DialogPrimitive.Overlay>
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn("fixed inset-0 z-50 flex items-center justify-center p-4", className)}
-      {...props}
-    >
-      <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-md">
-        {children}
-      </div>
+    <DialogPrimitive.Content asChild {...props}>
+      <motion.div
+        ref={ref}
+        className={cn("fixed inset-0 z-50 flex items-center justify-center p-4", className)}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.2 }}
+      >
+        <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-md">
+          {children}
+        </div>
+      </motion.div>
     </DialogPrimitive.Content>
   </DialogPortal>
 ));
