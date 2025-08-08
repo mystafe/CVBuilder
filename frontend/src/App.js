@@ -6,13 +6,12 @@ import Logo from './components/Logo';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import Feedback from './components/Feedback';
-import './App.css';
 
 // --- API Yapılandırması ---
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 // --- Statik Ikon ve Bileşenler ---
-const TypingIndicator = () => <div className="message ai typing"><span></span><span></span><span></span></div>;
+const TypingIndicator = () => <div className="text-gray-500">...</div>;
 const SendIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <line x1="22" y1="2" x2="11" y2="13"></line> <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon> </svg>);
 
 function App() {
@@ -319,28 +318,39 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <Feedback open={feedbackOpen} setOpen={setFeedbackOpen} sessionId={sessionId} language={i18n.language} theme={theme} />
       {step === 'upload' ? (
-        <div className="upload-step fade-in">
-          <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 space-y-4">
+          <div className="flex justify-end gap-2"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
           <Logo onBadgeClick={() => setFeedbackOpen(true)} />
-          <h1><span>{t('mainTitle')}</span></h1>
-          <p>{t('subtitle')}</p>
-          <div className="language-controls"><div className="control-group"><label htmlFor="cv-lang">{t('cvLanguageLabel')}</label><select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading}><option value="tr">Türkçe</option><option value="en">English</option></select></div></div>
-          <input type="file" id="file-upload" ref={fileInputRef} onChange={handleInitialParse} disabled={isLoading} accept=".pdf,.docx" style={{ display: 'none' }} />
-          <label htmlFor="file-upload" className={`file-upload-label ${isLoading ? 'loading disabled' : ''}`}>
-            {isLoading && <span className="button-spinner"></span>}
+          <h1 className="text-3xl text-center font-bold">{t('mainTitle')}</h1>
+          <p className="text-base text-center">{t('subtitle')}</p>
+          <div className="space-y-2">
+            <label htmlFor="cv-lang" className="block text-sm font-medium">{t('cvLanguageLabel')}</label>
+            <select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading} className="w-full border rounded-md p-2">
+              <option value="tr">Türkçe</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <input type="file" id="file-upload" ref={fileInputRef} onChange={handleInitialParse} disabled={isLoading} accept=".pdf,.docx" className="hidden" />
+          <label htmlFor="file-upload" className={`block w-full text-center ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'} text-white py-2 rounded-md shadow`}>
             {isLoading ? loadingMessage : t('uploadButtonLabel')}
           </label>
-          {error && <p className="error-text">{error}</p>}
-          <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
+          {error && <p className="text-red-600 text-center">{error}</p>}
+          <footer className="text-xs text-center text-gray-500">{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       ) : (
-        <div className="chat-step fade-in">
-          <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} /><div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
-          <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
-          <div className="chat-input-area">
+        <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-md flex flex-col p-4 space-y-4">
+          <div className="flex justify-between items-center"><Logo onBadgeClick={() => setFeedbackOpen(true)} /><div className="flex gap-2"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
+          <div className="flex-1 overflow-y-auto space-y-2" ref={chatContainerRef}>
+            {conversation.map((msg, index) =>
+              msg.type === 'typing'
+                ? <TypingIndicator key={index} />
+                : <div key={index} className={`p-2 rounded-md shadow ${msg.type === 'ai' ? 'bg-gray-100 dark:bg-gray-700' : 'bg-blue-600 text-white self-end'}`}>{msg.text}</div>
+            )}
+          </div>
+          <div className="space-y-2">
             {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
               <textarea
                 value={currentAnswer}
@@ -348,36 +358,35 @@ function App() {
                 placeholder={t('chatPlaceholder')}
                 disabled={isLoading}
                 onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), processNextStep())}
+                className="w-full border rounded-md p-2"
               />
             )}
-            <div className="button-group">
+            <div className="flex flex-wrap gap-2">
               {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
                 <>
-                  <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
-                  <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
+                  <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md shadow hover:bg-blue-700 disabled:opacity-50">{t('answerButton')} <SendIcon /></button>
+                  <button onClick={() => processNextStep(true)} disabled={isLoading} className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50">{t('skipButton')}</button>
                 </>
               )}
 
               {step === 'review' && (
                 <>
-                  <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
-                    {isLoading ? loadingMessage : t('generateCvButton')}
-                  </button>
-                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`accent ${cvScore !== null && cvScore < 80 ? 'highlight' : ''}`}>{t('improveButton')}</button>}
+                  <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`px-4 py-2 rounded-md shadow text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 ${isLoading ? 'animate-pulse' : ''}`}>{isLoading ? loadingMessage : t('generateCvButton')}</button>
+                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`px-4 py-2 rounded-md shadow text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 ${cvScore !== null && cvScore < 80 ? 'ring-2 ring-blue-400' : ''}`}>{t('improveButton')}</button>}
                 </>
               )}
 
               {step === 'final' && hasGeneratedPdf && (
                 <>
-                  <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`primary ${cvScore !== null && cvScore >= 80 ? 'highlight' : ''}`}>{t('downloadCvButton')}</button>
-                  <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
-                  <button onClick={handleRestart} className="accent">{t('restartButton')}</button>
+                  <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`px-4 py-2 rounded-md shadow text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 ${cvScore !== null && cvScore >= 80 ? 'ring-2 ring-blue-400' : ''}`}>{t('downloadCvButton')}</button>
+                  <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="px-4 py-2 rounded-md shadow text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50">{t('downloadCoverLetterButton')}</button>
+                  <button onClick={handleRestart} className="px-4 py-2 rounded-md shadow text-white bg-orange-500 hover:bg-orange-600">{t('restartButton')}</button>
                 </>
               )}
             </div>
-            {error && <p className="error-text">{error}</p>}
+            {error && <p className="text-red-600 text-center">{error}</p>}
           </div>
-          <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
+          <footer className="text-xs text-center text-gray-500">{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       )}
     </div>
