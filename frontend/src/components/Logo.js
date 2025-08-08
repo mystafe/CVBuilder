@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from './ui/button';
 
 const Logo = ({ onBadgeClick }) => {
   const { t } = useTranslation();
@@ -13,7 +14,7 @@ const Logo = ({ onBadgeClick }) => {
         <path d="M9 14.5C9 13.5056 9.48281 12.8716 10.3392 12.3392C11.1957 11.8067 12 11.5 12 11.5C12 11.5 12.8043 11.8067 13.6608 12.3392C14.5172 12.8716 15 13.5056 15 14.5V18H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">CV Builder</span>
-      <button className="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded shadow hover:bg-blue-700" onClick={onBadgeClick}>{t('demoBadge')}</button>
+      <Button size="sm" className="ml-2 px-2 py-1 text-xs" onClick={onBadgeClick}>{t('demoBadge')}</Button>
     </div>
   );
 };

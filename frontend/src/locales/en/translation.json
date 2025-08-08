@@ -31,8 +31,12 @@
   "cvScore": "Your CV scored {{score}}/100.",
   "coverLetterIntro": "Here is a draft for a compelling cover letter introduction based on your new CV. You can copy and adapt it for your job applications:",
   "errorOccurred": "An error occurred. Please try again.",
-    "chatError": "An error occurred during the chat.",
-    "noContentError": "I couldn't extract meaningful information from the uploaded CV. Please try another file.",
-    "pdfError": "An error occurred while creating the PDF.",
-  "footerText": "Developed by Mustafa Evleksiz"
+  "chatError": "An error occurred during the chat.",
+  "noContentError": "I couldn't extract meaningful information from the uploaded CV. Please try another file.",
+  "pdfError": "An error occurred while creating the PDF.",
+  "footerText": "Developed by Mustafa Evleksiz",
+  "personalInfo": "Personal Info",
+  "experience": "Experience",
+  "education": "Education",
+  "skills": "Skills"
 }

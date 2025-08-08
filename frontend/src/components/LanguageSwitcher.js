@@ -1,28 +1,27 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './ui/dropdown-menu';
+import { Button } from './ui/button';
 
 function LanguageSwitcher() {
   const { i18n } = useTranslation();
   const changeLanguage = (lng) => i18n.changeLanguage(lng);
+  const current = i18n.language.startsWith('en') ? '🇺🇸' : '🇹🇷';
 
   return (
-    <div className="flex gap-2 bg-white dark:bg-gray-700 rounded-full p-1 shadow">
-      <button
-        onClick={() => changeLanguage('tr')}
-        className={`w-8 h-8 rounded-full flex items-center justify-center ${i18n.language === 'tr' ? 'bg-blue-600 text-white' : 'bg-transparent'}`}
-        aria-label="Türkçe"
-      >
-        🇹🇷
-      </button>
-      <button
-        onClick={() => changeLanguage('en')}
-        className={`w-8 h-8 rounded-full flex items-center justify-center ${i18n.language.startsWith('en') ? 'bg-blue-600 text-white' : 'bg-transparent'}`}
-        aria-label="English"
-      >
-        🇺🇸
-      </button>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="w-8 h-8 p-0">
+          {current}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => changeLanguage('tr')}>🇹🇷 Türkçe</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => changeLanguage('en')}>🇺🇸 English</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 export default LanguageSwitcher;
+

@@ -6,6 +6,10 @@ import Logo from './components/Logo';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import Feedback from './components/Feedback';
+import { Input } from './components/ui/input';
+import { Button } from './components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from './components/ui/card';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './components/ui/dropdown-menu';
 
 // --- API Yapılandırması ---
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
@@ -327,16 +331,23 @@ function App() {
           <h1 className="text-3xl text-center font-bold">{t('mainTitle')}</h1>
           <p className="text-base text-center">{t('subtitle')}</p>
           <div className="space-y-2">
-            <label htmlFor="cv-lang" className="block text-sm font-medium">{t('cvLanguageLabel')}</label>
-            <select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading} className="w-full border rounded-md p-2">
-              <option value="tr">Türkçe</option>
-              <option value="en">English</option>
-            </select>
+            <label className="block text-sm font-medium mb-1">{t('cvLanguageLabel')}</label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-between" disabled={isLoading}>
+                  {cvLanguage === 'tr' ? 'Türkçe' : 'English'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-full">
+                <DropdownMenuItem onSelect={() => setCvLanguage('tr')}>Türkçe</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setCvLanguage('en')}>English</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <input type="file" id="file-upload" ref={fileInputRef} onChange={handleInitialParse} disabled={isLoading} accept=".pdf,.docx" className="hidden" />
-          <label htmlFor="file-upload" className={`block w-full text-center ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'} text-white py-2 rounded-md shadow`}>
+          <Input type="file" id="file-upload" ref={fileInputRef} onChange={handleInitialParse} disabled={isLoading} accept=".pdf,.docx" className="hidden" />
+          <Button className="w-full" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
             {isLoading ? loadingMessage : t('uploadButtonLabel')}
-          </label>
+          </Button>
           {error && <p className="text-red-600 text-center">{error}</p>}
           <footer className="text-xs text-center text-gray-500">{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
@@ -350,6 +361,69 @@ function App() {
                 : <div key={index} className={`p-2 rounded-md shadow ${msg.type === 'ai' ? 'bg-gray-100 dark:bg-gray-700' : 'bg-blue-600 text-white self-end'}`}>{msg.text}</div>
             )}
           </div>
+          {(step === 'review' || step === 'final') && cvData && (
+            <div className="space-y-4">
+              {cvData.personalInfo && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('personalInfo')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {cvData.personalInfo.name && <p>{cvData.personalInfo.name}</p>}
+                    {cvData.personalInfo.email && <p>{cvData.personalInfo.email}</p>}
+                    {cvData.personalInfo.phone && <p>{cvData.personalInfo.phone}</p>}
+                    {cvData.personalInfo.location && <p>{cvData.personalInfo.location}</p>}
+                  </CardContent>
+                </Card>
+              )}
+              {Array.isArray(cvData.experience) && cvData.experience.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('experience')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {cvData.experience.map((exp, idx) => (
+                      <div key={idx} className="mb-2">
+                        <p className="font-medium">{exp.title} - {exp.company}</p>
+                        <p className="text-sm text-gray-500">{exp.date}</p>
+                        <p className="text-sm whitespace-pre-line">{exp.description}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              {Array.isArray(cvData.education) && cvData.education.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('education')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {cvData.education.map((edu, idx) => (
+                      <div key={idx} className="mb-2">
+                        <p className="font-medium">{edu.degree}</p>
+                        <p className="text-sm text-gray-500">{edu.institution}</p>
+                        <p className="text-sm text-gray-500">{edu.date}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              {Array.isArray(cvData.skills) && cvData.skills.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('skills')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {cvData.skills.map((skill, idx) => (
+                        <li key={idx}>{skill.name || skill}</li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
           <div className="space-y-2">
             {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
               <textarea
@@ -364,23 +438,23 @@ function App() {
             <div className="flex flex-wrap gap-2">
               {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
                 <>
-                  <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md shadow hover:bg-blue-700 disabled:opacity-50">{t('answerButton')} <SendIcon /></button>
-                  <button onClick={() => processNextStep(true)} disabled={isLoading} className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50">{t('skipButton')}</button>
+                  <Button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="flex items-center gap-2">{t('answerButton')} <SendIcon /></Button>
+                  <Button onClick={() => processNextStep(true)} disabled={isLoading} variant="outline">{t('skipButton')}</Button>
                 </>
               )}
 
               {step === 'review' && (
                 <>
-                  <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`px-4 py-2 rounded-md shadow text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 ${isLoading ? 'animate-pulse' : ''}`}>{isLoading ? loadingMessage : t('generateCvButton')}</button>
-                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`px-4 py-2 rounded-md shadow text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 ${cvScore !== null && cvScore < 80 ? 'ring-2 ring-blue-400' : ''}`}>{t('improveButton')}</button>}
+                  <Button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`${isLoading ? 'animate-pulse' : ''} bg-green-600 hover:bg-green-700`}>{isLoading ? loadingMessage : t('generateCvButton')}</Button>
+                  {canRefine && <Button onClick={handleRefine} disabled={isLoading} className={`bg-orange-500 hover:bg-orange-600 ${cvScore !== null && cvScore < 80 ? 'ring-2 ring-blue-400' : ''}`}>{t('improveButton')}</Button>}
                 </>
               )}
 
               {step === 'final' && hasGeneratedPdf && (
                 <>
-                  <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`px-4 py-2 rounded-md shadow text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 ${cvScore !== null && cvScore >= 80 ? 'ring-2 ring-blue-400' : ''}`}>{t('downloadCvButton')}</button>
-                  <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="px-4 py-2 rounded-md shadow text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50">{t('downloadCoverLetterButton')}</button>
-                  <button onClick={handleRestart} className="px-4 py-2 rounded-md shadow text-white bg-orange-500 hover:bg-orange-600">{t('restartButton')}</button>
+                  <Button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`bg-green-600 hover:bg-green-700 ${cvScore !== null && cvScore >= 80 ? 'ring-2 ring-blue-400' : ''}`}>{t('downloadCvButton')}</Button>
+                  <Button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="bg-blue-600 hover:bg-blue-700">{t('downloadCoverLetterButton')}</Button>
+                  <Button onClick={handleRestart} className="bg-orange-500 hover:bg-orange-600">{t('restartButton')}</Button>
                 </>
               )}
             </div>
