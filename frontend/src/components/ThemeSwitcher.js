@@ -9,8 +9,8 @@ const ThemeSwitcher = ({ theme, setTheme }) => {
   };
 
   return (
-    <div className="theme-switcher">
-      <button onClick={toggleTheme} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
+    <div className="bg-white dark:bg-gray-700 rounded-full p-1 shadow">
+      <button onClick={toggleTheme} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} className="w-8 h-8 flex items-center justify-center">
         {theme === 'light' ? <MoonIcon /> : <SunIcon />}
       </button>
     </div>
