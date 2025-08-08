@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { AnimatePresence } from 'framer-motion';
 import packageJson from '../../package.json';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from './ui/dialog';
 import { Input } from './ui/input';
@@ -44,28 +45,32 @@ export default function Feedback({ sessionId, language, theme, open, setOpen }) 
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent>
-        {sent ? (
-          <p>{t('feedbackThanks')}</p>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle>{t('giveFeedback')}</DialogTitle>
-            </DialogHeader>
-            <p className="mb-4" dangerouslySetInnerHTML={{ __html: t('feedbackPrompt') }} />
-            <Input className="mb-2" placeholder={t('feedbackNamePlaceholder')} value={name} onChange={e => setName(e.target.value)} />
-            <Input className="mb-2" placeholder={t('feedbackEmailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} />
-            <textarea className="w-full border rounded-md p-2 mb-4" placeholder={t('feedbackDescPlaceholder')} value={desc} onChange={e => setDesc(e.target.value)} />
-            <DialogFooter>
-              <span className="text-sm text-gray-500">v{packageJson.version}</span>
-              <Button onClick={handleSubmit} disabled={desc.trim().length < 5 || sending}>{t('feedbackSubmit')}</Button>
-            </DialogFooter>
-          </>
+      <AnimatePresence>
+        {open && (
+          <DialogContent key="feedback-dialog">
+          {sent ? (
+            <p>{t('feedbackThanks')}</p>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>{t('giveFeedback')}</DialogTitle>
+              </DialogHeader>
+              <p className="mb-4" dangerouslySetInnerHTML={{ __html: t('feedbackPrompt') }} />
+              <Input className="mb-2" placeholder={t('feedbackNamePlaceholder')} value={name} onChange={e => setName(e.target.value)} />
+              <Input className="mb-2" placeholder={t('feedbackEmailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} />
+              <textarea className="w-full border rounded-md p-2 mb-4" placeholder={t('feedbackDescPlaceholder')} value={desc} onChange={e => setDesc(e.target.value)} />
+              <DialogFooter>
+                <span className="text-sm text-gray-500">v{packageJson.version}</span>
+                <Button onClick={handleSubmit} disabled={desc.trim().length < 5 || sending}>{t('feedbackSubmit')}</Button>
+              </DialogFooter>
+            </>
+          )}
+          <DialogClose asChild>
+            <Button variant="ghost" className="absolute top-2 right-2">×</Button>
+          </DialogClose>
+          </DialogContent>
         )}
-        <DialogClose asChild>
-          <Button variant="ghost" className="absolute top-2 right-2">×</Button>
-        </DialogClose>
-      </DialogContent>
+      </AnimatePresence>
     </Dialog>
   );
 }

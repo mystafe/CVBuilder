@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { set, get } from 'lodash';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
 import Logo from './components/Logo';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import ThemeSwitcher from './components/ThemeSwitcher';
@@ -10,6 +11,7 @@ import { Input } from './components/ui/input';
 import { Button } from './components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from './components/ui/card';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './components/ui/dropdown-menu';
+import LoadingSpinner from './components/ui/loading-spinner';
 
 // --- API Yapılandırması ---
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
@@ -37,6 +39,7 @@ function App() {
   const [hasGeneratedPdf, setHasGeneratedPdf] = useState(false);
   const [cvScore, setCvScore] = useState(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     const userPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
@@ -220,6 +223,7 @@ function App() {
 
     setConversation(prev => [...prev, { type: 'user', text: t('generateCvButton') }]);
     setLoadingMessage(t('generatingPdfButton'));
+    setExportLoading(true);
     setError('');
     setCoverLetterPdfUrl('');
     if (cvPdfUrl) window.URL.revokeObjectURL(cvPdfUrl);
@@ -282,6 +286,7 @@ function App() {
       setError(t('pdfError'));
     } finally {
       setLoadingMessage(''); // Her durumda yükleme mesajını temizle
+      setExportLoading(false);
     }
   };
 
@@ -323,9 +328,17 @@ function App() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <LoadingSpinner show={exportLoading} />
       <Feedback open={feedbackOpen} setOpen={setFeedbackOpen} sessionId={sessionId} language={i18n.language} theme={theme} />
-      {step === 'upload' ? (
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 space-y-4">
+      <AnimatePresence mode="wait">
+        {step === 'upload' ? (
+        <motion.div
+          key="upload"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 space-y-4"
+        >
           <div className="flex justify-end gap-2"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
           <Logo onBadgeClick={() => setFeedbackOpen(true)} />
           <h1 className="text-3xl text-center font-bold">{t('mainTitle')}</h1>
@@ -350,9 +363,15 @@ function App() {
           </Button>
           {error && <p className="text-red-600 text-center">{error}</p>}
           <footer className="text-xs text-center text-gray-500">{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
-        </div>
-      ) : (
-        <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-md flex flex-col p-4 space-y-4">
+        </motion.div>
+        ) : (
+        <motion.div
+          key="main"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-md flex flex-col p-4 space-y-4"
+        >
           <div className="flex justify-between items-center"><Logo onBadgeClick={() => setFeedbackOpen(true)} /><div className="flex gap-2"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
           <div className="flex-1 overflow-y-auto space-y-2" ref={chatContainerRef}>
             {conversation.map((msg, index) =>
@@ -461,8 +480,9 @@ function App() {
             {error && <p className="text-red-600 text-center">{error}</p>}
           </div>
           <footer className="text-xs text-center text-gray-500">{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
