@@ -96,12 +96,38 @@ function App() {
     debugLog('PersonalInfo:', data?.personalInfo);
     debugLog('Name field:', get(data, 'personalInfo.name'));
 
+    // KİŞİSEL BİLGİLER - Temel alanlar
     const hasName = get(data, 'personalInfo.name') || get(data, 'personalInfo.firstName');
     debugLog('hasName:', hasName);
     if (!hasName) { queue.push({ key: 'askName', path: 'personalInfo.name' }); }
     if (!get(data, 'personalInfo.email')) { queue.push({ key: 'askEmail', path: 'personalInfo.email' }); }
     if (!get(data, 'personalInfo.location')) { queue.push({ key: 'askLocation', path: 'personalInfo.location' }); }
     if (!get(data, 'personalInfo.phone')) { queue.push({ key: 'askPhone', path: 'personalInfo.phone' }); }
+
+    // ÖZET - Kendini anlatma sorusu (her zaman sor)
+    if (!get(data, 'summary') || get(data, 'summary').length < 50) {
+      queue.push({ key: 'askSummary', path: 'summary' });
+    }
+
+    // DENEYİM - En az 1 iş deneyimi
+    if (!get(data, 'experience') || get(data, 'experience').length === 0) {
+      queue.push({ key: 'askExperience', isComplex: true });
+    }
+
+    // EĞİTİM - En az 1 eğitim bilgisi
+    if (!get(data, 'education') || get(data, 'education').length === 0) {
+      queue.push({ key: 'askEducation', isComplex: true });
+    }
+
+    // YETENEKLER - En az 3 yetenek
+    if (!get(data, 'skills') || get(data, 'skills').length < 3) {
+      queue.push({ key: 'askSkills', path: 'skills', isArray: true });
+    }
+
+    // DİLLER - En az 1 dil bilgisi
+    if (!get(data, 'languages') || get(data, 'languages').length === 0) {
+      queue.push({ key: 'askLanguages', isComplex: true });
+    }
 
     setCvData(data);
     setQuestionQueue(queue);
@@ -239,7 +265,45 @@ function App() {
 
     if (!skipped) {
       if (currentQuestion.path) {
-        set(updatedCvData, currentQuestion.path, userAnswer);
+        if (currentQuestion.isArray) {
+          // Yetenekler gibi array alanlar için
+          const skills = userAnswer.split(',').map(s => s.trim()).filter(Boolean);
+          set(updatedCvData, currentQuestion.path, skills);
+        } else {
+          set(updatedCvData, currentQuestion.path, userAnswer);
+        }
+      } else if (currentQuestion.isComplex) {
+        // Karmaşık objeler için (deneyim, eğitim, dil)
+        if (currentQuestion.key === 'askExperience') {
+          const exp = {
+            position: userAnswer.split(' - ')[0] || userAnswer,
+            company: userAnswer.split(' - ')[1] || 'Belirtilmemiş',
+            location: '',
+            startDate: '',
+            endDate: '',
+            description: userAnswer
+          };
+          updatedCvData.experience = [...(updatedCvData.experience || []), exp];
+        } else if (currentQuestion.key === 'askEducation') {
+          const edu = {
+            degree: userAnswer.split(' - ')[0] || userAnswer,
+            institution: userAnswer.split(' - ')[1] || 'Belirtilmemiş',
+            location: '',
+            startDate: '',
+            endDate: '',
+            gpa: ''
+          };
+          updatedCvData.education = [...(updatedCvData.education || []), edu];
+        } else if (currentQuestion.key === 'askLanguages') {
+          const langs = userAnswer.split(',').map(l => {
+            const parts = l.trim().split(' ');
+            return {
+              language: parts[0] || l.trim(),
+              proficiency: parts[1] || 'Orta'
+            };
+          });
+          updatedCvData.languages = [...(updatedCvData.languages || []), ...langs];
+        }
       } else if (currentQuestion.isAi) {
         if (!updatedCvData.userAdditions) updatedCvData.userAdditions = [];
         updatedCvData.userAdditions.push({ question: currentQuestion.key, answer: userAnswer });

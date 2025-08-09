@@ -34,5 +34,11 @@
   "chatError": "Sohbet sırasında bir hata oluştu.",
   "noContentError": "Yüklenen CV'den anlamlı bilgi çıkarılamadı. Lütfen farklı bir dosya deneyin.",
   "pdfError": "PDF oluşturulurken bir hata oluştu.",
-  "footerText": "Mustafa Evleksiz tarafından geliştirilmiştir"
+  "footerText": "Mustafa Evleksiz tarafından geliştirilmiştir",
+  "skipUploadButton": "CV olmadan devam et",
+  "askSummary": "Kendinizi kısaca tanıtır mısınız? (Mesleki hedefleriniz, deneyimleriniz ve öne çıkan özelliklerinizi belirtin)",
+  "askExperience": "Son iş deneyiminizi belirtir misiniz? (Pozisyon - Şirket formatında)",
+  "askEducation": "Eğitim durumunuzu belirtir misiniz? (Bölüm - Okul formatında)",
+  "askSkills": "Sahip olduğunuz yetenekleri virgülle ayırarak yazın (örn: JavaScript, React, SQL)",
+  "askLanguages": "Bildiğiniz dilleri virgülle ayırarak yazın (örn: İngilizce İleri, Almanca Orta)"
 }
