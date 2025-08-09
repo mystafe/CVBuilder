@@ -8,6 +8,20 @@ import ThemeSwitcher from './components/ThemeSwitcher';
 import Feedback from './components/Feedback';
 import './App.css';
 
+// --- Debug System ---
+const DEBUG = process.env.REACT_APP_DEBUG === 'true';
+const debugLog = (...args) => {
+  if (DEBUG) {
+    console.log('[DEBUG]', new Date().toISOString(), ...args);
+  }
+};
+const infoLog = (...args) => {
+  console.log('[INFO]', new Date().toISOString(), ...args);
+};
+const errorLog = (...args) => {
+  console.error('[ERROR]', new Date().toISOString(), ...args);
+};
+
 // --- API Yapılandırması ---
 const getApiBaseUrl = () => {
   // Öncelik: Environment variable (REACT_APP_API_BASE)
@@ -26,11 +40,12 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Debug: API URL'yi ve kaynağını console'da göster
-console.log('API Configuration:');
-console.log('- Environment REACT_APP_API_BASE:', process.env.REACT_APP_API_BASE);
-console.log('- Window hostname:', window.location.hostname);
-console.log('- Final API Base URL:', API_BASE_URL);
+// Debug: API URL'yi ve kaynağını göster
+debugLog('API Configuration:');
+debugLog('- Environment REACT_APP_API_BASE:', process.env.REACT_APP_API_BASE);
+debugLog('- Window hostname:', window.location.hostname);
+debugLog('- Final API Base URL:', API_BASE_URL);
+debugLog('- Debug mode:', DEBUG ? 'ENABLED' : 'DISABLED');
 
 // --- Statik Ikon ve Bileşenler ---
 const TypingIndicator = () => <div className="message ai typing"><span></span><span></span><span></span></div>;
@@ -75,14 +90,14 @@ function App() {
     const queue = [];
     const tApp = i18n.getFixedT(i18n.language);
 
-    // Debug: CV data'sını console'da göster
-    console.log('startScriptedQuestions called with data:', data);
-    console.log('CV Parsing Result:', data);
-    console.log('PersonalInfo:', data?.personalInfo);
-    console.log('Name field:', get(data, 'personalInfo.name'));
+    // Debug: CV data'sını göster
+    debugLog('startScriptedQuestions called with data:', data);
+    debugLog('CV Parsing Result:', data);
+    debugLog('PersonalInfo:', data?.personalInfo);
+    debugLog('Name field:', get(data, 'personalInfo.name'));
 
     const hasName = get(data, 'personalInfo.name') || get(data, 'personalInfo.firstName');
-    console.log('hasName:', hasName);
+    debugLog('hasName:', hasName);
     if (!hasName) { queue.push({ key: 'askName', path: 'personalInfo.name' }); }
     if (!get(data, 'personalInfo.email')) { queue.push({ key: 'askEmail', path: 'personalInfo.email' }); }
     if (!get(data, 'personalInfo.location')) { queue.push({ key: 'askLocation', path: 'personalInfo.location' }); }
@@ -95,14 +110,14 @@ function App() {
     setStep('scriptedQuestions');
     setHasGeneratedPdf(false);
 
-    console.log('Queue length:', queue.length);
-    console.log('Queue items:', queue);
+    debugLog('Queue length:', queue.length);
+    debugLog('Queue items:', queue);
 
     if (queue.length > 0) {
-      console.log('Queue has items, showing first question');
+      debugLog('Queue has items, showing first question');
       setConversation([{ type: 'ai', text: tApp(queue[0].key) }]);
     } else {
-      console.log('Queue is empty, calling fetchAiQuestions with data:', data);
+      debugLog('Queue is empty, calling fetchAiQuestions with data:', data);
       fetchAiQuestions(data); // Script'li soruya gerek yoksa direkt Adım 2'ye geç
     }
   };
@@ -126,23 +141,23 @@ function App() {
       });
 
       // Debug: Backend response'u kontrol et
-      console.log('Backend Response:', res);
-      console.log('Response Data:', res.data);
+      debugLog('Backend Response:', res);
+      debugLog('Response Data:', res.data);
 
       // Backend direkt CV data'sını döndürüyor, sessionId yok
       // Kendimiz bir sessionId oluşturalım
       const sessionId = Date.now().toString();
-      console.log('Generated Session ID:', sessionId);
-      console.log('CV Data:', res.data);
+      debugLog('Generated Session ID:', sessionId);
+      debugLog('CV Data:', res.data);
 
       setSessionId(sessionId);
       startScriptedQuestions(res.data);
     } catch (err) {
-      console.error('API request error:', err);
+      errorLog('API request error:', err);
 
       // Handle QUIC protocol errors with retry
       if (err.message && err.message.includes('ERR_QUIC_PROTOCOL_ERROR') && retryCount < maxRetries) {
-        console.warn(`QUIC protocol error detected, retrying in 1 second... (${retryCount + 1}/${maxRetries})`);
+        infoLog(`QUIC protocol error detected, retrying in 1 second... (${retryCount + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, 1000));
         return handleInitialParse(retryCount + 1);
       }
@@ -166,9 +181,9 @@ function App() {
   const fetchAiQuestions = async (currentData, maxQuestions = 4) => {
     setLoadingMessage("AI CV'nizi Analiz Ediyor...");
     try {
-      console.log('fetchAiQuestions called with data:', currentData);
+      debugLog('fetchAiQuestions called with data:', currentData);
       if (!currentData || Object.keys(currentData).length === 0) {
-        console.log('fetchAiQuestions: Invalid data, skipping...');
+        debugLog('fetchAiQuestions: Invalid data, skipping...');
         return;
       }
       const res = await axios.post(`${API_BASE_URL}/api/ai/questions`, {
@@ -179,8 +194,8 @@ function App() {
         sessionId
       });
 
-      console.log('AI Questions Response:', res.data);
-      console.log('AI Questions Array:', res.data.questions);
+      debugLog('AI Questions Response:', res.data);
+      debugLog('AI Questions Array:', res.data.questions);
 
       const aiQuestions = (res.data.questions || []).map(q => ({ key: q.question, isAi: true, id: q.id, category: q.category, hint: q.hint }));
 
@@ -286,21 +301,21 @@ function App() {
 
   const scoreCv = async (data) => {
     try {
-      console.log('scoreCv called with data:', data);
+      debugLog('scoreCv called with data:', data);
       if (!data || Object.keys(data).length === 0) {
-        console.log('scoreCv: Invalid data, skipping...');
+        debugLog('scoreCv: Invalid data, skipping...');
         return;
       }
       const res = await axios.post(`${API_BASE_URL}/api/ai/score`, { cvData: data, appLanguage: i18n.language });
-      console.log('Score Response:', res.data);
+      debugLog('Score Response:', res.data);
       setCvScore(res.data.overall || res.data.score);
       // Backend returns {overall, strengths, weaknesses, suggestions} format
       // Focus on improvement areas rather than just strengths
       const improvementComment = res.data.suggestions && res.data.suggestions.length > 0
-        ? `Geliştirilecek ana alanlar: ${res.data.suggestions.slice(0, 2).join(', ')}`
+        ? 'Bazı alanlarda gelişim fırsatları mevcut.'
         : res.data.weaknesses && res.data.weaknesses.length > 0
-          ? `İyileştirme gereken alanlar: ${res.data.weaknesses.slice(0, 2).join(', ')}`
-          : 'CV\'niz genel olarak iyi durumda, bazı ince ayarlarla daha da güçlenebilir.';
+          ? 'Çeşitli konularda iyileştirme yapılabilir.'
+          : 'CV\'niz genel olarak iyi durumda.';
 
       setConversation(prev => [...prev, { type: 'ai', text: `${t('cvScore', { score: res.data.overall || res.data.score })} ${improvementComment}` }]);
     } catch (err) {
@@ -321,11 +336,40 @@ function App() {
 
     try {
       const preparedData = applyUserAdditions(JSON.parse(JSON.stringify(cvData)));
-      const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, { cvData: preparedData, cvLanguage, sessionId }, { responseType: 'blob' });
 
-      const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
-      setCvPdfUrl(url);
-      window.open(url, '_blank');
+      // Try backend PDF generation first (uses your original template system)
+      try {
+        const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, { cvData: preparedData, cvLanguage, sessionId }, { responseType: 'blob' });
+
+        // Check if backend wants frontend to handle it
+        if (pdfResponse.headers['content-type']?.includes('application/json')) {
+          const responseData = JSON.parse(await pdfResponse.data.text());
+          if (responseData.generateOnFrontend) {
+            throw new Error('Backend requests frontend generation: ' + responseData.fallbackReason);
+          }
+        }
+
+        // Success - backend generated PDF
+        const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
+        setCvPdfUrl(url);
+        window.open(url, '_blank');
+        infoLog('PDF generated using backend template system');
+      } catch (backendError) {
+        errorLog('Backend PDF generation failed, trying frontend:', backendError);
+
+        // Fallback to frontend PDF system
+        try {
+          const { getCVPDFBlob } = await import('./lib/pdf.tsx');
+          const blob = await getCVPDFBlob(preparedData);
+          const url = window.URL.createObjectURL(blob);
+          setCvPdfUrl(url);
+          window.open(url, '_blank');
+          infoLog('PDF generated using frontend fallback system');
+        } catch (frontendError) {
+          errorLog('Both backend and frontend PDF generation failed:', frontendError);
+          throw new Error('PDF generation failed on both backend and frontend');
+        }
+      }
 
       // PDF indirildikten sonra sadece bir "typing" mesajı göster
       setConversation(prev => [...prev, { type: 'typing' }]);
@@ -354,16 +398,32 @@ function App() {
         // ADIM 4: Ön yazı PDF'ini yeni sekmede aç ve indirme bağlantısını hazırla
         if (coverLetterText) {
           try {
-            const pdfRes = await axios.post(`${API_BASE_URL}/api/ai/coverletter`, {
+            // Try backend PDF generation first (more reliable)
+            const pdfRes = await axios.post(`${API_BASE_URL}/api/ai/coverletter-pdf`, {
               cvData: preparedData,
               appLanguage: cvLanguage,
               sessionId
             }, { responseType: 'blob' });
+
             const pdfUrl = window.URL.createObjectURL(new Blob([pdfRes.data], { type: 'application/pdf' }));
             window.open(pdfUrl, '_blank');
             setCoverLetterPdfUrl(pdfUrl);
-          } catch (pdfErr) {
-            // ignore PDF download errors
+            infoLog('Cover letter PDF generated using backend system');
+          } catch (backendError) {
+            errorLog('Backend cover letter PDF failed, trying frontend:', backendError);
+
+            // Fallback to frontend if backend fails
+            try {
+              const { getCoverLetterPDFBlob } = await import('./lib/pdf.tsx');
+              const blob = await getCoverLetterPDFBlob(preparedData, coverLetterText);
+              const pdfUrl = window.URL.createObjectURL(blob);
+              window.open(pdfUrl, '_blank');
+              setCoverLetterPdfUrl(pdfUrl);
+              infoLog('Cover letter PDF generated using frontend fallback');
+            } catch (frontendError) {
+              errorLog('Both backend and frontend cover letter PDF failed:', frontendError);
+              debugLog('Cover letter PDF generation completely failed, but text is available');
+            }
           }
         }
       } catch (coverErr) {
@@ -415,6 +475,36 @@ function App() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleSkipUpload = () => {
+    debugLog('User skipped CV upload, starting with empty CV');
+
+    // Boş CV data'sı oluştur
+    const emptyCvData = {
+      personalInfo: {
+        name: '',
+        email: '',
+        phone: '',
+        location: ''
+      },
+      summary: '',
+      experience: [],
+      education: [],
+      skills: [],
+      projects: [],
+      links: [],
+      certificates: [],
+      languages: [],
+      references: []
+    };
+
+    // Session ID oluştur
+    const sessionId = Date.now().toString();
+    setSessionId(sessionId);
+
+    // Boş CV ile script sorularını başlat
+    startScriptedQuestions(emptyCvData);
+  };
+
   return (
     <div className="app-container">
       <Feedback open={feedbackOpen} setOpen={setFeedbackOpen} sessionId={sessionId} language={i18n.language} theme={theme} />
@@ -431,6 +521,20 @@ function App() {
             {isLoading ? loadingMessage : t('uploadButtonLabel')}
           </label>
           {error && <p className="error-text">{error}</p>}
+
+          {/* CV olmadan devam etme butonu - küçük ve dikkat çekmeyen */}
+          {!isLoading && (
+            <div className="skip-upload-container">
+              <button
+                onClick={handleSkipUpload}
+                className="skip-upload-button"
+                aria-label={t('skipUploadButton')}
+              >
+                {t('skipUploadButton')}
+              </button>
+            </div>
+          )}
+
           <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       ) : (

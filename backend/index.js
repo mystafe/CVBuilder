@@ -8,6 +8,20 @@ const pdfParse = require('pdf-parse')
 const mammoth = require('mammoth')
 const { z } = require('zod')
 
+// Debug mode configuration
+const DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development'
+const debugLog = (...args) => {
+  if (DEBUG) {
+    console.log('[DEBUG]', new Date().toISOString(), ...args)
+  }
+}
+const infoLog = (...args) => {
+  console.log('[INFO]', new Date().toISOString(), ...args)
+}
+const errorLog = (...args) => {
+  console.error('[ERROR]', new Date().toISOString(), ...args)
+}
+
 const app = express()
 const PORT = process.env.PORT || 4000
 
@@ -72,7 +86,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
 // Logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
+  if (DEBUG) {
+    debugLog(`${req.method} ${req.path}`, req.query, req.body ? Object.keys(req.body) : 'no-body')
+  } else {
+    // Only log important endpoints in production
+    if (['/api/upload-parse', '/api/ai/questions', '/api/ai/score', '/api/ai/coverletter'].includes(req.path)) {
+      infoLog(`${req.method} ${req.path}`)
+    }
+  }
   next()
 })
 
@@ -101,7 +122,9 @@ const scoreSchema = z.object({
 })
 
 const coverLetterSchema = z.object({
-  cv: z.object({}),
+  cvData: z.any(),
+  appLanguage: z.string().optional(),
+  sessionId: z.string().nullable().optional(),
   roleHint: z.string().optional()
 })
 
@@ -131,7 +154,7 @@ async function callOpenAI(messages, maxTokens = 2000) {
     const data = await response.json()
     return data.choices[0].message.content
   } catch (error) {
-    console.error('OpenAI API call failed:', error)
+    errorLog('OpenAI API call failed:', error)
     throw error
   }
 }
@@ -147,28 +170,28 @@ function asyncHandler(fn) {
 async function extractTextFromFile(file) {
   try {
     const { buffer, mimetype, originalname } = file
-    console.log(`Extracting text from file: ${originalname}, type: ${mimetype}`)
+    debugLog(`Extracting text from file: ${originalname}, type: ${mimetype}`)
 
     switch (mimetype) {
       case 'application/pdf':
         const pdfData = await pdfParse(buffer)
-        console.log(`PDF text extracted: ${pdfData.text.length} characters`)
+        debugLog(`PDF text extracted: ${pdfData.text.length} characters`)
         return pdfData.text
 
       case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
         const docxResult = await mammoth.extractRawText({ buffer })
-        console.log(`DOCX text extracted: ${docxResult.value.length} characters`)
+        debugLog(`DOCX text extracted: ${docxResult.value.length} characters`)
         return docxResult.value
 
       case 'application/msword':
         // For older .doc files, mammoth can still try
         const docResult = await mammoth.extractRawText({ buffer })
-        console.log(`DOC text extracted: ${docResult.value.length} characters`)
+        debugLog(`DOC text extracted: ${docResult.value.length} characters`)
         return docResult.value
 
       case 'text/plain':
         const txtContent = buffer.toString('utf8')
-        console.log(`TXT text extracted: ${txtContent.length} characters`)
+        debugLog(`TXT text extracted: ${txtContent.length} characters`)
         return txtContent
 
       default:
@@ -192,7 +215,7 @@ app.post('/api/upload-parse', upload.single('cv'), asyncHandler(async (req, res)
       })
     }
 
-    console.log(`File upload received: ${req.file.originalname}, size: ${req.file.size} bytes`)
+    infoLog(`File upload received: ${req.file.originalname}, size: ${req.file.size} bytes`)
 
     // Extract text from the uploaded file
     const extractedText = await extractTextFromFile(req.file)
@@ -204,7 +227,7 @@ app.post('/api/upload-parse', upload.single('cv'), asyncHandler(async (req, res)
       })
     }
 
-    console.log(`Text extracted successfully: ${extractedText.length} characters`)
+    debugLog(`Text extracted successfully: ${extractedText.length} characters`)
 
     // Parse the extracted text using AI
     const systemPrompt = `You are a CV/Resume parser. Extract information from the provided CV text and return it in the specified JSON format. Pay special attention to Turkish characters and names.
@@ -291,11 +314,11 @@ IMPORTANT:
     ], 3000)
 
     const parsedData = JSON.parse(result)
-    console.log('CV parsed successfully from uploaded file')
-    console.log('Extracted name:', parsedData.personalInfo?.name)
+    infoLog('CV parsed successfully from uploaded file')
+    debugLog('Extracted name:', parsedData.personalInfo?.name)
     res.json(parsedData)
   } catch (error) {
-    console.error('File upload and parse error:', error)
+    errorLog('File upload and parse error:', error)
     res.status(500).json({
       error: 'Failed to process uploaded file',
       message: error.message
@@ -587,11 +610,11 @@ Return ONLY the JSON object following the exact structure specified in the syste
 
 // Generate questions endpoint
 app.post('/api/ai/questions', asyncHandler(async (req, res) => {
-  console.log('Questions endpoint - Request body:', JSON.stringify(req.body, null, 2))
+  debugLog('Questions endpoint - Request body:', JSON.stringify(req.body, null, 2))
 
   const validation = questionsSchema.safeParse(req.body)
   if (!validation.success) {
-    console.log('Questions endpoint - Validation failed:', validation.error.errors)
+    debugLog('Questions endpoint - Validation failed:', validation.error.errors)
     return res.status(400).json({
       error: 'Invalid input',
       details: validation.error.errors
@@ -599,15 +622,15 @@ app.post('/api/ai/questions', asyncHandler(async (req, res) => {
   }
 
   const { cvData, maxQuestions = 4, appLanguage = 'en' } = validation.data
-  console.log('Questions endpoint - Extracted cvData:', cvData ? 'EXISTS' : 'NULL')
-  console.log('Questions endpoint - cvData keys:', cvData ? Object.keys(cvData) : 'N/A')
-  console.log('Questions endpoint - App Language:', appLanguage)
+  debugLog('Questions endpoint - Extracted cvData:', cvData ? 'EXISTS' : 'NULL')
+  debugLog('Questions endpoint - cvData keys:', cvData ? Object.keys(cvData) : 'N/A')
+  debugLog('Questions endpoint - App Language:', appLanguage)
 
   // Check if cvData is null or empty
   if (!cvData || typeof cvData !== 'object' || cvData === null || Object.keys(cvData).length === 0) {
-    console.log('Questions endpoint - CV data check failed')
-    console.log('Questions endpoint - cvData type:', typeof cvData)
-    console.log('Questions endpoint - cvData value:', cvData)
+    debugLog('Questions endpoint - CV data check failed')
+    debugLog('Questions endpoint - cvData type:', typeof cvData)
+    debugLog('Questions endpoint - cvData value:', cvData)
     return res.status(400).json({
       error: 'CV data is required',
       message: 'Please provide valid CV data for question generation'
@@ -661,10 +684,10 @@ Generate questions that will help uncover missing achievements, quantify impact,
     ], 1500)
 
     const questionsData = JSON.parse(result)
-    console.log(`Generated ${maxQuestions} questions successfully - CODE VERSION: 2025-08-09-FIXED`)
+    infoLog(`Generated ${maxQuestions} questions successfully`)
     res.json(questionsData)
   } catch (error) {
-    console.error('Generate questions error:', error)
+    errorLog('Generate questions error:', error)
     res.status(500).json({
       error: 'Failed to generate questions',
       message: error.message
@@ -843,10 +866,10 @@ Return ONLY the JSON response with score, strengths, weaknesses, and suggestions
     ], 2000)
 
     const scoreData = JSON.parse(result)
-    console.log(`CV scored: ${scoreData.overall}%`)
+    infoLog(`CV scored: ${scoreData.overall}%`)
     res.json(scoreData)
   } catch (error) {
-    console.error('Score CV error:', error)
+    errorLog('Score CV error:', error)
     res.status(500).json({
       error: 'Failed to score CV',
       message: error.message
@@ -864,9 +887,13 @@ app.post('/api/ai/coverletter', asyncHandler(async (req, res) => {
     })
   }
 
-  const { cv, roleHint } = validation.data
+  const { cvData, appLanguage = 'en', sessionId, roleHint } = validation.data
 
   const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
+
+${appLanguage === 'tr' ?
+      'IMPORTANT: Respond in Turkish (Türkçe). Generate the cover letter in Turkish language.' :
+      'IMPORTANT: Respond in English.'}
 
 Cover letter guidelines:
 1. Professional yet engaging tone
@@ -887,7 +914,7 @@ Return JSON with the cover letter content and metadata.`
   const userPrompt = `Create a professional cover letter based on this CV:
 
 CV Information:
-${JSON.stringify(cv, null, 2)}
+${JSON.stringify(cvData, null, 2)}
 
 ${roleHint ? `Target Role/Company Context: ${roleHint}` : 'Create a versatile cover letter suitable for roles in their field.'}
 
@@ -908,10 +935,10 @@ Return in this JSON format:
     ], 2500)
 
     const coverLetterData = JSON.parse(result)
-    console.log('Cover letter generated successfully')
+    infoLog('Cover letter generated successfully')
     res.json(coverLetterData)
   } catch (error) {
-    console.error('Generate cover letter error:', error)
+    errorLog('Generate cover letter error:', error)
     res.status(500).json({
       error: 'Failed to generate cover letter',
       message: error.message
@@ -919,21 +946,150 @@ Return in this JSON format:
   }
 }))
 
-// CV PDF creation endpoint (temporary mock)
+// Generate cover letter PDF endpoint
+app.post('/api/ai/coverletter-pdf', asyncHandler(async (req, res) => {
+  const validation = coverLetterSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Invalid input',
+      details: validation.error.errors
+    })
+  }
+
+  const { cvData, appLanguage = 'en', sessionId, roleHint } = validation.data
+
+  try {
+    // First get the cover letter content
+    const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
+
+${appLanguage === 'tr' ?
+        'IMPORTANT: Respond in Turkish (Türkçe). Generate the cover letter in Turkish language.' :
+        'IMPORTANT: Respond in English.'}
+
+Cover letter guidelines:
+1. Professional yet engaging tone
+2. Highlight 2-3 most relevant achievements from the CV
+3. Show genuine interest in the role/company
+4. Demonstrate value proposition clearly
+5. Call to action in closing
+6. Keep to 3-4 paragraphs, ~300-400 words
+7. Avoid generic phrases and clichés
+
+Structure:
+- Opening: Enthusiasm and position interest
+- Body: Relevant achievements and skills alignment
+- Closing: Value proposition and next steps
+
+Return JSON with the cover letter content and metadata.`
+
+    const userPrompt = `Create a professional cover letter based on this CV:
+
+CV Information:
+${JSON.stringify(cvData, null, 2)}
+
+${roleHint ? `Target Role/Company Context: ${roleHint}` : 'Create a versatile cover letter suitable for roles in their field.'}
+
+Generate a compelling cover letter that highlights their strongest qualifications and achievements.
+
+Return in this JSON format:
+{
+  "coverLetter": "Full cover letter text here...",
+  "wordCount": 350,
+  "tone": "professional",
+  "keyHighlights": ["Achievement 1", "Achievement 2", "Skill 1"]
+}`
+
+    const result = await callOpenAI([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ], 2500)
+
+    const coverLetterData = JSON.parse(result)
+    const coverText = coverLetterData.coverLetter || 'Ön yazı oluşturulamadı'
+
+    // Try to use backend PDF service
+    try {
+      const pdfService = require('./services/pdfService')
+      const pdfBuffer = await pdfService.createCoverLetterPdf(coverText)
+
+      res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader('Content-Disposition', 'attachment; filename="cover-letter.pdf"')
+      res.send(pdfBuffer)
+
+      infoLog('Cover letter PDF generated successfully using backend service')
+    } catch (pdfError) {
+      errorLog('Backend cover letter PDF service failed:', pdfError)
+      // Fallback to simple text response
+      res.json({
+        coverLetter: coverText,
+        message: 'PDF generation failed, returning text only',
+        error: pdfError.message
+      })
+    }
+  } catch (error) {
+    errorLog('Generate cover letter PDF error:', error)
+    res.status(500).json({
+      error: 'Failed to generate cover letter PDF',
+      message: error.message
+    })
+  }
+}))
+
+// CV PDF creation endpoint - using backend PDF service
 app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
   try {
-    // For now, return a simple PDF response
-    // TODO: Implement actual PDF generation
-    console.log('PDF generation requested - returning mock PDF')
+    infoLog('PDF generation requested using backend PDF service')
 
-    // Create a simple PDF buffer (mock)
-    const mockPdf = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n182\n%%EOF')
+    const { cvData, cvLanguage = 'tr' } = req.body
 
-    res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', 'attachment; filename="cv.pdf"')
-    res.send(mockPdf)
+    if (!cvData) {
+      return res.status(400).json({
+        error: 'CV data is required',
+        message: 'Please provide CV data for PDF generation'
+      })
+    }
+
+    // Check if we have the PDF service available
+    try {
+      const pdfService = require('./services/pdfService')
+
+      // Transform frontend data format to backend format
+      const transformedCvData = {
+        ...cvData,
+        experience: cvData.experience?.map(exp => ({
+          ...exp,
+          title: exp.position || exp.title,
+          date: exp.date || (exp.startDate && exp.endDate ? `${exp.startDate} - ${exp.endDate}` : exp.start && exp.end ? `${exp.start} - ${exp.end}` : ''),
+          description: exp.description || (exp.bullets ? exp.bullets.join('\n') : '')
+        })) || [],
+        education: cvData.education?.map(edu => ({
+          ...edu,
+          date: edu.date || (edu.startDate && edu.endDate ? `${edu.startDate} - ${edu.endDate}` : edu.start && edu.end ? `${edu.start} - ${edu.end}` : '')
+        })) || []
+      }
+
+      debugLog('Transformed CV data for backend PDF:', transformedCvData)
+      const pdfBuffer = await pdfService.createPdf(transformedCvData, cvLanguage)
+
+      res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader('Content-Disposition', 'attachment; filename="cv.pdf"')
+      res.send(pdfBuffer)
+
+      infoLog('PDF generated successfully using backend service')
+    } catch (pdfError) {
+      errorLog('Backend PDF service failed:', pdfError)
+
+      // Fallback to frontend generation
+      res.json({
+        success: true,
+        message: 'Backend PDF failed, frontend should handle generation',
+        cvData: cvData,
+        generateOnFrontend: true,
+        fallbackReason: pdfError.message
+      })
+    }
   } catch (error) {
-    console.error('PDF generation error:', error)
+    errorLog('PDF generation error:', error)
     res.status(500).json({
       error: 'Failed to generate PDF',
       message: error.message
@@ -1005,10 +1161,11 @@ process.on('SIGINT', () => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`)
-  console.log(`📍 Health check: http://localhost:${PORT}/api/health`)
-  console.log(`🤖 OpenAI Model: ${process.env.OPENAI_MODEL || 'gpt-4o-mini'}`)
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`)
+  infoLog(`🚀 Server running on port ${PORT}`)
+  infoLog(`📍 Health check: http://localhost:${PORT}/api/health`)
+  infoLog(`🤖 OpenAI Model: ${process.env.OPENAI_MODEL || 'gpt-4o-mini'}`)
+  infoLog(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`)
+  infoLog(`🔍 Debug mode: ${DEBUG ? 'ENABLED' : 'DISABLED'}`)
 
   // Validate required environment variables
   if (!process.env.OPENAI_API_KEY) {
