@@ -703,7 +703,11 @@ function App() {
 
       // Try backend PDF generation first (uses your original template system)
       try {
-        const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, { cvData: preparedData, cvLanguage, sessionId }, { responseType: 'blob' });
+        const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, {
+          cvData: preparedData,
+          cvLanguage,
+          sessionId: sessionId || `session_${Date.now()}`
+        }, { responseType: 'blob' });
 
         // Check if backend wants frontend to handle it
         if (pdfResponse.headers['content-type']?.includes('application/json')) {
@@ -778,7 +782,7 @@ function App() {
       const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/ai/coverletter`, {
         cvData: preparedData,
         appLanguage: cvLanguage,
-        sessionId,
+        sessionId: sessionId || `session_${Date.now()}`,
         companyName: companyName || '',
         positionName: positionName || ''
       });
@@ -794,7 +798,7 @@ function App() {
         const coverLetterPdfResponse = await axios.post(`${API_BASE_URL}/api/ai/coverletter-pdf`, {
           cvData: preparedData,
           appLanguage: cvLanguage,
-          sessionId,
+          sessionId: sessionId || `session_${Date.now()}`,
           companyName: companyName || '',
           positionName: positionName || ''
         }, { responseType: 'blob' });

@@ -1052,7 +1052,16 @@ Return JSON with the cover letter content and metadata.`
 CV Information:
 ${JSON.stringify(cvData, null, 2)}
 
-${roleHint ? `Target Role/Company Context: ${roleHint}` : 'Create a versatile cover letter suitable for roles in their field.'}
+${companyName || positionName ?
+        `Target Application Details:
+  ${companyName ? `Company: ${companyName}` : ''}
+  ${positionName ? `Position: ${positionName}` : ''}
+  
+  Please customize the cover letter for this specific company and role.` :
+        'Create a versatile cover letter suitable for roles in their field.'
+      }
+
+${roleHint ? `Additional Context: ${roleHint}` : ''}
 
 Generate a compelling cover letter that highlights their strongest qualifications and achievements.
 
@@ -1071,6 +1080,14 @@ Return in this JSON format:
 
     const coverLetterData = JSON.parse(result)
     const coverText = coverLetterData.coverLetter || 'Ön yazı oluşturulamadı'
+
+    // Save finalized data with cover letter
+    try {
+      const sessionId = req.body.sessionId || `session_${Date.now()}`;
+      await dataStorage.saveFinalizedData(sessionId, cvData, coverText, { coverLetterPdf: true }, req);
+    } catch (storageError) {
+      errorLog('Failed to save finalized data with cover letter:', storageError);
+    }
 
     // Try to use backend PDF service
     try {
@@ -1105,7 +1122,7 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
   try {
     infoLog('PDF generation requested using backend PDF service')
 
-    const { cvData, cvLanguage = 'tr' } = req.body
+    const { cvData, cvLanguage = 'tr', sessionId } = req.body
 
     if (!cvData) {
       return res.status(400).json({
@@ -1283,9 +1300,11 @@ app.delete('/api/logs', asyncHandler(async (req, res) => {
 app.get('/api/admin/stats', asyncHandler(async (req, res) => {
   try {
     const stats = await dataStorage.getSessionStats();
+    const finalizedFolders = await dataStorage.getFinalizedFolders();
     res.json({
       success: true,
       stats,
+      finalizedFolders,
       serverInfo: {
         uptime: process.uptime(),
         memory: process.memoryUsage(),

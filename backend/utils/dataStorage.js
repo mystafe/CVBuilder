@@ -7,6 +7,30 @@ class DataStorage {
     this.dataDir = path.join(__dirname, '..', 'data');
     this.sessionsDir = path.join(this.dataDir, 'sessions');
     this.logsDir = path.join(this.dataDir, 'logs');
+    this.finalizedDir = path.join(this.dataDir, 'finalized');
+
+    // Ensure directories exist
+    this.ensureDirectories();
+  }
+
+  // Ensure all required directories exist
+  async ensureDirectories() {
+    try {
+      await fs.mkdir(this.dataDir, { recursive: true });
+      await fs.mkdir(this.sessionsDir, { recursive: true });
+      await fs.mkdir(this.logsDir, { recursive: true });
+      await fs.mkdir(this.finalizedDir, { recursive: true });
+    } catch (error) {
+      console.error('Error creating directories:', error);
+    }
+  }
+
+  // Get timestamp folder name
+  getTimestampFolder() {
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, '-').split('T')[0]; // YYYY-MM-DD
+    const time = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+    return `${timestamp}_${time}`;
   }
 
   // Get client info from request
@@ -23,27 +47,36 @@ class DataStorage {
     };
   }
 
-  // Save session data
+  // Save session data with timestamp folder
   async saveSession(sessionId, data, req) {
     try {
+      await this.ensureDirectories();
+
       const clientInfo = this.getClientInfo(req);
+      const timestampFolder = this.getTimestampFolder();
+      const sessionFolder = path.join(this.sessionsDir, timestampFolder);
+
+      // Create timestamp folder
+      await fs.mkdir(sessionFolder, { recursive: true });
+
       const sessionData = {
         sessionId,
         clientInfo,
         data,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        timestampFolder
       };
 
-      const filename = `session_${sessionId}_${Date.now()}.json`;
-      const filepath = path.join(this.sessionsDir, filename);
+      const filename = `session_${sessionId}.json`;
+      const filepath = path.join(sessionFolder, filename);
 
       await fs.writeFile(filepath, JSON.stringify(sessionData, null, 2));
 
       // Also log the session creation
       await this.logActivity('session_created', sessionData, req);
 
-      return filename;
+      return { filename, folder: timestampFolder };
     } catch (error) {
       console.error('Error saving session:', error);
       throw error;
@@ -53,6 +86,8 @@ class DataStorage {
   // Log activity with client info
   async logActivity(activityType, data, req) {
     try {
+      await this.ensureDirectories();
+
       const clientInfo = this.getClientInfo(req);
       const logEntry = {
         type: activityType,
@@ -92,32 +127,54 @@ class DataStorage {
     }
   }
 
-  // Save finalized CV and cover letter
+  // Save finalized CV and cover letter with timestamp folder
   async saveFinalizedData(sessionId, cvData, coverLetter, pdfPaths, req) {
     try {
+      await this.ensureDirectories();
+
       const clientInfo = this.getClientInfo(req);
+      const timestampFolder = this.getTimestampFolder();
+      const finalizedFolder = path.join(this.finalizedDir, timestampFolder);
+
+      // Create timestamp folder
+      await fs.mkdir(finalizedFolder, { recursive: true });
+
       const finalData = {
         sessionId,
         clientInfo,
         cvData,
         coverLetter,
         pdfPaths,
-        finalizedAt: new Date().toISOString()
+        finalizedAt: new Date().toISOString(),
+        timestampFolder
       };
 
-      const filename = `finalized_${sessionId}_${Date.now()}.json`;
-      const filepath = path.join(this.sessionsDir, filename);
+      const filename = `finalized_${sessionId}.json`;
+      const filepath = path.join(finalizedFolder, filename);
 
       await fs.writeFile(filepath, JSON.stringify(finalData, null, 2));
+
+      // Save CV data separately
+      const cvFilename = `cv_${sessionId}.json`;
+      const cvFilepath = path.join(finalizedFolder, cvFilename);
+      await fs.writeFile(cvFilepath, JSON.stringify(cvData, null, 2));
+
+      // Save cover letter separately if exists
+      if (coverLetter) {
+        const coverLetterFilename = `cover_letter_${sessionId}.txt`;
+        const coverLetterFilepath = path.join(finalizedFolder, coverLetterFilename);
+        await fs.writeFile(coverLetterFilepath, coverLetter);
+      }
 
       // Log the finalization
       await this.logActivity('cv_finalized', {
         sessionId,
         hasCoverLetter: !!coverLetter,
-        pdfGenerated: !!pdfPaths
+        pdfGenerated: !!pdfPaths,
+        timestampFolder
       }, req);
 
-      return filename;
+      return { filename, folder: timestampFolder };
     } catch (error) {
       console.error('Error saving finalized data:', error);
       throw error;
@@ -127,12 +184,46 @@ class DataStorage {
   // Get session stats
   async getSessionStats() {
     try {
-      const sessionFiles = await fs.readdir(this.sessionsDir);
+      await this.ensureDirectories();
+
+      const sessionFolders = await fs.readdir(this.sessionsDir);
+      const finalizedFolders = await fs.readdir(this.finalizedDir);
       const logFiles = await fs.readdir(this.logsDir);
 
+      let totalSessions = 0;
+      let totalFinalizations = 0;
+
+      // Count sessions in all timestamp folders
+      for (const folder of sessionFolders) {
+        try {
+          const folderPath = path.join(this.sessionsDir, folder);
+          const stats = await fs.stat(folderPath);
+          if (stats.isDirectory()) {
+            const files = await fs.readdir(folderPath);
+            totalSessions += files.filter(f => f.startsWith('session_')).length;
+          }
+        } catch (error) {
+          // Skip if folder can't be read
+        }
+      }
+
+      // Count finalizations in all timestamp folders
+      for (const folder of finalizedFolders) {
+        try {
+          const folderPath = path.join(this.finalizedDir, folder);
+          const stats = await fs.stat(folderPath);
+          if (stats.isDirectory()) {
+            const files = await fs.readdir(folderPath);
+            totalFinalizations += files.filter(f => f.startsWith('finalized_')).length;
+          }
+        } catch (error) {
+          // Skip if folder can't be read
+        }
+      }
+
       return {
-        totalSessions: sessionFiles.filter(f => f.startsWith('session_')).length,
-        totalFinalizations: sessionFiles.filter(f => f.startsWith('finalized_')).length,
+        totalSessions,
+        totalFinalizations,
         totalLogFiles: logFiles.length,
         lastActivity: new Date().toISOString()
       };
@@ -144,6 +235,41 @@ class DataStorage {
         totalLogFiles: 0,
         lastActivity: new Date().toISOString()
       };
+    }
+  }
+
+  // Get all finalized data folders
+  async getFinalizedFolders() {
+    try {
+      await this.ensureDirectories();
+
+      const folders = await fs.readdir(this.finalizedDir);
+      const folderStats = [];
+
+      for (const folder of folders) {
+        try {
+          const folderPath = path.join(this.finalizedDir, folder);
+          const stats = await fs.stat(folderPath);
+          if (stats.isDirectory()) {
+            const files = await fs.readdir(folderPath);
+            folderStats.push({
+              folder,
+              createdAt: stats.birthtime,
+              fileCount: files.length,
+              hasCV: files.some(f => f.startsWith('cv_')),
+              hasCoverLetter: files.some(f => f.startsWith('cover_letter_')),
+              hasFinalized: files.some(f => f.startsWith('finalized_'))
+            });
+          }
+        } catch (error) {
+          // Skip if folder can't be read
+        }
+      }
+
+      return folderStats.sort((a, b) => b.createdAt - a.createdAt);
+    } catch (error) {
+      console.error('Error getting finalized folders:', error);
+      return [];
     }
   }
 }
