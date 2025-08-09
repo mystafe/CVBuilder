@@ -36,10 +36,10 @@
   "noContentError": "I couldn't extract meaningful information from the uploaded CV. Please try another file.",
   "pdfError": "An error occurred while creating the PDF.",
   "footerText": "Developed by Mustafa Evleksiz",
-  "skipUploadButton": "Continue without CV",
   "askSummary": "Can you briefly introduce yourself? (Mention your career goals, experience, and standout qualities)",
   "askExperience": "Can you mention your latest work experience? (Position - Company format)",
   "askEducation": "Can you mention your education? (Degree - School format)",
   "askSkills": "List your skills separated by commas (e.g. JavaScript, React, SQL)",
-  "askLanguages": "List the languages you know separated by commas (e.g. English Advanced, German Intermediate)"
+  "askLanguages": "List the languages you know separated by commas (e.g. English Advanced, German Intermediate)",
+  "askExperienceLocation": "Can you complete the city/country information for your work experiences? (comma separated: Istanbul, Ankara, etc.)"
 }

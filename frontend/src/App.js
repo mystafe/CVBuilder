@@ -104,14 +104,23 @@ function App() {
     if (!get(data, 'personalInfo.location')) { queue.push({ key: 'askLocation', path: 'personalInfo.location' }); }
     if (!get(data, 'personalInfo.phone')) { queue.push({ key: 'askPhone', path: 'personalInfo.phone' }); }
 
-    // ÖZET - Kendini anlatma sorusu (her zaman sor)
-    if (!get(data, 'summary') || get(data, 'summary').length < 50) {
+    // ÖZET - Kendini anlatma sorusu (CV yüklü olsa bile geliştirebilir)
+    if (!get(data, 'summary') || get(data, 'summary').length < 100) {
       queue.push({ key: 'askSummary', path: 'summary' });
     }
 
-    // DENEYİM - En az 1 iş deneyimi
-    if (!get(data, 'experience') || get(data, 'experience').length === 0) {
+    // DENEYİM - Eksik detaylar varsa sor
+    const experiences = get(data, 'experience') || [];
+    if (experiences.length === 0) {
       queue.push({ key: 'askExperience', isComplex: true });
+    } else {
+      // Mevcut deneyimlerde eksik lokasyon varsa sor
+      const hasIncompleteExp = experiences.some(exp =>
+        !exp.location || exp.location === 'undened' || exp.location === 'undefined' || exp.location.trim() === ''
+      );
+      if (hasIncompleteExp) {
+        queue.push({ key: 'askExperienceLocation', path: 'experience', isLocationFix: true });
+      }
     }
 
     // EĞİTİM - En az 1 eğitim bilgisi
@@ -119,8 +128,9 @@ function App() {
       queue.push({ key: 'askEducation', isComplex: true });
     }
 
-    // YETENEKLER - En az 3 yetenek
-    if (!get(data, 'skills') || get(data, 'skills').length < 3) {
+    // YETENEKLER - Yetersizse sor
+    const skills = get(data, 'skills') || [];
+    if (skills.length < 5) {
       queue.push({ key: 'askSkills', path: 'skills', isArray: true });
     }
 
@@ -575,7 +585,7 @@ function App() {
       {step === 'upload' ? (
         <div className="upload-step fade-in">
           <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
-          <Logo onBadgeClick={() => setFeedbackOpen(true)} />
+          <Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleRestart} />
           <h1><span>{t('mainTitle')}</span></h1>
           <p>{t('subtitle')}</p>
           <div className="language-controls"><div className="control-group"><label htmlFor="cv-lang">{t('cvLanguageLabel')}</label><select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading}><option value="tr">Türkçe</option><option value="en">English</option></select></div></div>
@@ -603,7 +613,7 @@ function App() {
         </div>
       ) : (
         <div className="chat-step fade-in">
-          <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} /><div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
+          <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleRestart} /><div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
           <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
           <div className="chat-input-area">
             {(step === 'scriptedQuestions' || step === 'aiQuestions') && (

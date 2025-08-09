@@ -40,5 +40,6 @@
   "askExperience": "Son iş deneyiminizi belirtir misiniz? (Pozisyon - Şirket formatında)",
   "askEducation": "Eğitim durumunuzu belirtir misiniz? (Bölüm - Okul formatında)",
   "askSkills": "Sahip olduğunuz yetenekleri virgülle ayırarak yazın (örn: JavaScript, React, SQL)",
-  "askLanguages": "Bildiğiniz dilleri virgülle ayırarak yazın (örn: İngilizce İleri, Almanca Orta)"
+  "askLanguages": "Bildiğiniz dilleri virgülle ayırarak yazın (örn: İngilizce İleri, Almanca Orta)",
+  "askExperienceLocation": "Deneyimlerinizde çalıştığınız şehir/ülke bilgilerini tamamlar mısınız? (virgülle ayırarak: İstanbul, Ankara, vs.)"
 }

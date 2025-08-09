@@ -1059,11 +1059,13 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
         experience: cvData.experience?.map(exp => ({
           ...exp,
           title: exp.position || exp.title,
+          location: exp.location === 'undened' || exp.location === 'undefined' ? '' : exp.location || '',
           date: exp.date || (exp.startDate && exp.endDate ? `${exp.startDate} - ${exp.endDate}` : exp.start && exp.end ? `${exp.start} - ${exp.end}` : ''),
           description: exp.description || (exp.bullets ? exp.bullets.join('\n') : '')
         })) || [],
         education: cvData.education?.map(edu => ({
           ...edu,
+          location: edu.location === 'undened' || edu.location === 'undefined' ? '' : edu.location || '',
           date: edu.date || (edu.startDate && edu.endDate ? `${edu.startDate} - ${edu.endDate}` : edu.start && edu.end ? `${edu.start} - ${edu.end}` : '')
         })) || []
       }

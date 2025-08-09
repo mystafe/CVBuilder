@@ -34,17 +34,29 @@ const headingMap = {
 };
 
 const renderSkills = (skills = []) => {
+    // Handle both array of strings and array of objects
+    if (!skills || skills.length === 0) return '<p>Belirtilmemiş</p>';
+
+    // If skills is array of strings, convert to simple list
+    if (typeof skills[0] === 'string') {
+        return `<div class="skills-container">
+            <ul>${skills.map(skill => `<li>${skill}</li>`).join('')}</ul>
+        </div>`;
+    }
+
+    // If skills is array of objects, group by category
     const grouped = skills.reduce((acc, skill) => {
         const category = skill.category || '';
         if (!acc[category]) acc[category] = [];
         acc[category].push(skill);
         return acc;
     }, {});
+
     return `<div class="skills-container">` +
         Object.entries(grouped).map(([category, list]) => `
             <div class="skills-category">
                 ${category ? `<h4>${category}</h4>` : ''}
-                <ul>${list.map(s => `<li>${s.name}${s.level ? ` - ${s.level}` : ''}</li>`).join('')}</ul>
+                <ul>${list.map(s => `<li>${s.name || s}${s.level ? ` - ${s.level}` : ''}</li>`).join('')}</ul>
             </div>`).join('') +
         `</div>`;
 };
@@ -91,10 +103,10 @@ const generateCvHtml = (data, language = 'en') => {
         ${data.projects && data.projects.length > 0 ? `<div class="section projects"><h2 class="section-title">${t.projects}</h2>${data.projects.map(proj => `<div><h3>${proj.name || ''}</h3><p>${proj.description || ''}</p>${proj.url ? `<p><a href="${proj.url}">${proj.url}</a></p>` : ''}</div>`).join('')}</div>` : ''}
         ${data.languages && data.languages.length > 0 ? `<div class="section"><h2 class="section-title">${t.languages}</h2>${data.languages.map(lang => `<p>${(lang.language || '')} ${lang.proficiency ? '(' + lang.proficiency + ')' : ''}</p>`).join('')}</div>` : ''}
         ${data.certificates && data.certificates.length > 0 ? `<div class="section"><h2 class="section-title">${t.certificates}</h2>${data.certificates.map(cert => {
-            if (typeof cert === 'string') { return `<p>${cert}</p>`; }
-            const parts = [cert.name || cert.title, cert.issuer, cert.date].filter(Boolean);
-            return `<p>${parts.join(' - ')}</p>`;
-        }).join('')}</div>` : ''}
+        if (typeof cert === 'string') { return `<p>${cert}</p>`; }
+        const parts = [cert.name || cert.title, cert.issuer, cert.date].filter(Boolean);
+        return `<p>${parts.join(' - ')}</p>`;
+    }).join('')}</div>` : ''}
         ${data.analysis ? `<div class="section"><h2 class="section-title">${t.analysis}</h2><p>${data.analysis}</p></div>` : ''}
     </div>
     </body>
