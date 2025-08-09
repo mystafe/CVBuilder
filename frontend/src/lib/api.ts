@@ -2,18 +2,33 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 
 // API Base URL - use environment variable or fallback to production
 const getApiBase = () => {
-  // Check if we're in development mode
+  // Öncelik: Environment variable (REACT_APP_API_BASE)
+  // @ts-ignore - React injects environment variables at build time
+  const envApiBase = process.env.REACT_APP_API_BASE
+  if (envApiBase) {
+    return envApiBase
+  }
+
+  // İkinci öncelik: Local development otomatik tespit
   if (
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1"
   ) {
     return "http://localhost:4000"
   }
-  // Production environment
+
+  // Son çare: Production URL
   return "https://cvbuilder-451v.onrender.com"
 }
 
 const API_BASE = getApiBase()
+
+// Debug: API URL'yi ve kaynağını console'da göster
+console.log("API Service Configuration:")
+// @ts-ignore - React injects environment variables at build time
+console.log("- Environment REACT_APP_API_BASE:", process.env.REACT_APP_API_BASE)
+console.log("- Window hostname:", window.location.hostname)
+console.log("- Final API Base URL:", API_BASE)
 
 // Types for API responses
 export interface CVData {

@@ -9,7 +9,28 @@ import Feedback from './components/Feedback';
 import './App.css';
 
 // --- API Yapılandırması ---
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://cvbuilder-451v.onrender.com';
+const getApiBaseUrl = () => {
+  // Öncelik: Environment variable (REACT_APP_API_BASE)
+  if (process.env.REACT_APP_API_BASE) {
+    return process.env.REACT_APP_API_BASE;
+  }
+
+  // İkinci öncelik: Local development otomatik tespit
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:4000';
+  }
+
+  // Son çare: Production URL
+  return 'https://cvbuilder-451v.onrender.com';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Debug: API URL'yi ve kaynağını console'da göster
+console.log('API Configuration:');
+console.log('- Environment REACT_APP_API_BASE:', process.env.REACT_APP_API_BASE);
+console.log('- Window hostname:', window.location.hostname);
+console.log('- Final API Base URL:', API_BASE_URL);
 
 // --- Statik Ikon ve Bileşenler ---
 const TypingIndicator = () => <div className="message ai typing"><span></span><span></span><span></span></div>;
