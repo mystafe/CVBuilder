@@ -9,17 +9,36 @@ const mammoth = require('mammoth')
 const { z } = require('zod')
 
 // Debug mode configuration
-const DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development'
+let DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development'
+let CURRENT_AI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+
+// Log storage for admin panel
+let logHistory = []
+const addToLogHistory = (level, message) => {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message: typeof message === 'object' ? JSON.stringify(message, null, 2) : String(message)
+  }
+  logHistory = [...logHistory.slice(-49), logEntry] // Son 50 log tut
+}
+
 const debugLog = (...args) => {
+  const message = args.join(' ')
   if (DEBUG) {
     console.log('[DEBUG]', new Date().toISOString(), ...args)
+    addToLogHistory('DEBUG', message)
   }
 }
 const infoLog = (...args) => {
+  const message = args.join(' ')
   console.log('[INFO]', new Date().toISOString(), ...args)
+  addToLogHistory('INFO', message)
 }
 const errorLog = (...args) => {
+  const message = args.join(' ')
   console.error('[ERROR]', new Date().toISOString(), ...args)
+  addToLogHistory('ERROR', message)
 }
 
 const app = express()
@@ -86,9 +105,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
 // Logging middleware
 app.use((req, res, next) => {
-  if (DEBUG) {
+  // Skip logging for admin/internal endpoints to prevent log spam
+  const skipPaths = ['/api/logs', '/api/config', '/api/health']
+  const shouldSkip = skipPaths.includes(req.path)
+
+  if (DEBUG && !shouldSkip) {
     debugLog(`${req.method} ${req.path}`, req.query, req.body ? Object.keys(req.body) : 'no-body')
-  } else {
+  } else if (!DEBUG && !shouldSkip) {
     // Only log important endpoints in production
     if (['/api/upload-parse', '/api/ai/questions', '/api/ai/score', '/api/ai/coverletter'].includes(req.path)) {
       infoLog(`${req.method} ${req.path}`)
@@ -138,7 +161,7 @@ async function callOpenAI(messages, maxTokens = 2000) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: CURRENT_AI_MODEL,
         messages,
         max_tokens: maxTokens,
         temperature: 0.7,
@@ -1108,6 +1131,104 @@ app.get('/api/health', (req, res) => {
   })
 })
 
+// === CONFIG ENDPOINTS ===
+// Debug mode toggle endpoint
+app.post('/api/config/debug', asyncHandler(async (req, res) => {
+  try {
+    const { debug } = req.body
+
+    if (typeof debug !== 'boolean') {
+      return res.status(400).json({
+        error: 'Invalid input',
+        message: 'debug must be a boolean value'
+      })
+    }
+
+    // Update global DEBUG variable
+    DEBUG = debug
+
+    infoLog('Debug mode updated via API:', DEBUG ? 'ENABLED' : 'DISABLED')
+
+    res.json({
+      success: true,
+      debug: DEBUG,
+      message: `Debug mode ${DEBUG ? 'enabled' : 'disabled'}`,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    errorLog('Failed to update debug mode:', error)
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to update debug mode'
+    })
+  }
+}))
+
+// AI model change endpoint
+app.post('/api/config/ai-model', asyncHandler(async (req, res) => {
+  try {
+    const { model } = req.body
+
+    const validModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo']
+    if (!validModels.includes(model)) {
+      return res.status(400).json({
+        error: 'Invalid model',
+        message: `Model must be one of: ${validModels.join(', ')}`,
+        validModels
+      })
+    }
+
+    // Update global AI model variable
+    CURRENT_AI_MODEL = model
+
+    infoLog('AI model updated via API:', CURRENT_AI_MODEL)
+
+    res.json({
+      success: true,
+      aiModel: CURRENT_AI_MODEL,
+      message: `AI model changed to ${CURRENT_AI_MODEL}`,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    errorLog('Failed to update AI model:', error)
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to update AI model'
+    })
+  }
+}))
+
+// Get current config endpoint
+app.get('/api/config', asyncHandler(async (req, res) => {
+  res.json({
+    debug: DEBUG,
+    aiModel: CURRENT_AI_MODEL,
+    nodeEnv: process.env.NODE_ENV,
+    version: '1.2508.091400',
+    timestamp: new Date().toISOString()
+  })
+}))
+
+// Get backend logs endpoint
+app.get('/api/logs', asyncHandler(async (req, res) => {
+  res.json({
+    logs: logHistory,
+    count: logHistory.length,
+    timestamp: new Date().toISOString()
+  })
+}))
+
+// Clear backend logs endpoint
+app.delete('/api/logs', asyncHandler(async (req, res) => {
+  logHistory = []
+  infoLog('Backend logs cleared via API')
+  res.json({
+    success: true,
+    message: 'Backend logs cleared',
+    timestamp: new Date().toISOString()
+  })
+}))
+
 // Catch-all for undefined routes
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -1150,7 +1271,7 @@ app.use((error, req, res, next) => {
   })
 })
 
-// Graceful shutdown
+
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully')
   process.exit(0)

@@ -1,0 +1,5 @@
+[INFO] 2025-08-09T10:11:37.996Z 🚀 Server running on port 4000
+[INFO] 2025-08-09T10:11:37.997Z 📍 Health check: http://localhost:4000/api/health
+[INFO] 2025-08-09T10:11:37.997Z 🤖 OpenAI Model: gpt-4o-mini
+[INFO] 2025-08-09T10:11:37.998Z 🌍 Environment: productioh
+[INFO] 2025-08-09T10:11:37.998Z 🔍 Debug mode: DISABLED

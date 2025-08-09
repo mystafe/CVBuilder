@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const Logo = ({ onBadgeClick, onLogoClick }) => {
+const Logo = ({ onBadgeClick, onLogoClick, superMode }) => {
   const { t } = useTranslation();
 
   return (
@@ -27,11 +27,16 @@ const Logo = ({ onBadgeClick, onLogoClick }) => {
       >
         CV Builder
       </span>
-      <button className="demo-badge rotating-badge" onClick={onBadgeClick}>
-        <span className="beta-text">{t('demoBadge')}</span> |
-        <span className="info-icon">ℹ︎</span>
-        <span className="badge-tooltip">{t('giveFeedback')}</span>
-      </button>
+      <div className="badge-container">
+        <button className="demo-badge rotating-badge" onClick={onBadgeClick}>
+          <span className="beta-text">{t('demoBadge')}</span> |
+          <span className="info-icon">ℹ︎</span>
+          <span className="badge-tooltip">{t('giveFeedback')}</span>
+        </button>
+        {superMode && (
+          <span className="admin-badge">Admin</span>
+        )}
+      </div>
     </div>
   );
 };

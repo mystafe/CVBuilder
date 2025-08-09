@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { set, get } from 'lodash';
 import { useTranslation } from 'react-i18next';
@@ -8,19 +8,8 @@ import ThemeSwitcher from './components/ThemeSwitcher';
 import Feedback from './components/Feedback';
 import './App.css';
 
-// --- Debug System ---
-const DEBUG = process.env.REACT_APP_DEBUG === 'true';
-const debugLog = (...args) => {
-  if (DEBUG) {
-    console.log('[DEBUG]', new Date().toISOString(), ...args);
-  }
-};
-const infoLog = (...args) => {
-  console.log('[INFO]', new Date().toISOString(), ...args);
-};
-const errorLog = (...args) => {
-  console.error('[ERROR]', new Date().toISOString(), ...args);
-};
+// --- Debug System Functions ---
+// DEBUG fonksiyonlarını component dışında tanımlayıp, parametreli hale getirelim
 
 // --- API Yapılandırması ---
 const getApiBaseUrl = () => {
@@ -40,12 +29,7 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Debug: API URL'yi ve kaynağını göster
-debugLog('API Configuration:');
-debugLog('- Environment REACT_APP_API_BASE:', process.env.REACT_APP_API_BASE);
-debugLog('- Window hostname:', window.location.hostname);
-debugLog('- Final API Base URL:', API_BASE_URL);
-debugLog('- Debug mode:', DEBUG ? 'ENABLED' : 'DISABLED');
+// API Debug info will be shown when component mounts
 
 // --- Statik Ikon ve Bileşenler ---
 const TypingIndicator = () => <div className="message ai typing"><span></span><span></span><span></span></div>;
@@ -54,6 +38,11 @@ const SendIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" heigh
 function App() {
   // --- State & Ref Yönetimi ---
   const { t, i18n } = useTranslation();
+
+  // Debug state'ini dinamik hale getirelim
+  const [frontendDebug, setFrontendDebug] = useState(() => {
+    return localStorage.getItem('frontendDebug') === 'true';
+  });
   const [cvLanguage, setCvLanguage] = useState('tr');
   const [step, setStep] = useState('upload'); // 'upload', 'scriptedQuestions', 'aiQuestions', 'review', 'final'
   const [cvData, setCvData] = useState(null);
@@ -75,6 +64,54 @@ function App() {
     const userPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
     return savedTheme || (userPrefersDark ? 'dark' : 'light');
   });
+  const [superMode, setSuperMode] = useState(() => {
+    return localStorage.getItem('superMode') === 'true';
+  });
+  const [clickCount, setClickCount] = useState(0);
+  const [showConfig, setShowConfig] = useState(false);
+  const [backendDebug, setBackendDebug] = useState(() => {
+    return localStorage.getItem('backendDebug') === 'true';
+  });
+  const [configAppLanguage, setConfigAppLanguage] = useState(i18n.language);
+  const [aiModel, setAiModel] = useState('gpt-4o-mini');
+  const [frontendLogs, setFrontendLogs] = useState([]);
+  const [backendLogs, setBackendLogs] = useState([]);
+
+  // DEBUG değişkenini component içinde tanımlayalım
+  const DEBUG = frontendDebug;
+
+  // Debug fonksiyonları - Log collector ile
+  const addToFrontendLogs = useCallback((level, message) => {
+    if (superMode) {
+      const logEntry = {
+        id: Date.now() + Math.random(),
+        timestamp: new Date().toISOString(),
+        level,
+        message: typeof message === 'object' ? JSON.stringify(message, null, 2) : String(message)
+      };
+      setFrontendLogs(prev => [...prev.slice(-49), logEntry]); // Son 50 log tut
+    }
+  }, [superMode]);
+
+  const debugLog = useCallback((...args) => {
+    const message = args.join(' ');
+    if (DEBUG) {
+      console.log('[DEBUG]', new Date().toISOString(), ...args);
+      addToFrontendLogs('DEBUG', message);
+    }
+  }, [DEBUG, addToFrontendLogs]);
+
+  const infoLog = useCallback((...args) => {
+    const message = args.join(' ');
+    console.log('[INFO]', new Date().toISOString(), ...args);
+    addToFrontendLogs('INFO', message);
+  }, [addToFrontendLogs]);
+
+  const errorLog = useCallback((...args) => {
+    const message = args.join(' ');
+    console.error('[ERROR]', new Date().toISOString(), ...args);
+    addToFrontendLogs('ERROR', message);
+  }, [addToFrontendLogs]);
 
   const fileInputRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -83,6 +120,41 @@ function App() {
   // --- Efektler ---
   useEffect(() => { document.body.className = theme; localStorage.setItem('theme', theme); }, [theme]);
   useEffect(() => { chatContainerRef.current?.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: 'smooth' }); }, [conversation]);
+  useEffect(() => { localStorage.setItem('superMode', superMode.toString()); }, [superMode]);
+  useEffect(() => { localStorage.setItem('frontendDebug', frontendDebug.toString()); }, [frontendDebug]);
+  useEffect(() => { localStorage.setItem('backendDebug', backendDebug.toString()); }, [backendDebug]);
+
+  // API Configuration Debug
+  useEffect(() => {
+    debugLog('API Configuration:');
+    debugLog('- Environment REACT_APP_API_BASE:', process.env.REACT_APP_API_BASE);
+    debugLog('- Window hostname:', window.location.hostname);
+    debugLog('- Final API Base URL:', API_BASE_URL);
+    debugLog('- Frontend Debug mode:', DEBUG ? 'ENABLED' : 'DISABLED');
+  }, [DEBUG, debugLog]);
+
+  // Backend config'i al ve initialize et
+  useEffect(() => {
+    const initializeBackendConfig = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/config`);
+        const { debug, aiModel } = response.data;
+
+        setBackendDebug(debug);
+        setAiModel(aiModel);
+
+        debugLog('Backend config initialized:', { debug, aiModel });
+      } catch (error) {
+        debugLog('Failed to fetch backend config:', error);
+        // Sessizce devam et, config alınamazsa varsayılan değerler kullanılır
+      }
+    };
+
+    // Sadece süper mod aktifken backend config'i al
+    if (superMode) {
+      initializeBackendConfig();
+    }
+  }, [superMode, debugLog]);
 
   // --- Yeni Akışa Uygun Fonksiyonlar ---
 
@@ -579,13 +651,301 @@ function App() {
     startScriptedQuestions(emptyCvData);
   };
 
+  // Süper Mod Kontrolü
+  const handleLogoClick = () => {
+    setClickCount(prev => {
+      const newCount = prev + 1;
+      debugLog('Logo click count:', newCount);
+
+      if (newCount === 5) {
+        const newSuperMode = !superMode;
+        setSuperMode(newSuperMode);
+        debugLog('Super mode toggled:', newSuperMode);
+        return 0; // Reset counter
+      }
+
+      // Reset counter after 3 seconds if not reaching 5
+      setTimeout(() => {
+        setClickCount(0);
+      }, 3000);
+
+      return newCount;
+    });
+
+    // Normal restart functionality (only if not in middle of super mode activation)
+    if (clickCount < 3) {
+      handleRestart();
+    }
+  };
+
+  // Config fonksiyonları
+  const handleAppLanguageChange = (newLang) => {
+    setConfigAppLanguage(newLang);
+    i18n.changeLanguage(newLang);
+    debugLog('App language changed to:', newLang);
+  };
+
+  const handleCvLanguageChange = (newLang) => {
+    setCvLanguage(newLang);
+    debugLog('CV language changed to:', newLang);
+  };
+
+  const handleFrontendDebugToggle = () => {
+    const newValue = !frontendDebug;
+    setFrontendDebug(newValue);
+    debugLog('Frontend debug mode:', newValue ? 'ENABLED' : 'DISABLED');
+  };
+
+  const handleBackendDebugToggle = async () => {
+    const newValue = !backendDebug;
+    setBackendDebug(newValue);
+    debugLog('Backend debug mode change requested:', newValue ? 'ENABLED' : 'DISABLED');
+
+    try {
+      // Backend'e debug mode değişikliğini bildir
+      await axios.post(`${API_BASE_URL}/api/config/debug`, {
+        debug: newValue
+      });
+      infoLog('Backend debug mode updated successfully');
+    } catch (err) {
+      errorLog('Failed to update backend debug mode:', err);
+      // Hata durumunda state'i geri al
+      setBackendDebug(!newValue);
+    }
+  };
+
+  const handleAiModelChange = async (newModel) => {
+    const oldModel = aiModel;
+    setAiModel(newModel);
+    debugLog('AI model change requested:', newModel);
+
+    try {
+      // Backend'e AI model değişikliğini bildir
+      await axios.post(`${API_BASE_URL}/api/config/ai-model`, {
+        model: newModel
+      });
+      infoLog('AI model updated successfully to:', newModel);
+    } catch (err) {
+      errorLog('Failed to update AI model:', err);
+      // Hata durumunda state'i geri al
+      setAiModel(oldModel);
+    }
+  };
+
+  // Backend log fetcher
+  const fetchBackendLogs = useCallback(async () => {
+    if (!superMode) return;
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/logs`);
+      setBackendLogs(response.data.logs || []);
+    } catch (error) {
+      debugLog('Failed to fetch backend logs:', error.message);
+    }
+  }, [superMode, debugLog]);
+
+  // Backend log polling
+  useEffect(() => {
+    if (superMode) {
+      const interval = setInterval(fetchBackendLogs, 2000); // Her 2 saniyede bir
+      fetchBackendLogs(); // İlk fetch
+      return () => clearInterval(interval);
+    }
+  }, [superMode, fetchBackendLogs]);
+
+  const LogViewer = () => {
+    if (!superMode) return null;
+
+    return (
+      <div className="log-viewer">
+        <div className="log-header">
+          <h4>📊 Live Logs</h4>
+          <div className="log-controls">
+            <button
+              onClick={() => setFrontendLogs([])}
+              className="clear-logs-btn"
+              title="Clear Frontend Logs"
+            >
+              🗑️ Clear Frontend
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  await axios.delete(`${API_BASE_URL}/api/logs`);
+                  setBackendLogs([]);
+                  infoLog('Backend logs cleared');
+                } catch (error) {
+                  errorLog('Failed to clear backend logs:', error.message);
+                }
+              }}
+              className="clear-logs-btn"
+              title="Clear Backend Logs"
+            >
+              🗑️ Clear Backend
+            </button>
+          </div>
+        </div>
+        <div className="log-panels">
+          <div className="log-panel frontend-logs">
+            <div className="log-panel-header">
+              <span className="log-title">🌐 Frontend</span>
+              <span className="log-count">{frontendLogs.length}</span>
+            </div>
+            <div className="log-content">
+              {frontendLogs.length === 0 ? (
+                <div className="no-logs">No frontend logs</div>
+              ) : (
+                frontendLogs.map(log => (
+                  <div key={log.id} className={`log-entry log-${log.level.toLowerCase()}`}>
+                    <span className="log-time">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                    <span className={`log-level level-${log.level.toLowerCase()}`}>{log.level}</span>
+                    <span className="log-message">{log.message}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="log-panel backend-logs">
+            <div className="log-panel-header">
+              <span className="log-title">⚙️ Backend</span>
+              <span className="log-count">{backendLogs.length}</span>
+            </div>
+            <div className="log-content">
+              {backendLogs.length === 0 ? (
+                <div className="no-logs">No backend logs</div>
+              ) : (
+                backendLogs.map((log, index) => (
+                  <div key={index} className={`log-entry log-${log.level?.toLowerCase() || 'info'}`}>
+                    <span className="log-time">{new Date(log.timestamp || Date.now()).toLocaleTimeString()}</span>
+                    <span className={`log-level level-${log.level?.toLowerCase() || 'info'}`}>{log.level || 'INFO'}</span>
+                    <span className="log-message">{log.message}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ConfigModal = () => (
+    <div className={`modal-overlay ${showConfig ? 'show' : ''}`} onClick={() => setShowConfig(false)}>
+      <div className="modal-content config-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>⚙️ Super Mode Settings</h3>
+          <button className="modal-close" onClick={() => setShowConfig(false)}>×</button>
+        </div>
+        <div className="modal-body">
+          {/* Language Settings */}
+          <div className="config-section">
+            <h4>🌍 Language Settings</h4>
+            <div className="config-item">
+              <label>App Language:</label>
+              <select
+                value={configAppLanguage}
+                onChange={(e) => handleAppLanguageChange(e.target.value)}
+                className="config-select"
+              >
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <div className="config-item">
+              <label>CV Language:</label>
+              <select
+                value={cvLanguage}
+                onChange={(e) => handleCvLanguageChange(e.target.value)}
+                className="config-select"
+              >
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Theme Settings */}
+          <div className="config-section">
+            <h4>🎨 Theme Settings</h4>
+            <div className="config-item">
+              <label>Theme Mode:</label>
+              <ThemeSwitcher theme={theme} setTheme={setTheme} />
+            </div>
+          </div>
+
+          {/* Debug Settings */}
+          <div className="config-section">
+            <h4>🐛 Debug Settings</h4>
+            <div className="config-item">
+              <label>Frontend Debug:</label>
+              <button
+                onClick={handleFrontendDebugToggle}
+                className={`toggle-button ${frontendDebug ? 'active' : 'inactive'}`}
+              >
+                {frontendDebug ? '✅ Enabled' : '❌ Disabled'}
+              </button>
+            </div>
+            <div className="config-item">
+              <label>Backend Debug:</label>
+              <button
+                onClick={handleBackendDebugToggle}
+                className={`toggle-button ${backendDebug ? 'active' : 'inactive'}`}
+              >
+                {backendDebug ? '✅ Enabled' : '❌ Disabled'}
+              </button>
+            </div>
+          </div>
+
+          {/* AI Settings */}
+          <div className="config-section">
+            <h4>🤖 AI Settings</h4>
+            <div className="config-item">
+              <label>AI Model:</label>
+              <select
+                value={aiModel}
+                onChange={(e) => handleAiModelChange(e.target.value)}
+                className="config-select"
+              >
+                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+              </select>
+            </div>
+          </div>
+
+          {/* System Info */}
+          <div className="config-section">
+            <h4>📊 System Info</h4>
+            <div className="config-item">
+              <label>API Base URL:</label>
+              <span className="code-text">{API_BASE_URL}</span>
+            </div>
+            <div className="config-item">
+              <label>Session ID:</label>
+              <span className="code-text">{sessionId || 'None'}</span>
+            </div>
+            <div className="config-item">
+              <label>Super Mode:</label>
+              <span className="status-badge active">🦸‍♂️ Active</span>
+            </div>
+            <div className="config-item">
+              <label>Frontend Version:</label>
+              <span className="status-badge">0.2508.091400</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="app-container">
       <Feedback open={feedbackOpen} setOpen={setFeedbackOpen} sessionId={sessionId} language={i18n.language} theme={theme} />
+      <ConfigModal />
       {step === 'upload' ? (
         <div className="upload-step fade-in">
-          <div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div>
-          <Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleRestart} />
+          <div className="settings-bar">{superMode ? <button className="config-button" onClick={() => setShowConfig(true)} title="Super Mode Settings">⚙️</button> : <ThemeSwitcher theme={theme} setTheme={setTheme} />}<LanguageSwitcher /></div>
+          <Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} />
           <h1><span>{t('mainTitle')}</span></h1>
           <p>{t('subtitle')}</p>
           <div className="language-controls"><div className="control-group"><label htmlFor="cv-lang">{t('cvLanguageLabel')}</label><select id="cv-lang" value={cvLanguage} onChange={e => setCvLanguage(e.target.value)} disabled={isLoading}><option value="tr">Türkçe</option><option value="en">English</option></select></div></div>
@@ -609,11 +969,12 @@ function App() {
             </div>
           )}
 
+          <LogViewer />
           <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       ) : (
         <div className="chat-step fade-in">
-          <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleRestart} /><div className="settings-bar"><ThemeSwitcher theme={theme} setTheme={setTheme} /><LanguageSwitcher /></div></div>
+          <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} /><div className="settings-bar">{superMode ? <button className="config-button" onClick={() => setShowConfig(true)} title="Super Mode Settings">⚙️</button> : <ThemeSwitcher theme={theme} setTheme={setTheme} />}<LanguageSwitcher /></div></div>
           <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
           <div className="chat-input-area">
             {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
@@ -652,6 +1013,7 @@ function App() {
             </div>
             {error && <p className="error-text">{error}</p>}
           </div>
+          <LogViewer />
           <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       )}
