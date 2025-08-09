@@ -3,6 +3,9 @@ const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
+const multer = require('multer')
+const pdfParse = require('pdf-parse')
+const mammoth = require('mammoth')
 const { z } = require('zod')
 
 const app = express()
@@ -47,6 +50,22 @@ const limiter = rateLimit({
 })
 app.use(limiter)
 
+// Multer setup for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain']
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Invalid file type. Only PDF, DOCX, DOC, and TXT files are allowed.'), false)
+    }
+  }
+})
+
 // Body parsing
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
@@ -64,8 +83,11 @@ const parseSchema = z.object({
 })
 
 const questionsSchema = z.object({
-  cv: z.object({}),
-  count: z.number().int().min(1).max(10)
+  cvData: z.any(), // Accept any object structure for CV data
+  appLanguage: z.string().optional(),
+  askedQuestions: z.array(z.any()).optional(),
+  maxQuestions: z.number().int().min(1).max(10).optional(),
+  sessionId: z.string().nullable().optional()
 })
 
 const improveSchema = z.object({
@@ -74,7 +96,8 @@ const improveSchema = z.object({
 })
 
 const scoreSchema = z.object({
-  cv: z.object({})
+  cvData: z.any(), // Accept any object structure for CV data
+  appLanguage: z.string().optional()
 })
 
 const coverLetterSchema = z.object({
@@ -120,7 +143,165 @@ function asyncHandler(fn) {
   }
 }
 
+// File extraction utility
+async function extractTextFromFile(file) {
+  try {
+    const { buffer, mimetype, originalname } = file
+    console.log(`Extracting text from file: ${originalname}, type: ${mimetype}`)
+
+    switch (mimetype) {
+      case 'application/pdf':
+        const pdfData = await pdfParse(buffer)
+        console.log(`PDF text extracted: ${pdfData.text.length} characters`)
+        return pdfData.text
+
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        const docxResult = await mammoth.extractRawText({ buffer })
+        console.log(`DOCX text extracted: ${docxResult.value.length} characters`)
+        return docxResult.value
+
+      case 'application/msword':
+        // For older .doc files, mammoth can still try
+        const docResult = await mammoth.extractRawText({ buffer })
+        console.log(`DOC text extracted: ${docResult.value.length} characters`)
+        return docResult.value
+
+      case 'text/plain':
+        const txtContent = buffer.toString('utf8')
+        console.log(`TXT text extracted: ${txtContent.length} characters`)
+        return txtContent
+
+      default:
+        throw new Error(`Unsupported file type: ${mimetype}`)
+    }
+  } catch (error) {
+    console.error('Error extracting text from file:', error)
+    throw new Error(`Failed to extract text from file: ${error.message}`)
+  }
+}
+
 // API Routes
+
+// File upload and parse endpoint 
+app.post('/api/upload-parse', upload.single('cv'), asyncHandler(async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No file uploaded',
+        message: 'Please upload a CV file (PDF, DOCX, DOC, or TXT)'
+      })
+    }
+
+    console.log(`File upload received: ${req.file.originalname}, size: ${req.file.size} bytes`)
+
+    // Extract text from the uploaded file
+    const extractedText = await extractTextFromFile(req.file)
+
+    if (!extractedText || extractedText.trim() === '') {
+      return res.status(400).json({
+        error: 'No text extracted',
+        message: 'Could not extract readable text from the uploaded file'
+      })
+    }
+
+    console.log(`Text extracted successfully: ${extractedText.length} characters`)
+
+    // Parse the extracted text using AI
+    const systemPrompt = `You are a CV/Resume parser. Extract information from the provided CV text and return it in the specified JSON format. Pay special attention to Turkish characters and names.
+
+Return a JSON object with these exact fields:
+{
+  "personalInfo": {
+    "name": "Full name from CV",
+    "email": "Email address", 
+    "phone": "Phone number",
+    "location": "City/Country"
+  },
+  "summary": "Professional summary or objective",
+  "experience": [
+    {
+      "position": "Job title",
+      "company": "Company name", 
+      "location": "Work location",
+      "startDate": "YYYY-MM or YYYY",
+      "endDate": "YYYY-MM or YYYY or 'Present'",
+      "description": "Job responsibilities and achievements"
+    }
+  ],
+  "education": [
+    {
+      "degree": "Degree type and field",
+      "institution": "School/University name",
+      "location": "School location", 
+      "startDate": "YYYY-MM or YYYY",
+      "endDate": "YYYY-MM or YYYY",
+      "gpa": "GPA if mentioned"
+    }
+  ],
+  "skills": ["skill1", "skill2", "skill3"],
+  "projects": [
+    {
+      "name": "Project name",
+      "description": "Project description",
+      "technologies": ["tech1", "tech2"],
+      "url": "Project URL if available"
+    }
+  ],
+  "links": [
+    {
+      "type": "LinkedIn/GitHub/Portfolio/etc",
+      "url": "URL"
+    }
+  ],
+  "certificates": [
+    {
+      "name": "Certificate name",
+      "issuer": "Issuing organization",
+      "date": "YYYY-MM or YYYY",
+      "url": "Certificate URL if available"
+    }
+  ],
+  "languages": [
+    {
+      "language": "Language name",
+      "proficiency": "Native/Fluent/Advanced/Intermediate/Basic"
+    }
+  ],
+  "references": [
+    {
+      "name": "Reference name",
+      "position": "Their position",
+      "company": "Their company",
+      "email": "Contact email",
+      "phone": "Contact phone"
+    }
+  ]
+}
+
+IMPORTANT: 
+- Extract information accurately, especially names with Turkish characters (ğ, ü, ş, ı, ö, ç)
+- If a field is not found, use empty string "" for strings and empty array [] for arrays
+- Return only valid JSON, no additional text or formatting`
+
+    const userPrompt = `Please parse this CV and extract the information:\n\n${extractedText}`
+
+    const result = await callOpenAI([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ], 3000)
+
+    const parsedData = JSON.parse(result)
+    console.log('CV parsed successfully from uploaded file')
+    console.log('Extracted name:', parsedData.personalInfo?.name)
+    res.json(parsedData)
+  } catch (error) {
+    console.error('File upload and parse error:', error)
+    res.status(500).json({
+      error: 'Failed to process uploaded file',
+      message: error.message
+    })
+  }
+}))
 
 // Extract raw text endpoint (alias for parse)
 app.post('/api/extract-raw', asyncHandler(async (req, res) => {
@@ -406,42 +587,70 @@ Return ONLY the JSON object following the exact structure specified in the syste
 
 // Generate questions endpoint
 app.post('/api/ai/questions', asyncHandler(async (req, res) => {
+  console.log('Questions endpoint - Request body:', JSON.stringify(req.body, null, 2))
+
   const validation = questionsSchema.safeParse(req.body)
   if (!validation.success) {
+    console.log('Questions endpoint - Validation failed:', validation.error.errors)
     return res.status(400).json({
       error: 'Invalid input',
       details: validation.error.errors
     })
   }
 
-  const { cv, count } = validation.data
+  const { cvData, maxQuestions = 4, appLanguage = 'en' } = validation.data
+  console.log('Questions endpoint - Extracted cvData:', cvData ? 'EXISTS' : 'NULL')
+  console.log('Questions endpoint - cvData keys:', cvData ? Object.keys(cvData) : 'N/A')
+  console.log('Questions endpoint - App Language:', appLanguage)
 
-  const systemPrompt = `You are a professional career counselor. Generate insightful questions to help improve a CV/resume.
+  // Check if cvData is null or empty
+  if (!cvData || typeof cvData !== 'object' || cvData === null || Object.keys(cvData).length === 0) {
+    console.log('Questions endpoint - CV data check failed')
+    console.log('Questions endpoint - cvData type:', typeof cvData)
+    console.log('Questions endpoint - cvData value:', cvData)
+    return res.status(400).json({
+      error: 'CV data is required',
+      message: 'Please provide valid CV data for question generation'
+    })
+  }
 
-Based on the provided CV, create questions that will help gather additional information to enhance the profile. Focus on:
-- Missing achievements and quantifiable results
-- Skills demonstration and impact
-- Leadership and collaboration experiences
-- Professional growth and learning
-- Industry-specific accomplishments
+  const systemPrompt = `You are an expert CV optimization consultant. Your mission: identify the HIGHEST-IMPACT gaps in this CV and generate strategic questions to fill them.
 
-Return exactly ${count} questions as JSON in this format:
+${appLanguage === 'tr' ?
+      'IMPORTANT: Respond in Turkish (Türkçe). Generate all questions and text in Turkish language.' :
+      'IMPORTANT: Respond in English.'}
+
+ANALYSIS PRIORITY (focus on these KEY areas):
+1. QUANTIFIABLE ACHIEVEMENTS - Missing numbers, metrics, business impact
+2. TECHNICAL PROFICIENCY - Skill levels, certifications, tools mastery
+3. LEADERSHIP IMPACT - Team management, project leadership, decision-making
+4. CAREER PROGRESSION - Growth trajectory, increasing responsibilities
+5. INDUSTRY RELEVANCE - Sector-specific keywords, domain expertise
+
+QUESTION STRATEGY:
+- Ask for SPECIFIC metrics (%, $, numbers, timeframes)  
+- Target gaps that recruiters notice immediately
+- Focus on areas where candidates typically undervalue themselves
+- Prioritize recent/relevant experience over old positions
+- Avoid generic questions - be laser-focused on their profile
+
+JSON FORMAT (exactly ${maxQuestions} questions):
 {
   "questions": [
     {
-      "id": "q1",
-      "question": "What was your biggest achievement in your current/most recent role?",
-      "category": "achievements",
-      "hint": "Focus on quantifiable results and business impact"
+      "id": "q1", 
+      "question": "Specific, actionable question targeting a critical gap",
+      "category": "achievements|technical|leadership|growth|industry",
+      "hint": "Clear guidance on what type of answer will maximize CV impact"
     }
   ]
 }
 
-Make questions specific to their background and industry when possible.`
+CRITICAL: Base questions on actual CV content analysis, not generic templates.`
 
-  const userPrompt = `Based on this CV, generate ${count} targeted questions to help improve their profile:
+  const userPrompt = `Based on this CV, generate ${maxQuestions} targeted questions to help improve their profile:
 
-CV Data: ${JSON.stringify(cv, null, 2)}
+CV Data: ${JSON.stringify(cvData, null, 2)}
 
 Generate questions that will help uncover missing achievements, quantify impact, and highlight their unique value proposition.`
 
@@ -452,7 +661,7 @@ Generate questions that will help uncover missing achievements, quantify impact,
     ], 1500)
 
     const questionsData = JSON.parse(result)
-    console.log(`Generated ${count} questions successfully`)
+    console.log(`Generated ${maxQuestions} questions successfully - CODE VERSION: 2025-08-09-FIXED`)
     res.json(questionsData)
   } catch (error) {
     console.error('Generate questions error:', error)
@@ -552,41 +761,62 @@ app.post('/api/ai/score', asyncHandler(async (req, res) => {
     })
   }
 
-  const { cv } = validation.data
+  const { cvData, appLanguage = 'en' } = validation.data
 
-  const systemPrompt = `You are a professional CV evaluation expert. Analyze and score a CV comprehensively.
+  // Check if cvData is null or empty
+  if (!cvData || typeof cvData !== 'object' || cvData === null || Object.keys(cvData).length === 0) {
+    console.log('Score endpoint - CV data check failed')
+    console.log('Score endpoint - cvData type:', typeof cvData)
+    console.log('Score endpoint - cvData value:', cvData)
+    return res.status(400).json({
+      error: 'CV data is required',
+      message: 'Please provide valid CV data for scoring'
+    })
+  }
 
-SCORING CRITERIA:
-- Content completeness and relevance (0-100)
-- Professional presentation and formatting (0-100) 
-- Impact demonstration with quantified results (0-100)
-- Skills clarity and market relevance (0-100)
-- Career progression and growth (0-100)
-- ATS optimization and keyword usage (0-100)
+  const systemPrompt = `You are a senior recruiting manager and CV optimization expert. Evaluate this CV as if you're reviewing it for a competitive role.
 
-ANALYSIS REQUIREMENTS:
-1. Calculate overall score (0-100) as weighted average
-2. Identify 3-5 key strengths 
-3. Identify 3-5 key weaknesses
-4. Provide 3-5 specific, actionable suggestions
+${appLanguage === 'tr' ?
+      'IMPORTANT: Respond in Turkish (Türkçe). All feedback should be in Turkish language.' :
+      'IMPORTANT: Respond in English.'}
 
-RESPONSE FORMAT - Return ONLY this JSON structure:
+EVALUATION CRITERIA (weighted scoring):
+1. IMPACT & ACHIEVEMENTS (30%) - Quantified results, business impact, measurable outcomes
+2. TECHNICAL COMPETENCY (25%) - Skill relevance, proficiency levels, certifications
+3. CAREER PROGRESSION (20%) - Growth trajectory, increasing responsibilities, leadership
+4. MARKET RELEVANCE (15%) - Industry keywords, current technologies, sector alignment  
+5. PRESENTATION QUALITY (10%) - Structure, clarity, professional formatting
+
+SCORING APPROACH:
+- 90-100: Outstanding candidate, immediate interview
+- 80-89: Strong candidate, high potential
+- 70-79: Good candidate, some improvements needed
+- 60-69: Adequate candidate, significant gaps to address
+- Below 60: Requires major restructuring
+
+ANALYSIS FOCUS:
+- What would make recruiters say YES immediately?
+- What critical gaps might cause rejection?
+- How can this candidate stand out from competition?
+- What specific numbers/metrics are missing?
+
+JSON RESPONSE FORMAT ONLY:
 {
-  "score": 85,
+  "overall": 85,
   "strengths": [
-    "Strong quantified achievements in experience section",
-    "Comprehensive technical skills coverage",
-    "Clear career progression trajectory"
+    "Strong technical skill diversity with modern frameworks",
+    "Multiple project examples demonstrating practical application",
+    "Good educational foundation in relevant field"
   ],
   "weaknesses": [
-    "Missing professional summary",
-    "Some experience bullets lack impact metrics",
-    "Limited industry-specific keywords"
+    "Lacks quantified achievements and business impact metrics",
+    "Missing specific project outcomes and results",
+    "No leadership or collaboration examples provided"
   ],
   "suggestions": [
-    "Add a compelling professional summary highlighting key value proposition",
-    "Quantify all achievements with specific numbers, percentages, or dollar amounts",
-    "Include more industry-relevant technical keywords for ATS optimization"
+    "Add specific metrics: 'Improved performance by X%' or 'Managed projects worth $X'",
+    "Include team size managed or collaboration scope in project descriptions",
+    "Highlight any awards, recognitions, or standout accomplishments"
   ]
 }
 
@@ -595,7 +825,7 @@ Return ONLY valid JSON with no additional text or explanations.`
   const userPrompt = `Analyze this CV and provide a comprehensive evaluation:
 
 CV DATA:
-${JSON.stringify(cv, null, 2)}
+${JSON.stringify(cvData, null, 2)}
 
 Return ONLY the JSON response with score, strengths, weaknesses, and suggestions as specified in the system prompt.`
 
@@ -677,6 +907,28 @@ Return in this JSON format:
     console.error('Generate cover letter error:', error)
     res.status(500).json({
       error: 'Failed to generate cover letter',
+      message: error.message
+    })
+  }
+}))
+
+// CV PDF creation endpoint (temporary mock)
+app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
+  try {
+    // For now, return a simple PDF response
+    // TODO: Implement actual PDF generation
+    console.log('PDF generation requested - returning mock PDF')
+
+    // Create a simple PDF buffer (mock)
+    const mockPdf = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n182\n%%EOF')
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', 'attachment; filename="cv.pdf"')
+    res.send(mockPdf)
+  } catch (error) {
+    console.error('PDF generation error:', error)
+    res.status(500).json({
+      error: 'Failed to generate PDF',
       message: error.message
     })
   }

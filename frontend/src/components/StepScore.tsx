@@ -30,22 +30,24 @@ const CircularProgress: React.FC<{
   strokeWidth?: number
   animationDelay?: number
 }> = ({ score, size = 200, strokeWidth = 8, animationDelay = 0 }) => {
-  const radius = (size - strokeWidth) / 2
+  // Ensure size is a valid number
+  const validSize = typeof size === "number" && size > 0 ? size : 200
+  const radius = (validSize - strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
   const offset = circumference - (score / 100) * circumference
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative" style={{ width: validSize, height: validSize }}>
       <svg
         className="transform -rotate-90"
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
+        width={validSize}
+        height={validSize}
+        viewBox={`0 0 ${validSize} ${validSize}`}
       >
         {/* Background circle */}
         <circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={validSize / 2}
+          cy={validSize / 2}
           r={radius}
           stroke="currentColor"
           strokeWidth={strokeWidth}
@@ -54,8 +56,8 @@ const CircularProgress: React.FC<{
         />
         {/* Progress circle */}
         <motion.circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={validSize / 2}
+          cy={validSize / 2}
           r={radius}
           stroke="url(#scoreGradient)"
           strokeWidth={strokeWidth}

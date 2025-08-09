@@ -34,7 +34,7 @@ console.log('- Final API Base URL:', API_BASE_URL);
 
 // --- Statik Ikon ve Bileşenler ---
 const TypingIndicator = () => <div className="message ai typing"><span></span><span></span><span></span></div>;
-const SendIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <line x1="22" y1="2" x2="11" y2="13"></line> <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon> </svg>);
+const SendIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <line x1="22" y1="2" x2="11" y2="13"></line> <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon> </svg>);
 
 function App() {
   // --- State & Ref Yönetimi ---
@@ -75,7 +75,14 @@ function App() {
     const queue = [];
     const tApp = i18n.getFixedT(i18n.language);
 
+    // Debug: CV data'sını console'da göster
+    console.log('startScriptedQuestions called with data:', data);
+    console.log('CV Parsing Result:', data);
+    console.log('PersonalInfo:', data?.personalInfo);
+    console.log('Name field:', get(data, 'personalInfo.name'));
+
     const hasName = get(data, 'personalInfo.name') || get(data, 'personalInfo.firstName');
+    console.log('hasName:', hasName);
     if (!hasName) { queue.push({ key: 'askName', path: 'personalInfo.name' }); }
     if (!get(data, 'personalInfo.email')) { queue.push({ key: 'askEmail', path: 'personalInfo.email' }); }
     if (!get(data, 'personalInfo.location')) { queue.push({ key: 'askLocation', path: 'personalInfo.location' }); }
@@ -88,9 +95,14 @@ function App() {
     setStep('scriptedQuestions');
     setHasGeneratedPdf(false);
 
+    console.log('Queue length:', queue.length);
+    console.log('Queue items:', queue);
+
     if (queue.length > 0) {
+      console.log('Queue has items, showing first question');
       setConversation([{ type: 'ai', text: tApp(queue[0].key) }]);
     } else {
+      console.log('Queue is empty, calling fetchAiQuestions with data:', data);
       fetchAiQuestions(data); // Script'li soruya gerek yoksa direkt Adım 2'ye geç
     }
   };
@@ -106,14 +118,25 @@ function App() {
     formData.append('cv', file);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/extract-raw`, formData, {
+      const res = await axios.post(`${API_BASE_URL}/api/upload-parse`, formData, {
         timeout: 120000,
         headers: {
           'Content-Type': 'multipart/form-data',
         }
       });
-      setSessionId(res.data.sessionId);
-      startScriptedQuestions(res.data.parsedData);
+
+      // Debug: Backend response'u kontrol et
+      console.log('Backend Response:', res);
+      console.log('Response Data:', res.data);
+
+      // Backend direkt CV data'sını döndürüyor, sessionId yok
+      // Kendimiz bir sessionId oluşturalım
+      const sessionId = Date.now().toString();
+      console.log('Generated Session ID:', sessionId);
+      console.log('CV Data:', res.data);
+
+      setSessionId(sessionId);
+      startScriptedQuestions(res.data);
     } catch (err) {
       console.error('API request error:', err);
 
@@ -143,14 +166,23 @@ function App() {
   const fetchAiQuestions = async (currentData, maxQuestions = 4) => {
     setLoadingMessage("AI CV'nizi Analiz Ediyor...");
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/generate-ai-questions`, {
+      console.log('fetchAiQuestions called with data:', currentData);
+      if (!currentData || Object.keys(currentData).length === 0) {
+        console.log('fetchAiQuestions: Invalid data, skipping...');
+        return;
+      }
+      const res = await axios.post(`${API_BASE_URL}/api/ai/questions`, {
         cvData: currentData,
         appLanguage: i18n.language,
         askedQuestions: askedAiQuestions,
         maxQuestions,
         sessionId
       });
-      const aiQuestions = (res.data.questions || []).map(q => ({ key: q, isAi: true }));
+
+      console.log('AI Questions Response:', res.data);
+      console.log('AI Questions Array:', res.data.questions);
+
+      const aiQuestions = (res.data.questions || []).map(q => ({ key: q.question, isAi: true, id: q.id, category: q.category, hint: q.hint }));
 
       if (aiQuestions.length > 0) {
         setQuestionQueue(aiQuestions);
@@ -254,9 +286,17 @@ function App() {
 
   const scoreCv = async (data) => {
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/score-cv`, { cvData: data, appLanguage: i18n.language });
-      setCvScore(res.data.score);
-      setConversation(prev => [...prev, { type: 'ai', text: `${t('cvScore', { score: res.data.score })} ${res.data.comment}` }]);
+      console.log('scoreCv called with data:', data);
+      if (!data || Object.keys(data).length === 0) {
+        console.log('scoreCv: Invalid data, skipping...');
+        return;
+      }
+      const res = await axios.post(`${API_BASE_URL}/api/ai/score`, { cvData: data, appLanguage: i18n.language });
+      console.log('Score Response:', res.data);
+      setCvScore(res.data.overall || res.data.score);
+      // Backend returns {overall, strengths, weaknesses, suggestions} format
+      const comment = res.data.strengths ? res.data.strengths.slice(0, 2).join(', ') : 'CV analizi tamamlandı.';
+      setConversation(prev => [...prev, { type: 'ai', text: `${t('cvScore', { score: res.data.overall || res.data.score })} ${comment}` }]);
     } catch (err) {
       // ignore scoring errors
     }
@@ -288,7 +328,7 @@ function App() {
 
       // ADIM 2: Arka planda ön yazı metnini iste
       try {
-        const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/generate-cover-letter`, {
+        const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/ai/coverletter`, {
           cvData: preparedData,
           appLanguage: cvLanguage,
           sessionId
@@ -308,7 +348,7 @@ function App() {
         // ADIM 4: Ön yazı PDF'ini yeni sekmede aç ve indirme bağlantısını hazırla
         if (coverLetterText) {
           try {
-            const pdfRes = await axios.post(`${API_BASE_URL}/api/generate-cover-letter-pdf`, {
+            const pdfRes = await axios.post(`${API_BASE_URL}/api/ai/coverletter`, {
               cvData: preparedData,
               appLanguage: cvLanguage,
               sessionId
