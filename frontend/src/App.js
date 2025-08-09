@@ -9,7 +9,7 @@ import Feedback from './components/Feedback';
 import './App.css';
 
 // --- API Yapılandırması ---
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://cvbuilder-451v.onrender.com';
 
 // --- Statik Ikon ve Bileşenler ---
 const TypingIndicator = () => <div className="message ai typing"><span></span><span></span><span></span></div>;
@@ -74,16 +74,46 @@ function App() {
     }
   };
 
-  const handleInitialParse = async () => {
+  const handleInitialParse = async (retryCount = 0) => {
     const file = fileInputRef.current?.files?.[0]; if (!file) return;
-    setLoadingMessage(t('uploadingButtonLabel')); setError('');
-    const formData = new FormData(); formData.append('cv', file);
+    const maxRetries = 2;
+
+    setLoadingMessage(retryCount > 0 ? `${t('uploadingButtonLabel')} (Retry ${retryCount + 1})` : t('uploadingButtonLabel'));
+    setError('');
+
+    const formData = new FormData();
+    formData.append('cv', file);
+
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/extract-raw`, formData, { timeout: 120000 });
+      const res = await axios.post(`${API_BASE_URL}/api/extract-raw`, formData, {
+        timeout: 120000,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
       setSessionId(res.data.sessionId);
       startScriptedQuestions(res.data.parsedData);
     } catch (err) {
-      setError(err.response?.data?.message || t('errorOccurred'));
+      console.error('API request error:', err);
+
+      // Handle QUIC protocol errors with retry
+      if (err.message && err.message.includes('ERR_QUIC_PROTOCOL_ERROR') && retryCount < maxRetries) {
+        console.warn(`QUIC protocol error detected, retrying in 1 second... (${retryCount + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return handleInitialParse(retryCount + 1);
+      }
+
+      // Show user-friendly error messages
+      let errorMessage = t('errorOccurred');
+      if (err.message && err.message.includes('ERR_QUIC_PROTOCOL_ERROR')) {
+        errorMessage = 'Network protocol error. Please try again in a moment.';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Request timeout. Please try again.';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoadingMessage('');
     }
@@ -237,7 +267,7 @@ function App() {
 
       // ADIM 2: Arka planda ön yazı metnini iste
       try {
-          const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/generate-cover-letter`, {
+        const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/generate-cover-letter`, {
           cvData: preparedData,
           appLanguage: cvLanguage,
           sessionId
