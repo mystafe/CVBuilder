@@ -11,6 +11,7 @@ function LanguageSwitcher() {
         onClick={() => changeLanguage('tr')}
         className={i18n.language === 'tr' ? 'active' : ''}
         aria-label="Türkçe"
+        title="Türkçe"
       >
         🇹🇷
       </button>
@@ -18,6 +19,7 @@ function LanguageSwitcher() {
         onClick={() => changeLanguage('en')}
         className={i18n.language.startsWith('en') ? 'active' : ''}
         aria-label="English"
+        title="English"
       >
         🇺🇸
       </button>

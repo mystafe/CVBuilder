@@ -43,5 +43,6 @@
   "askSkills": "List your skills separated by commas (e.g. JavaScript, React, SQL)",
   "askLanguages": "List the languages you know separated by commas (e.g. English Advanced, German Intermediate)",
   "askExperienceLocation": "Can you complete the city/country information for your work experiences? (comma separated: Istanbul, Ankara, etc.)",
-  "askCurrentJob": "When did you leave your latest job?"
+  "askCurrentJob": "When did you leave your latest job?",
+  "emailValidationError": "Please enter a valid email address (e.g. name@domain.com)"
 }

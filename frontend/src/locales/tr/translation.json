@@ -43,5 +43,6 @@
   "askSkills": "Sahip olduğunuz yetenekleri virgülle ayırarak yazın (örn: JavaScript, React, SQL)",
   "askLanguages": "Bildiğiniz dilleri virgülle ayırarak yazın (örn: İngilizce İleri, Almanca Orta)",
   "askExperienceLocation": "Deneyimlerinizde çalıştığınız şehir/ülke bilgilerini tamamlar mısınız? (virgülle ayırarak: İstanbul, Ankara, vs.)",
-  "askCurrentJob": "Son işinizden ne zaman ayrıldınız?"
+  "askCurrentJob": "Son işinizden ne zaman ayrıldınız?",
+  "emailValidationError": "Lütfen geçerli bir e-posta adresi girin (örn: isim@domain.com)"
 }

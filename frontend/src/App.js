@@ -60,19 +60,37 @@ function App() {
   const [showCoverLetterForm, setShowCoverLetterForm] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [positionName, setPositionName] = useState('');
-  const [adminStats, setAdminStats] = useState(null);
+  // Admin stats removed for now
   const [showLogViewer, setShowLogViewer] = useState(() => {
     const saved = localStorage.getItem('showLogViewer');
     return saved ? JSON.parse(saved) : true;
   });
   const [chatBackground, setChatBackground] = useState(() => {
     const saved = localStorage.getItem('chatBackground');
-    return saved || 'default';
+    return saved || 'pattern2';
+  });
+  const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
+  const [backgroundCategory, setBackgroundCategory] = useState(() => {
+    const saved = localStorage.getItem('backgroundCategory');
+    return saved || 'patterns';
+  });
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+  const [languageCategory, setLanguageCategory] = useState(() => {
+    const saved = localStorage.getItem('languageCategory');
+    return saved || 'app';
+  });
+  const [showAiModelSelector, setShowAiModelSelector] = useState(false);
+  const [aiModelCategory, setAiModelCategory] = useState(() => {
+    const saved = localStorage.getItem('aiModelCategory');
+    return saved || 'gpt';
   });
   const [customBackgroundImage, setCustomBackgroundImage] = useState(() => {
     const saved = localStorage.getItem('customBackgroundImage');
     return saved || '';
   });
+  const [showCustomImageModal, setShowCustomImageModal] = useState(false);
+  const [customImageUrl, setCustomImageUrl] = useState('');
+  const [uploadError, setUploadError] = useState('');
   const [cvScore, setCvScore] = useState(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
@@ -89,12 +107,14 @@ function App() {
     return localStorage.getItem('backendDebug') === 'true';
   });
   const [configAppLanguage, setConfigAppLanguage] = useState(i18n.language);
-  const [aiModel, setAiModel] = useState('gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState(() => {
+    const saved = localStorage.getItem('selectedModel');
+    return saved || 'gpt-4o-mini';
+  });
   const [frontendLogs, setFrontendLogs] = useState([]);
   const [backendLogs, setBackendLogs] = useState([]);
   const [logViewMode, setLogViewMode] = useState('tail'); // 'tail' or 'scroll'
-  const [logExpanded, setLogExpanded] = useState(false);
-  const [logFilter, setLogFilter] = useState('all'); // 'all', 'frontend', 'backend'
+  const [activeLogTab, setActiveLogTab] = useState('frontend'); // 'all', 'frontend', 'backend'
 
   // DEBUG değişkenini component içinde tanımlayalım
   const DEBUG = frontendDebug;
@@ -160,7 +180,7 @@ function App() {
         const { debug, aiModel } = response.data;
 
         setBackendDebug(debug);
-        setAiModel(aiModel);
+        setSelectedModel(aiModel);
 
         debugLog('Backend config initialized:', { debug, aiModel });
       } catch (error) {
@@ -186,29 +206,85 @@ function App() {
   }, [chatBackground]);
 
   useEffect(() => {
+    localStorage.setItem('backgroundCategory', backgroundCategory);
+  }, [backgroundCategory]);
+
+  useEffect(() => {
+    localStorage.setItem('languageCategory', languageCategory);
+  }, [languageCategory]);
+
+  useEffect(() => {
+    localStorage.setItem('aiModelCategory', aiModelCategory);
+  }, [aiModelCategory]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedModel', selectedModel);
+  }, [selectedModel]);
+
+  useEffect(() => {
     localStorage.setItem('customBackgroundImage', customBackgroundImage);
   }, [customBackgroundImage]);
 
+  // Custom background image is read-only now
+
   // Fetch admin stats only when config opens - moved to ConfigModal button click
 
-  // Background style helper
-  const getChatBackgroundStyle = () => {
-    debugLog('Background style requested:', chatBackground, customBackgroundImage);
+  // Enhanced background style helper with intensity levels
+  const getChatBackgroundStyle = useCallback((intensity = 'normal') => {
+    debugLog('Background style requested:', chatBackground, customBackgroundImage, intensity);
+
+    const intensityMultiplier = {
+      transient: 0.3,   // For outside areas
+      light: 0.6,       // For chat window
+      normal: 1.0,      // Default
+      header: 1.4       // For header/input (darker)
+    };
+
+    const mult = intensityMultiplier[intensity] || 1.0;
+
     switch (chatBackground) {
       case 'gradient1':
-        return 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.05) 100%)';
+        return `linear-gradient(135deg, rgba(59, 130, 246, ${0.1 * mult}) 0%, rgba(147, 197, 253, ${0.05 * mult}) 100%)`;
       case 'gradient2':
-        return 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(196, 181, 253, 0.05) 100%)';
+        return `linear-gradient(135deg, rgba(139, 92, 246, ${0.1 * mult}) 0%, rgba(196, 181, 253, ${0.05 * mult}) 100%)`;
       case 'pattern1':
-        return 'radial-gradient(circle at 2px 2px, rgba(59, 130, 246, 0.1) 1px, transparent 0)';
+        return `radial-gradient(circle at 2px 2px, rgba(59, 130, 246, ${0.1 * mult}) 1px, transparent 0)`;
       case 'pattern2':
-        return 'linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px)';
+        return `linear-gradient(rgba(59, 130, 246, ${0.05 * mult}) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, ${0.05 * mult}) 1px, transparent 1px)`;
+      case 'nature1':
+        return `linear-gradient(135deg, rgba(34, 197, 94, ${0.1 * mult}) 0%, rgba(134, 239, 172, ${0.05 * mult}) 100%)`;
+      case 'nature2':
+        return `linear-gradient(135deg, rgba(16, 185, 129, ${0.1 * mult}) 0%, rgba(110, 231, 183, ${0.05 * mult}) 100%)`;
+      case 'warm1':
+        return `linear-gradient(135deg, rgba(251, 146, 60, ${0.1 * mult}) 0%, rgba(254, 215, 170, ${0.05 * mult}) 100%)`;
+      case 'warm2':
+        return `linear-gradient(135deg, rgba(239, 68, 68, ${0.1 * mult}) 0%, rgba(252, 165, 165, ${0.05 * mult}) 100%)`;
       case 'custom':
         return customBackgroundImage ? `url(${customBackgroundImage})` : 'none';
       default:
         return 'none';
     }
-  };
+  }, [chatBackground, customBackgroundImage, debugLog]);
+
+  // Apply background CSS custom properties to the document
+  const applyChatBackgroundVars = useCallback(() => {
+    const headerBg = getChatBackgroundStyle('header');
+    const windowBg = getChatBackgroundStyle('light');
+    const globalBg = getChatBackgroundStyle('normal');
+    const bgSize = chatBackground.startsWith('pattern') ? '20px 20px' : 'cover';
+    const bgRepeat = chatBackground.startsWith('pattern') ? 'repeat' : 'no-repeat';
+
+    document.documentElement.style.setProperty('--chat-header-bg', headerBg);
+    document.documentElement.style.setProperty('--chat-window-bg', windowBg);
+    document.documentElement.style.setProperty('--global-bg', globalBg);
+    document.documentElement.style.setProperty('--chat-bg-size', bgSize);
+    document.documentElement.style.setProperty('--chat-bg-repeat', bgRepeat);
+  }, [chatBackground, getChatBackgroundStyle]);
+
+  // Apply background variables when chatBackground changes
+  useEffect(() => {
+    applyChatBackgroundVars();
+  }, [applyChatBackgroundVars]);
 
   // --- Validation Functions ---
   const validateEmail = (email) => {
@@ -856,23 +932,7 @@ function App() {
     }
   };
 
-  const handleAiModelChange = async (newModel) => {
-    const oldModel = aiModel;
-    setAiModel(newModel);
-    debugLog('AI model change requested:', newModel);
 
-    try {
-      // Backend'e AI model değişikliğini bildir
-      await axios.post(`${API_BASE_URL}/api/config/ai-model`, {
-        model: newModel
-      });
-      infoLog('AI model updated successfully to:', newModel);
-    } catch (err) {
-      errorLog('Failed to update AI model:', err);
-      // Hata durumunda state'i geri al
-      setAiModel(oldModel);
-    }
-  };
 
   // Backend log fetcher
   const fetchBackendLogs = useCallback(async () => {
@@ -886,17 +946,7 @@ function App() {
     }
   }, [superMode, debugLog]);
 
-  const fetchAdminStats = useCallback(async () => {
-    if (!superMode) return;
-
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/admin/stats`);
-      setAdminStats(response.data);
-      debugLog('Admin stats fetched:', response.data);
-    } catch (error) {
-      debugLog('Admin stats fetch failed:', error.message);
-    }
-  }, [debugLog, superMode]); // Keep necessary dependencies
+  // Admin stats functionality removed for now
 
   // Backend log polling
   useEffect(() => {
@@ -918,355 +968,568 @@ function App() {
   const LogViewer = () => {
     if (!superMode || !showLogViewer) return null;
 
-    const displayFrontendLogs = logViewMode === 'tail' ? frontendLogs.slice(-15) : frontendLogs;
-    const displayBackendLogs = logViewMode === 'tail' ? backendLogs.slice(-15) : backendLogs;
-    const totalLogs = displayFrontendLogs.length + displayBackendLogs.length;
+    const displayFrontendLogs = logViewMode === 'tail' ? frontendLogs.slice(-20) : frontendLogs;
+    const displayBackendLogs = logViewMode === 'tail' ? backendLogs.slice(-20) : backendLogs;
 
     const clearAllLogs = () => {
       setFrontendLogs([]);
       setBackendLogs([]);
       debugLog('All logs cleared by user');
-    };
 
-    const scrollToTop = () => {
-      if (logContentRef.current) {
-        logContentRef.current.scrollTop = 0;
-      }
-    };
-
-    const scrollToBottom = () => {
-      if (logContentRef.current) {
-        logContentRef.current.scrollTop = logContentRef.current.scrollHeight;
+      // Clear backend logs via API to prevent reloading
+      try {
+        axios.delete(`${API_BASE_URL}/api/logs`).catch(() => {
+          // Fail silently if backend doesn't support this endpoint
+        });
+      } catch (error) {
+        // Fail silently
       }
     };
 
     return (
-      <div className="log-viewer-v2">
-        <div className="log-header-v2">
-          <div className="log-header-left">
-            <div className="log-title-v2">
-              <span className="log-icon">📋</span>
-              <h3>Live Logs</h3>
-              <div className="log-badge">{totalLogs}</div>
-            </div>
-          </div>
+      <div className="bottom-log-viewer">
+        <div className="log-tabs">
+          <button
+            onClick={() => setActiveLogTab('frontend')}
+            className={`log-tab ${activeLogTab === 'frontend' ? 'active' : ''}`}
+          >
+            <span className="tab-icon">🌐</span>
+            <span className="tab-label">Frontend</span>
+            <span className="tab-count">{displayFrontendLogs.length}</span>
+          </button>
+          <button
+            onClick={() => setActiveLogTab('backend')}
+            className={`log-tab ${activeLogTab === 'backend' ? 'active' : ''}`}
+          >
+            <span className="tab-icon">⚙️</span>
+            <span className="tab-label">Backend</span>
+            <span className="tab-count">{displayBackendLogs.length}</span>
+          </button>
 
-          <div className="log-header-center">
-            <div className="filter-pills">
-              <button
-                onClick={() => setLogFilter('all')}
-                className={`filter-pill ${logFilter === 'all' ? 'active' : ''}`}
-              >
-                <span className="pill-icon">🌍</span>
-                All
-              </button>
-              <button
-                onClick={() => setLogFilter('frontend')}
-                className={`filter-pill ${logFilter === 'frontend' ? 'active' : ''}`}
-              >
-                <span className="pill-icon">🎨</span>
-                Frontend
-              </button>
-              <button
-                onClick={() => setLogFilter('backend')}
-                className={`filter-pill ${logFilter === 'backend' ? 'active' : ''}`}
-              >
-                <span className="pill-icon">⚙️</span>
-                Backend
-              </button>
-            </div>
-          </div>
-
-          <div className="log-header-right">
-            <div className="log-controls-v2">
-              <button
-                onClick={() => setLogViewMode(logViewMode === 'tail' ? 'scroll' : 'tail')}
-                className={`control-btn mode-btn ${logViewMode === 'tail' ? 'active' : ''}`}
-                title={logViewMode === 'tail' ? 'Switch to scroll mode' : 'Switch to tail mode'}
-              >
-                <span className="btn-icon">{logViewMode === 'tail' ? '📜' : '📋'}</span>
-              </button>
-
-              <button
-                onClick={scrollToTop}
-                className="control-btn scroll-btn"
-                title="Scroll to top"
-              >
-                <span className="btn-icon">⬆️</span>
-              </button>
-
-              <button
-                onClick={scrollToBottom}
-                className="control-btn scroll-btn"
-                title="Scroll to bottom"
-              >
-                <span className="btn-icon">⬇️</span>
-              </button>
-
-              <button
-                onClick={() => setLogExpanded(!logExpanded)}
-                className="control-btn expand-btn"
-                title={logExpanded ? 'Compact view' : 'Expanded view'}
-              >
-                <span className="btn-icon">{logExpanded ? '📐' : '📏'}</span>
-              </button>
-
-              <button
-                onClick={clearAllLogs}
-                className="control-btn clear-btn"
-                title="Clear all logs"
-              >
-                <span className="btn-icon">🗑️</span>
-              </button>
-            </div>
+          <div className="log-controls">
+            <button
+              onClick={() => setLogViewMode(logViewMode === 'tail' ? 'full' : 'tail')}
+              className="log-control-btn"
+              title={logViewMode === 'tail' ? 'Show all logs' : 'Show recent logs only'}
+            >
+              {logViewMode === 'tail' ? '📜' : '🔽'}
+            </button>
+            <button
+              onClick={clearAllLogs}
+              className="log-control-btn"
+              title="Clear all logs"
+            >
+              🗑️
+            </button>
           </div>
         </div>
 
-        <div className="log-content-v2" ref={logContentRef}>
-          {totalLogs === 0 ? (
-            <div className="no-logs-v2">
-              <div className="no-logs-icon">📭</div>
-              <div className="no-logs-text">No logs available</div>
-              <div className="no-logs-subtext">Logs will appear here as they are generated</div>
+        <div className="log-content">
+          {activeLogTab === 'frontend' ? (
+            <div className="log-entries">
+              {displayFrontendLogs.length === 0 ? (
+                <div className="no-logs">No frontend logs</div>
+              ) : (
+                displayFrontendLogs.map((log, index) => (
+                  <div key={`frontend-${log.timestamp}-${index}`} className="log-entry">
+                    <span className="log-time">
+                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                    <span className={`log-level ${log.level?.toLowerCase() || 'info'}`}>
+                      {log.level?.toUpperCase() || 'INFO'}
+                    </span>
+                    <span className="log-message">{log.message}</span>
+                  </div>
+                ))
+              )}
             </div>
           ) : (
-            <div className="log-entries-v2">
-              {[...displayFrontendLogs.map(log => ({ ...log, source: 'frontend' })), ...displayBackendLogs.map(log => ({ ...log, source: 'backend' }))].map(log => (
-                <div key={log.id} className={`log-entry-v2 ${log.level?.toLowerCase() || 'info'} ${log.source}`}>
-                  <div className="log-entry-header">
-                    <div className="log-timestamp">
-                      {new Date(log.timestamp).toLocaleTimeString('tr-TR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                      })}
-                    </div>
-                    <div className={`log-source-badge ${log.source}`}>
-                      <span className="source-icon">
-                        {log.source === 'frontend' ? '🎨' : '⚙️'}
-                      </span>
-                      <span className="source-text">{log.source}</span>
-                    </div>
-                    <div className={`log-level-badge ${log.level?.toLowerCase() || 'info'}`}>
-                      {log.level || 'INFO'}
-                    </div>
+            <div className="log-entries">
+              {displayBackendLogs.length === 0 ? (
+                <div className="no-logs">No backend logs</div>
+              ) : (
+                displayBackendLogs.map((log, index) => (
+                  <div key={`backend-${log.timestamp}-${index}`} className="log-entry">
+                    <span className="log-time">
+                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                    <span className={`log-level ${log.level?.toLowerCase() || 'info'}`}>
+                      {log.level?.toUpperCase() || 'INFO'}
+                    </span>
+                    <span className="log-message">{log.message}</span>
                   </div>
-                  <div className="log-message-v2">
-                    {log.message}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           )}
         </div>
 
-        {logViewMode === 'tail' && totalLogs > 20 && (
-          <div className="log-footer-v2">
-            <div className="tail-info">
-              <span className="tail-text">Showing last 20 of {totalLogs} logs</span>
-              <button
-                onClick={() => setLogViewMode('scroll')}
-                className="view-all-btn"
-              >
-                View All
-              </button>
-            </div>
+
+      </div>
+    );
+  };
+
+  // Background category handler
+  const handleCategorySelect = (category) => {
+    setBackgroundCategory(category);
+    // Set default background for category
+    const defaults = {
+      patterns: 'pattern2',
+      gradients: 'gradient1',
+      nature: 'nature1',
+      warm: 'warm1'
+    };
+    setChatBackground(defaults[category] || 'pattern2');
+  };
+
+  // Language category handler
+  const handleLanguageCategorySelect = (category) => {
+    setLanguageCategory(category);
+  };
+
+  // AI Model category handler
+  const handleAiModelCategorySelect = (category) => {
+    setAiModelCategory(category);
+  };
+
+  const AiModelSelectorModal = () => {
+    if (!showAiModelSelector) return null;
+
+    const categories = [
+      { id: 'gpt', name: 'GPT Models', icon: '🤖', desc: 'OpenAI GPT series' },
+      { id: 'custom', name: 'Custom API', icon: '⚙️', desc: 'Custom endpoints' }
+    ];
+
+    const modelOptions = {
+      gpt: [
+        { id: 'gpt-4o', name: 'GPT-4o', desc: 'Latest multimodal' },
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', desc: 'Fast and efficient' },
+        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', desc: 'High performance' },
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', desc: 'Cost effective' }
+      ],
+      custom: [
+        { id: 'custom-api', name: 'Custom API', desc: 'Your own endpoint' }
+      ]
+    };
+
+    const handleModelSelect = (modelId) => {
+      setSelectedModel(modelId);
+      setShowAiModelSelector(false);
+    };
+
+    return (
+      <div className="modal-overlay show" onClick={() => setShowAiModelSelector(false)}>
+        <div className="modal-content ios-background-selector" onClick={e => e.stopPropagation()}>
+          <div className="ios-header">
+            <button className="ios-close" onClick={() => setShowAiModelSelector(false)}>✕</button>
           </div>
-        )}
+
+          <div className="ios-bg-categories">
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                className={`ios-category-item ${aiModelCategory === category.id ? 'active' : ''}`}
+                onClick={() => handleAiModelCategorySelect(category.id)}
+              >
+                <div className="ios-category-icon">{category.icon}</div>
+                <div className="ios-category-info">
+                  <div className="ios-category-name">{category.name}</div>
+                  <div className="ios-category-desc">{category.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="ios-bg-options">
+            {modelOptions[aiModelCategory]?.map((model) => (
+              <button
+                key={model.id}
+                className={`ios-bg-option ${selectedModel === model.id ? 'active' : ''}`}
+                onClick={() => handleModelSelect(model.id)}
+              >
+                <div className="ios-model-preview">{model.id.includes('gpt-4') ? '🧠' : model.id.includes('gpt-3') ? '💡' : '⚙️'}</div>
+                <div className="ios-bg-name">{model.name}</div>
+                <div className="ios-model-desc">{model.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const LanguageSelectorModal = () => {
+    if (!showLanguageSelector) return null;
+
+    const categories = [
+      { id: 'app', name: 'App Language', icon: '📱', desc: 'Interface language' },
+      { id: 'cv', name: 'CV Language', icon: '📄', desc: 'Document language' }
+    ];
+
+    const languageOptions = {
+      app: [
+        { id: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+        { id: 'en', name: 'English', flag: '🇺🇸' }
+      ],
+      cv: [
+        { id: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+        { id: 'en', name: 'English', flag: '🇺🇸' }
+      ]
+    };
+
+    const handleLanguageSelect = (langId) => {
+      if (languageCategory === 'app') {
+        handleAppLanguageChange(langId);
+      } else {
+        handleCvLanguageChange(langId);
+      }
+      setShowLanguageSelector(false);
+    };
+
+    return (
+      <div className="modal-overlay show" onClick={() => setShowLanguageSelector(false)}>
+        <div className="modal-content ios-background-selector" onClick={e => e.stopPropagation()}>
+          <div className="ios-header">
+            <button className="ios-close" onClick={() => setShowLanguageSelector(false)}>✕</button>
+          </div>
+
+          <div className="ios-bg-categories">
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                className={`ios-category-item ${languageCategory === category.id ? 'active' : ''}`}
+                onClick={() => handleLanguageCategorySelect(category.id)}
+              >
+                <div className="ios-category-icon">{category.icon}</div>
+                <div className="ios-category-info">
+                  <div className="ios-category-name">{category.name}</div>
+                  <div className="ios-category-desc">{category.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="ios-bg-options">
+            {languageOptions[languageCategory]?.map((lang) => (
+              <button
+                key={lang.id}
+                className={`ios-bg-option ${(languageCategory === 'app' ? configAppLanguage : cvLanguage) === lang.id ? 'active' : ''}`}
+                onClick={() => handleLanguageSelect(lang.id)}
+              >
+                <div className="ios-flag-preview">{lang.flag}</div>
+                <div className="ios-bg-name">{lang.name}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Custom Image Modal
+  const CustomImageModal = () => {
+    if (!showCustomImageModal) return null;
+
+    const handleImageUpload = (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        setUploadError('Please select a valid image file');
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setUploadError('Image size must be less than 5MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCustomBackgroundImage(e.target.result);
+        setChatBackground('custom');
+        setShowCustomImageModal(false);
+        setUploadError('');
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const handleUrlSubmit = () => {
+      if (!customImageUrl) return;
+
+      // Basic URL validation
+      try {
+        new URL(customImageUrl);
+        setCustomBackgroundImage(customImageUrl);
+        setChatBackground('custom');
+        setShowCustomImageModal(false);
+        setUploadError('');
+        setCustomImageUrl('');
+      } catch {
+        setUploadError('Please enter a valid image URL');
+      }
+    };
+
+    return (
+      <div className="modal-overlay show" onClick={() => setShowCustomImageModal(false)}>
+        <div className="modal-content ios-custom-image-modal" onClick={e => e.stopPropagation()}>
+          <div className="ios-header">
+            <h3>Custom Background Image</h3>
+            <button className="ios-close" onClick={() => setShowCustomImageModal(false)}>✕</button>
+          </div>
+
+          <div className="custom-image-options">
+            <div className="option-section">
+              <h4>📁 Upload Image</h4>
+              <p>Choose an image from your device</p>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="file-input"
+                id="background-upload"
+              />
+              <label htmlFor="background-upload" className="upload-button">
+                Choose Image
+              </label>
+            </div>
+
+            <div className="option-divider">or</div>
+
+            <div className="option-section">
+              <h4>🌐 Image URL</h4>
+              <p>Enter a direct image URL</p>
+              <div className="url-input-group">
+                <input
+                  type="url"
+                  placeholder="https://example.com/image.jpg"
+                  value={customImageUrl}
+                  onChange={(e) => setCustomImageUrl(e.target.value)}
+                  className="url-input"
+                />
+                <button onClick={handleUrlSubmit} className="url-submit-btn">
+                  Apply
+                </button>
+              </div>
+            </div>
+
+            {uploadError && (
+              <div className="upload-error">{uploadError}</div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const BackgroundSelectorModal = () => {
+    if (!showBackgroundSelector) return null;
+
+    const categories = [
+      { id: 'patterns', name: 'Patterns', icon: '⚫', desc: 'Grid and dot patterns' },
+      { id: 'gradients', name: 'Gradients', icon: '🌈', desc: 'Smooth color transitions' },
+      { id: 'nature', name: 'Nature', icon: '🌿', desc: 'Natural green tones' },
+      { id: 'warm', name: 'Warm', icon: '🔥', desc: 'Warm and energetic colors' },
+      { id: 'custom', name: 'Custom Image', icon: '🖼️', desc: 'Upload or URL image' }
+    ];
+
+    const backgroundOptions = {
+      patterns: [
+        { id: 'pattern1', name: 'Dots', preview: 'ios-bg-dots' },
+        { id: 'pattern2', name: 'Grid', preview: 'ios-bg-grid' },
+        { id: 'default', name: 'None', preview: 'ios-bg-default' }
+      ],
+      gradients: [
+        { id: 'gradient1', name: 'Blue', preview: 'ios-bg-gradient1' },
+        { id: 'gradient2', name: 'Purple', preview: 'ios-bg-gradient2' }
+      ],
+      nature: [
+        { id: 'nature1', name: 'Forest', preview: 'ios-bg-nature1' },
+        { id: 'nature2', name: 'Ocean', preview: 'ios-bg-nature2' }
+      ],
+      warm: [
+        { id: 'warm1', name: 'Sunset', preview: 'ios-bg-warm1' },
+        { id: 'warm2', name: 'Fire', preview: 'ios-bg-warm2' }
+      ],
+      custom: [
+        { id: 'upload', name: 'Upload Image', preview: 'ios-bg-upload' },
+        { id: 'url', name: 'Image URL', preview: 'ios-bg-url' }
+      ]
+    };
+
+    return (
+      <div className="modal-overlay show" onClick={() => setShowBackgroundSelector(false)}>
+        <div className="modal-content ios-background-selector" onClick={e => e.stopPropagation()}>
+          <div className="ios-header">
+            <button className="ios-close" onClick={() => setShowBackgroundSelector(false)}>✕</button>
+          </div>
+
+          <div className="ios-bg-categories">
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                className={`ios-category-item ${backgroundCategory === category.id ? 'active' : ''}`}
+                onClick={() => handleCategorySelect(category.id)}
+              >
+                <div className="ios-category-icon">{category.icon}</div>
+                <div className="ios-category-info">
+                  <div className="ios-category-name">{category.name}</div>
+                  <div className="ios-category-desc">{category.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="ios-bg-options">
+            {backgroundOptions[backgroundCategory]?.map((bg) => (
+              <button
+                key={bg.id}
+                className={`ios-bg-option ${chatBackground === bg.id || (bg.id === 'upload' && chatBackground === 'custom') || (bg.id === 'url' && chatBackground === 'custom') ? 'active' : ''}`}
+                onClick={() => {
+                  if (bg.id === 'upload' || bg.id === 'url') {
+                    setShowCustomImageModal(true);
+                    setShowBackgroundSelector(false);
+                  } else {
+                    setChatBackground(bg.id);
+                    setShowBackgroundSelector(false);
+                  }
+                }}
+              >
+                <div className={`ios-bg-preview-mini ${bg.preview}`}></div>
+                <div className="ios-bg-name">{bg.name}</div>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     );
   };
 
   const ConfigModal = () => {
-    // Fetch admin stats only once when modal opens
-    useEffect(() => {
-      if (showConfig && superMode && !adminStats) {
-        fetchAdminStats();
-      }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const modalRef = useRef(null);
 
     if (!showConfig) return null;
 
     return (
       <div className="modal-overlay show" onClick={() => setShowConfig(false)}>
-        <div className="modal-content config-modal" onClick={e => e.stopPropagation()}>
-          <div className="modal-header">
-            <h3>⚙️ Super Mode Settings</h3>
-            <button className="modal-close" onClick={() => setShowConfig(false)}>×</button>
+        <div className="modal-content ios-control-center" ref={modalRef} onClick={e => e.stopPropagation()}>
+          <div className="ios-header">
+            <button className="ios-close" onClick={() => setShowConfig(false)}>✕</button>
           </div>
-          <div className="modal-body">
-            {/* Language Settings */}
-            <div className="config-section">
-              <h4>🌍 Language Settings</h4>
-              <div className="config-item">
-                <label>App Language:</label>
-                <select
-                  value={configAppLanguage}
-                  onChange={(e) => handleAppLanguageChange(e.target.value)}
-                  className="config-select"
-                >
-                  <option value="tr">Türkçe</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
-              <div className="config-item">
-                <label>CV Language:</label>
-                <select
-                  value={cvLanguage}
-                  onChange={(e) => handleCvLanguageChange(e.target.value)}
-                  className="config-select"
-                >
-                  <option value="tr">Türkçe</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
-            </div>
 
-            {/* Theme Settings */}
-            <div className="config-section">
-              <h4>🎨 Theme Settings</h4>
-              <div className="config-item">
-                <label>Theme Mode:</label>
-                <ThemeSwitcher theme={theme} setTheme={setTheme} />
-              </div>
-            </div>
+          {/* iOS Control Center Grid */}
+          <div className="ios-control-grid">
 
-            {/* Debug Settings */}
-            <div className="config-section">
-              <h4>🐛 Debug Settings</h4>
-              <div className="config-item">
-                <label>Frontend Debug:</label>
-                <button
-                  onClick={handleFrontendDebugToggle}
-                  className={`toggle-button ${frontendDebug ? 'active' : 'inactive'}`}
-                >
-                  {frontendDebug ? '✅ Enabled' : '❌ Disabled'}
-                </button>
-              </div>
-              <div className="config-item">
-                <label>Backend Debug:</label>
-                <button
-                  onClick={handleBackendDebugToggle}
-                  className={`toggle-button ${backendDebug ? 'active' : 'inactive'}`}
-                >
-                  {backendDebug ? '✅ Enabled' : '❌ Disabled'}
-                </button>
-              </div>
-
-              <div className="config-item">
-                <label>Show Log Viewer:</label>
-                <button
-                  onClick={() => setShowLogViewer(!showLogViewer)}
-                  className={`toggle-button ${showLogViewer ? 'active' : 'inactive'}`}
-                >
-                  {showLogViewer ? '✅ Enabled' : '❌ Disabled'}
-                </button>
-              </div>
-
-              <div className="config-item">
-                <label>Admin Mode:</label>
-                <button
-                  onClick={() => setSuperMode(!superMode)}
-                  className={`toggle-button ${superMode ? 'active' : 'inactive'}`}
-                >
-                  {superMode ? '✅ Enabled' : '❌ Disabled'}
-                </button>
-              </div>
-            </div>
-
-            {/* Background Settings */}
-            <div className="config-section">
-              <h4>🎨 Background Settings</h4>
-              <div className="config-item">
-                <label>Chat Background:</label>
-                <select
-                  value={chatBackground}
-                  onChange={(e) => setChatBackground(e.target.value)}
-                  className="config-select"
-                >
-                  <option value="default">Default</option>
-                  <option value="gradient1">Gradient Blue</option>
-                  <option value="gradient2">Gradient Purple</option>
-                  <option value="pattern1">Dots Pattern</option>
-                  <option value="pattern2">Grid Pattern</option>
-                  <option value="custom">Custom Image</option>
-                </select>
-              </div>
-
-              {chatBackground === 'custom' && (
-                <div className="config-item">
-                  <label>Custom Image URL:</label>
-                  <input
-                    type="text"
-                    value={customBackgroundImage}
-                    onChange={(e) => setCustomBackgroundImage(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    className="config-input"
-                  />
+            {/* Language Module (1x2) */}
+            <div className="ios-module ios-module-1x2" title="Switch between app interface and CV document languages">
+              <button
+                className="ios-single-control"
+                onClick={() => setShowLanguageSelector(true)}
+              >
+                <div className="ios-module-icon">🌐</div>
+                <div className="ios-module-title">Language</div>
+                <div className="ios-module-subtitle">
+                  {languageCategory === 'app' ? 'App' : 'CV'} • {configAppLanguage === 'tr' ? 'TR' : 'EN'}
                 </div>
-              )}
+              </button>
             </div>
 
-            {/* AI Settings */}
-            <div className="config-section">
-              <h4>🤖 AI Settings</h4>
-              <div className="config-item">
-                <label>AI Model:</label>
-                <select
-                  value={aiModel}
-                  onChange={(e) => handleAiModelChange(e.target.value)}
-                  className="config-select"
-                >
-                  <option value="gpt-4o-mini">GPT-4o Mini</option>
-                  <option value="gpt-4o">GPT-4o</option>
-                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                </select>
+            {/* Debug Module (1x1) */}
+            <div className="ios-module ios-module-1x1" title="Toggle debug logging for frontend and backend">
+              <button
+                className={`ios-single-control ${frontendDebug || backendDebug ? 'active' : ''}`}
+                onClick={() => {
+                  const newValue = !(frontendDebug || backendDebug);
+                  if (newValue !== frontendDebug) handleFrontendDebugToggle();
+                  if (newValue !== backendDebug) handleBackendDebugToggle();
+                }}
+              >
+                <div className="ios-module-icon">🐛</div>
+                <div className="ios-module-title">Debug</div>
+              </button>
+            </div>
+
+            {/* Log Viewer Module (1x1) */}
+            <div className="ios-module ios-module-1x1" title="Show/hide system logs viewer">
+              <button
+                className={`ios-single-control ${showLogViewer ? 'active' : ''}`}
+                onClick={() => setShowLogViewer(!showLogViewer)}
+              >
+                <div className="ios-module-icon">📋</div>
+                <div className="ios-module-title">Logs</div>
+              </button>
+            </div>
+
+            {/* Admin Module (1x1) */}
+            <div className="ios-module ios-module-1x1" title="Enable admin super mode with advanced features">
+              <button
+                className={`ios-single-control ${superMode ? 'active' : ''}`}
+                onClick={() => setSuperMode(!superMode)}
+              >
+                <div className="ios-module-icon">👑</div>
+                <div className="ios-module-title">Admin</div>
+              </button>
+            </div>
+
+            {/* Camera Module (Background) */}
+            <div className="ios-module ios-module-2x2" title="Customize application theme and visual appearance">
+              <button
+                className="ios-single-control"
+                onClick={() => setShowBackgroundSelector(true)}
+              >
+                <div className="ios-module-icon">🎨</div>
+                <div className="ios-module-content">
+                  <div className="ios-module-title">Application Theme</div>
+                  <div className="ios-module-subtitle">
+                    {backgroundCategory === 'patterns' ? 'Patterns' :
+                      backgroundCategory === 'gradients' ? 'Gradients' :
+                        backgroundCategory === 'nature' ? 'Nature' : 'Warm Colors'}
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Flashlight (Theme) */}
+            <div className="ios-module ios-module-1x1" title="Switch between light and dark mode">
+              <button
+                className={`ios-single-control ${theme === 'dark' ? 'active' : ''}`}
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              >
+                <div className="ios-module-icon">{theme === 'dark' ? '🌙' : '☀️'}</div>
+                <div className="ios-module-title">Theme</div>
+              </button>
+            </div>
+
+            {/* AI Model (2x1) */}
+            <div className="ios-module ios-module-2x1" title="Select AI model for processing">
+              <button
+                className="ios-single-control"
+                onClick={() => setShowAiModelSelector(true)}
+              >
+                <div className="ios-module-icon">🤖</div>
+                <div className="ios-module-title">AI Model</div>
+                <div className="ios-module-subtitle">
+                  {aiModelCategory === 'gpt' ? 'GPT' : 'Custom'} • {selectedModel.replace('gpt-', '').replace('-turbo', '').replace('-', ' ')}
+                </div>
+              </button>
+            </div>
+
+            {/* Timer (Stats) */}
+            <div className="ios-module ios-module-1x1" title="View system statistics and performance metrics">
+              <div className="ios-single-control">
+                <div className="ios-module-icon">📊</div>
+                <div className="ios-module-title">Stats</div>
               </div>
             </div>
 
-            {/* System Info */}
-            <div className="config-section">
-              <h4>📊 System Info</h4>
-              <div className="config-item">
-                <label>API Base URL:</label>
-                <span className="code-text">{API_BASE_URL}</span>
-              </div>
-              <div className="config-item">
-                <label>Session ID:</label>
-                <span className="code-text">{sessionId || 'None'}</span>
-              </div>
-              <div className="config-item">
-                <label>Super Mode:</label>
-                <span className="status-badge active">🦸‍♂️ Active</span>
-              </div>
-              <div className="config-item">
-                <label>Frontend Version:</label>
-                <span className="status-badge">0.2508.091851</span>
+            {/* Voice Memos (System Info) */}
+            <div className="ios-module ios-module-1x1" title="System information and app details">
+              <div className="ios-single-control">
+                <div className="ios-module-icon">ℹ️</div>
+                <div className="ios-module-title">Info</div>
               </div>
             </div>
 
-            {adminStats && (
-              <div className="config-section">
-                <h3>📊 Server Statistics</h3>
-                <div className="config-item">
-                  <label>Total Sessions:</label>
-                  <span className="status-badge">{adminStats.stats?.totalSessions || 0}</span>
-                </div>
-                <div className="config-item">
-                  <label>Finalized CVs:</label>
-                  <span className="status-badge">{adminStats.stats?.totalFinalizations || 0}</span>
-                </div>
-                <div className="config-item">
-                  <label>Server Uptime:</label>
-                  <span className="status-badge">{Math.floor((adminStats.serverInfo?.uptime || 0) / 60)} minutes</span>
-                </div>
-                <div className="config-item">
-                  <label>Memory Usage:</label>
-                  <span className="status-badge">{Math.floor((adminStats.serverInfo?.memory?.rss || 0) / 1024 / 1024)} MB</span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -1276,11 +1539,15 @@ function App() {
   return (
     <div className="app-container">
       <Feedback open={feedbackOpen} setOpen={setFeedbackOpen} sessionId={sessionId} language={i18n.language} theme={theme} />
-      <ConfigModal fetchAdminStats={fetchAdminStats} />
+      <ConfigModal />
+      <BackgroundSelectorModal />
+      <LanguageSelectorModal />
+      <AiModelSelectorModal />
+      <CustomImageModal />
       {step === 'upload' ? (
         <div className="upload-step fade-in" style={{
-          backgroundImage: getChatBackgroundStyle(),
-          backgroundSize: chatBackground === 'pattern1' ? '20px 20px' : chatBackground === 'pattern2' ? '20px 20px' : 'cover',
+          backgroundImage: getChatBackgroundStyle('transient'),
+          backgroundSize: chatBackground.startsWith('pattern') ? '20px 20px' : 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: chatBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
           backgroundAttachment: 'fixed'
@@ -1310,181 +1577,185 @@ function App() {
             </div>
           )}
 
-          <LogViewer />
           <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       ) : (
-        <div className="chat-step fade-in" style={{
-          backgroundImage: getChatBackgroundStyle(),
-          backgroundSize: chatBackground === 'pattern1' ? '20px 20px' : chatBackground === 'pattern2' ? '20px 20px' : 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: chatBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
-          backgroundAttachment: 'fixed'
-        }}>
-          <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} /><div className="settings-bar">{superMode ? <button className="config-button" onClick={() => setShowConfig(true)} title="Super Mode Settings">⚙️</button> : <ThemeSwitcher theme={theme} setTheme={setTheme} />}<LanguageSwitcher /></div></div>
-          <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
-          <div className="chat-input-area">
-            {(step === 'scriptedQuestions' || step === 'aiQuestions') && (() => {
-              const currentQuestion = questionQueue[0];
-              const isMultipleChoice = currentQuestion?.isMultipleChoice;
+        <div className="chat-step fade-in">
+          <div className="chat-container" style={{
+            backgroundImage: getChatBackgroundStyle('transient'),
+            backgroundSize: chatBackground.startsWith('pattern') ? '20px 20px' : 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: chatBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
+            backgroundAttachment: 'fixed',
+            minHeight: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} /><div className="settings-bar">{superMode ? (<><button className="config-button" onClick={() => setShowConfig(true)} title="Super Mode Settings">⚙️</button><ThemeSwitcher theme={theme} setTheme={setTheme} /></>) : <ThemeSwitcher theme={theme} setTheme={setTheme} />}<LanguageSwitcher /></div></div>
+            <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
+            <div className="chat-input-area">
+              {(step === 'scriptedQuestions' || step === 'aiQuestions') && (() => {
+                const currentQuestion = questionQueue[0];
+                const isMultipleChoice = currentQuestion?.isMultipleChoice;
 
-              return (
-                <>
-                  {isMultipleChoice ? (
-                    <div className="enhanced-choice-container">
-                      <div className="preset-choices">
-                        {currentQuestion.choices.filter(choice =>
-                          !choice.includes('Bunların dışında') &&
-                          !choice.includes('Custom input') &&
-                          !choice.includes('Farklı bir yanıt')
-                        ).map((choice, index) => (
-                          <button
-                            key={index}
-                            onClick={() => {
-                              setCurrentAnswer(choice);
-                              processNextStep(false, choice);
-                            }}
-                            className="preset-choice-button"
-                            disabled={isLoading}
-                          >
-                            {choice}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="custom-choice-section">
-                        <label className="custom-choice-label">
-                          Farklı bir yanıt:
-                        </label>
-                        <div className="custom-input-group">
-                          <input
-                            type="text"
-                            value={currentAnswer}
-                            onChange={(e) => {
-                              setCurrentAnswer(e.target.value);
-                              // Clear any existing error when user starts typing
-                              if (error) setError('');
-                            }}
-                            placeholder="Kendi yanıtınızı yazın..."
-                            disabled={isLoading}
-                            className="custom-choice-input"
-                          />
-                          <button
-                            onClick={() => processNextStep(false, currentAnswer)}
-                            disabled={isLoading || !currentAnswer.trim()}
-                            className={`custom-send-btn ${currentAnswer.trim() ? 'active' : ''}`}
-                          >
-                            <SendIcon />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <textarea
-                      value={currentAnswer}
-                      onChange={(e) => {
-                        setCurrentAnswer(e.target.value);
-                        // Clear any existing error when user starts typing
-                        if (error) setError('');
-                      }}
-                      placeholder={t('chatPlaceholder')}
-                      disabled={isLoading}
-                      onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), processNextStep())}
-                    />
-                  )}
-                </>
-              );
-            })()}
-            <div className="button-group">
-              {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
-                <>
-                  <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
-                  <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
-                </>
-              )}
-
-              {step === 'review' && (
-                <>
-                  <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
-                    {isLoading ? loadingMessage : t('generateCvButton')}
-                  </button>
-                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`accent ${cvScore !== null && cvScore < 80 ? 'highlight' : ''}`}>{t('improveButton')}</button>}
-                </>
-              )}
-
-              {step === 'final' && hasGeneratedPdf && (
-                <>
-                  {showCoverLetterForm && (
-                    <div className="cover-letter-form">
-                      <div className="success-message">
-                        <div className="success-icon">✅</div>
-                        <h3>CV'niz Başarıyla Hazırlandı!</h3>
-                        <p>CV'niz oluşturuldu ve indirmeye hazır. Aşağıdan indirebilirsiniz.</p>
-                      </div>
-
-                      <div className="company-form">
-                        <h4>Ön Yazı Oluşturalım</h4>
-                        <p>Başvurmak istediğiniz firma ve pozisyon bilgisini iletirseniz ön yazınızı ona göre oluşturabilirim.</p>
-
-                        <div className="form-group">
-                          <label>Şirket Adı (İsteğe bağlı)</label>
-                          <input
-                            type="text"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                            placeholder="Örn: Google, Microsoft..."
-                            className="form-input"
-                          />
+                return (
+                  <>
+                    {isMultipleChoice ? (
+                      <div className="enhanced-choice-container">
+                        <div className="preset-choices">
+                          {currentQuestion.choices.filter(choice =>
+                            !choice.includes('Bunların dışında') &&
+                            !choice.includes('Custom input') &&
+                            !choice.includes('Farklı bir yanıt')
+                          ).map((choice, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                setCurrentAnswer(choice);
+                                processNextStep(false, choice);
+                              }}
+                              className="preset-choice-button"
+                              disabled={isLoading}
+                            >
+                              {choice}
+                            </button>
+                          ))}
                         </div>
 
-                        <div className="form-group">
-                          <label>Pozisyon (İsteğe bağlı)</label>
-                          <input
-                            type="text"
-                            value={positionName}
-                            onChange={(e) => setPositionName(e.target.value)}
-                            placeholder="Örn: Frontend Developer, Product Manager..."
-                            className="form-input"
-                          />
-                        </div>
-
-                        <div className="form-actions">
-                          <button
-                            onClick={() => {
-                              setShowCoverLetterForm(false);
-                              handleGenerateCoverLetterWithInfo();
-                            }}
-                            className="primary"
-                          >
-                            <span>{companyName || positionName ? 'Kişiselleştirilmiş Ön Yazı Oluştur' : 'Genel Ön Yazı Oluştur'}</span>
-                          </button>
-                          <button
-                            onClick={() => setShowCoverLetterForm(false)}
-                            className="outline"
-                          >
-                            <span>Atla</span>
-                          </button>
+                        <div className="custom-choice-section">
+                          <label className="custom-choice-label">
+                            Farklı bir yanıt:
+                          </label>
+                          <div className="custom-input-group">
+                            <input
+                              type="text"
+                              value={currentAnswer}
+                              onChange={(e) => {
+                                setCurrentAnswer(e.target.value);
+                                // Clear any existing error when user starts typing
+                                if (error) setError('');
+                              }}
+                              placeholder="Kendi yanıtınızı yazın..."
+                              disabled={isLoading}
+                              className="custom-choice-input"
+                            />
+                            <button
+                              onClick={() => processNextStep(false, currentAnswer)}
+                              disabled={isLoading || !currentAnswer.trim()}
+                              className={`custom-send-btn ${currentAnswer.trim() ? 'active' : ''}`}
+                            >
+                              <SendIcon />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <textarea
+                        value={currentAnswer}
+                        onChange={(e) => {
+                          setCurrentAnswer(e.target.value);
+                          // Clear any existing error when user starts typing
+                          if (error) setError('');
+                        }}
+                        placeholder={t('chatPlaceholder')}
+                        disabled={isLoading}
+                        onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), processNextStep())}
+                      />
+                    )}
+                  </>
+                );
+              })()}
+              <div className="button-group">
+                {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
+                  <>
+                    <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
+                    <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
+                  </>
+                )}
 
-                  {!showCoverLetterForm && (
-                    <>
-                      <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`primary ${cvScore !== null && cvScore >= 80 ? 'highlight' : ''}`}>{t('downloadCvButton')}</button>
-                      <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
-                      <button onClick={handleRestart} className="accent">{t('restartButton')}</button>
-                    </>
-                  )}
-                </>
-              )}
+                {step === 'review' && (
+                  <>
+                    <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
+                      {isLoading ? loadingMessage : t('generateCvButton')}
+                    </button>
+                    {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`accent ${cvScore !== null && cvScore < 80 ? 'highlight' : ''}`}>{t('improveButton')}</button>}
+                  </>
+                )}
+
+                {step === 'final' && hasGeneratedPdf && (
+                  <>
+                    {showCoverLetterForm && (
+                      <div className="cover-letter-form">
+                        <div className="success-message">
+                          <div className="success-icon">✅</div>
+                          <h3>CV'niz Başarıyla Hazırlandı!</h3>
+                          <p>CV'niz oluşturuldu ve indirmeye hazır. Aşağıdan indirebilirsiniz.</p>
+                        </div>
+
+                        <div className="company-form">
+                          <h4>Ön Yazı Oluşturalım</h4>
+                          <p>Başvurmak istediğiniz firma ve pozisyon bilgisini iletirseniz ön yazınızı ona göre oluşturabilirim.</p>
+
+                          <div className="form-group">
+                            <label>Şirket Adı (İsteğe bağlı)</label>
+                            <input
+                              type="text"
+                              value={companyName}
+                              onChange={(e) => setCompanyName(e.target.value)}
+                              placeholder="Örn: Google, Microsoft..."
+                              className="form-input"
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label>Pozisyon (İsteğe bağlı)</label>
+                            <input
+                              type="text"
+                              value={positionName}
+                              onChange={(e) => setPositionName(e.target.value)}
+                              placeholder="Örn: Frontend Developer, Product Manager..."
+                              className="form-input"
+                            />
+                          </div>
+
+                          <div className="form-actions">
+                            <button
+                              onClick={() => {
+                                setShowCoverLetterForm(false);
+                                handleGenerateCoverLetterWithInfo();
+                              }}
+                              className="primary"
+                            >
+                              <span>{companyName || positionName ? 'Kişiselleştirilmiş Ön Yazı Oluştur' : 'Genel Ön Yazı Oluştur'}</span>
+                            </button>
+                            <button
+                              onClick={() => setShowCoverLetterForm(false)}
+                              className="outline"
+                            >
+                              <span>Atla</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {!showCoverLetterForm && (
+                      <>
+                        <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`primary ${cvScore !== null && cvScore >= 80 ? 'highlight' : ''}`}>{t('downloadCvButton')}</button>
+                        <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
+                        <button onClick={handleRestart} className="accent">{t('restartButton')}</button>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+              {error && <p className="error-text">{error}</p>}
             </div>
-            {error && <p className="error-text">{error}</p>}
           </div>
-          <LogViewer />
           <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       )}
+      {showLogViewer && <LogViewer />}
     </div>
   );
 }
