@@ -148,7 +148,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       <div
         style={{
           fontSize: `calc(1rem * ${fontScale})`,
-          "--reduced-motion": reducedMotion ? "1" : "0"
+          ...(reducedMotion &&
+            ({ "--reduced-motion": "1" } as React.CSSProperties))
         }}
         className={reducedMotion ? "motion-reduce" : ""}
       >
@@ -172,7 +173,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose }) => {
     visible: {
       x: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 300,
         damping: 30
       }
@@ -180,7 +181,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose }) => {
     exit: {
       x: "100%",
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 300,
         damping: 30
       }

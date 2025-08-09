@@ -74,7 +74,6 @@ const ResetAllButton: React.FC<ResetAllButtonProps> = ({
         size="sm"
         className={`text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 ${className}`}
         aria-label="Reset all CV Builder data"
-        title="Clear all data and start over"
       >
         <RotateCcw className="h-4 w-4 mr-2" />
         Reset All

@@ -6,6 +6,7 @@
   "uploadingButtonLabel": "Veriler Çıkarılıyor...",
   "welcomeQuestion": "CV verilerinizi başarıyla ayrıştırdım. Şimdi, birlikte geliştirmeye başlayalım. İlk adım olarak, özet kısmında vurgulamak istediğiniz, kariyerinizdeki en önemli başarı nedir?",
   "askName": "Harika! CV'nizde bir isim bulunamadı. Lütfen tam adınızı yazar mısınız?",
+  "askNameDirect": "Merhaba! Başlamak için tam adınızı yazar mısınız?",
   "askEmail": "Anlaşıldı. İletişim için bir e-posta adresi ekleyelim mi?",
   "askPhone": "Çok iyi. Telefon numaranızı da eklemek ister misiniz?",
   "askLocation": "Anlaşıldı. Bulunduğunuz konumu da paylaşır mısınız?",
@@ -41,5 +42,6 @@
   "askEducation": "Eğitim durumunuzu belirtir misiniz? (Bölüm - Okul formatında)",
   "askSkills": "Sahip olduğunuz yetenekleri virgülle ayırarak yazın (örn: JavaScript, React, SQL)",
   "askLanguages": "Bildiğiniz dilleri virgülle ayırarak yazın (örn: İngilizce İleri, Almanca Orta)",
-  "askExperienceLocation": "Deneyimlerinizde çalıştığınız şehir/ülke bilgilerini tamamlar mısınız? (virgülle ayırarak: İstanbul, Ankara, vs.)"
+  "askExperienceLocation": "Deneyimlerinizde çalıştığınız şehir/ülke bilgilerini tamamlar mısınız? (virgülle ayırarak: İstanbul, Ankara, vs.)",
+  "askCurrentJob": "Son işinizden ne zaman ayrıldınız?"
 }

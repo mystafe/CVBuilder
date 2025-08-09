@@ -3,6 +3,7 @@ const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
+const dataStorage = require('./utils/dataStorage')
 const multer = require('multer')
 const pdfParse = require('pdf-parse')
 const mammoth = require('mammoth')
@@ -148,7 +149,9 @@ const coverLetterSchema = z.object({
   cvData: z.any(),
   appLanguage: z.string().optional(),
   sessionId: z.string().nullable().optional(),
-  roleHint: z.string().optional()
+  roleHint: z.string().optional(),
+  companyName: z.string().optional(),
+  positionName: z.string().optional()
 })
 
 // OpenAI API helper
@@ -679,6 +682,8 @@ QUESTION STRATEGY:
 - Focus on areas where candidates typically undervalue themselves
 - Prioritize recent/relevant experience over old positions
 - Avoid generic questions - be laser-focused on their profile
+- For obvious typos or common company names, suggest corrections with multiple choice options
+- Sometimes provide multiple choice answers to speed up interaction
 
 JSON FORMAT (exactly ${maxQuestions} questions):
 {
@@ -686,11 +691,26 @@ JSON FORMAT (exactly ${maxQuestions} questions):
     {
       "id": "q1", 
       "question": "Specific, actionable question targeting a critical gap",
-      "category": "achievements|technical|leadership|growth|industry",
-      "hint": "Clear guidance on what type of answer will maximize CV impact"
+                        "category": "achievements|technical|leadership|growth|industry|typo_correction",
+      "hint": "Clear guidance on what type of answer will maximize CV impact",
+      "isMultipleChoice": false,
+      "choices": ["Option 1", "Option 2", "Option 3", "Bunların dışında"]
     }
   ]
 }
+
+MULTIPLE CHOICE & TYPO CORRECTION STRATEGY:
+            - ACTIVELY look for obvious typos in company names, technologies, locations, skills
+            - MANDATORY typo check for: company names (Apple, Google, Microsoft, Amazon, etc.), technologies (JavaScript, Python, React, etc.), cities (İstanbul, Ankara, etc.)
+            - Examples: "Aple" → ["Apple", "Custom input"], "Gogle" → ["Google", "Custom input"], "javasptit" → ["JavaScript", "Custom input"], "reactjs" → ["React", "Custom input"]
+            - ANY suspicious spelling should trigger a correction question
+- For time-based questions: ["2024", "2023", "Custom input"] 
+- For yes/no questions: ["Evet", "Hayır"] or ["Yes", "No"]
+- For levels: ["Beginner", "Advanced", "Custom input"]
+- MAX 2 predefined options + always include "Custom input" as third option
+- Use isMultipleChoice: true and provide exactly 2-3 options
+- ONLY include "choices" array when isMultipleChoice is true
+- Prioritize typo corrections - if you see ANY suspicious spellings, create correction questions
 
 CRITICAL: Base questions on actual CV content analysis, not generic templates.`
 
@@ -910,7 +930,7 @@ app.post('/api/ai/coverletter', asyncHandler(async (req, res) => {
     })
   }
 
-  const { cvData, appLanguage = 'en', sessionId, roleHint } = validation.data
+  const { cvData, appLanguage = 'en', sessionId, roleHint, companyName, positionName } = validation.data
 
   const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
 
@@ -939,7 +959,16 @@ Return JSON with the cover letter content and metadata.`
 CV Information:
 ${JSON.stringify(cvData, null, 2)}
 
-${roleHint ? `Target Role/Company Context: ${roleHint}` : 'Create a versatile cover letter suitable for roles in their field.'}
+${companyName || positionName ?
+      `Target Application Details:
+  ${companyName ? `Company: ${companyName}` : ''}
+  ${positionName ? `Position: ${positionName}` : ''}
+  
+  Please customize the cover letter for this specific company and role.` :
+      'Create a versatile cover letter suitable for roles in their field.'
+    }
+
+${roleHint ? `Additional Context: ${roleHint}` : ''}
 
 Generate a compelling cover letter that highlights their strongest qualifications and achievements.
 
@@ -958,6 +987,19 @@ Return in this JSON format:
     ], 2500)
 
     const coverLetterData = JSON.parse(result)
+
+    // Save session data with cover letter
+    try {
+      await dataStorage.logActivity('cover_letter_generated', {
+        sessionId,
+        hasCompanyName: !!companyName,
+        hasPositionName: !!positionName,
+        coverLetterLength: coverLetterData.coverLetter ? coverLetterData.coverLetter.length : 0
+      }, req);
+    } catch (storageError) {
+      errorLog('Failed to log cover letter generation:', storageError);
+    }
+
     infoLog('Cover letter generated successfully')
     res.json(coverLetterData)
   } catch (error) {
@@ -979,7 +1021,7 @@ app.post('/api/ai/coverletter-pdf', asyncHandler(async (req, res) => {
     })
   }
 
-  const { cvData, appLanguage = 'en', sessionId, roleHint } = validation.data
+  const { cvData, appLanguage = 'en', sessionId, roleHint, companyName, positionName } = validation.data
 
   try {
     // First get the cover letter content
@@ -1096,6 +1138,14 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
       debugLog('Transformed CV data for backend PDF:', transformedCvData)
       const pdfBuffer = await pdfService.createPdf(transformedCvData, cvLanguage)
 
+      // Save finalized data
+      try {
+        const sessionId = req.body.sessionId || `session_${Date.now()}`;
+        await dataStorage.saveFinalizedData(sessionId, cvData, null, { cvPdf: true }, req);
+      } catch (storageError) {
+        errorLog('Failed to save finalized data:', storageError);
+      }
+
       res.setHeader('Content-Type', 'application/pdf')
       res.setHeader('Content-Disposition', 'attachment; filename="cv.pdf"')
       res.send(pdfBuffer)
@@ -1204,7 +1254,7 @@ app.get('/api/config', asyncHandler(async (req, res) => {
     debug: DEBUG,
     aiModel: CURRENT_AI_MODEL,
     nodeEnv: process.env.NODE_ENV,
-    version: '1.2508.091400',
+    version: '1.2508.091851',
     timestamp: new Date().toISOString()
   })
 }))
@@ -1227,6 +1277,29 @@ app.delete('/api/logs', asyncHandler(async (req, res) => {
     message: 'Backend logs cleared',
     timestamp: new Date().toISOString()
   })
+}))
+
+// Get data storage stats endpoint (for admin)
+app.get('/api/admin/stats', asyncHandler(async (req, res) => {
+  try {
+    const stats = await dataStorage.getSessionStats();
+    res.json({
+      success: true,
+      stats,
+      serverInfo: {
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        platform: process.platform,
+        nodeVersion: process.version
+      }
+    });
+  } catch (error) {
+    errorLog('Failed to get admin stats:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve stats',
+      message: error.message
+    });
+  }
 }))
 
 // Catch-all for undefined routes

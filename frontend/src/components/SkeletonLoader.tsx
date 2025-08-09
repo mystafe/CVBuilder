@@ -23,7 +23,7 @@ const Skeleton: React.FC<SkeletonProps> = ({
       transition: {
         repeat: Infinity,
         duration: 1.5,
-        ease: "easeInOut"
+        ease: "easeInOut" as const
       }
     }
   }

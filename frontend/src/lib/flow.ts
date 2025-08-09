@@ -395,10 +395,10 @@ export const clearAllData = (): void => {
     localStorage.removeItem(SETTINGS_KEY)
 
     // Clear any other potential CV Builder keys
-    const keysToRemove = []
+    const keysToRemove: string[] = []
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
-      if (key && key.startsWith("cvbuilder")) {
+      if (key !== null && key.startsWith("cvbuilder")) {
         keysToRemove.push(key)
       }
     }
