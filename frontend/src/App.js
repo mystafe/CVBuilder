@@ -295,8 +295,14 @@ function App() {
       console.log('Score Response:', res.data);
       setCvScore(res.data.overall || res.data.score);
       // Backend returns {overall, strengths, weaknesses, suggestions} format
-      const comment = res.data.strengths ? res.data.strengths.slice(0, 2).join(', ') : 'CV analizi tamamlandı.';
-      setConversation(prev => [...prev, { type: 'ai', text: `${t('cvScore', { score: res.data.overall || res.data.score })} ${comment}` }]);
+      // Focus on improvement areas rather than just strengths
+      const improvementComment = res.data.suggestions && res.data.suggestions.length > 0
+        ? `Geliştirilecek ana alanlar: ${res.data.suggestions.slice(0, 2).join(', ')}`
+        : res.data.weaknesses && res.data.weaknesses.length > 0
+          ? `İyileştirme gereken alanlar: ${res.data.weaknesses.slice(0, 2).join(', ')}`
+          : 'CV\'niz genel olarak iyi durumda, bazı ince ayarlarla daha da güçlenebilir.';
+
+      setConversation(prev => [...prev, { type: 'ai', text: `${t('cvScore', { score: res.data.overall || res.data.score })} ${improvementComment}` }]);
     } catch (err) {
       // ignore scoring errors
     }

@@ -794,29 +794,36 @@ SCORING APPROACH:
 - 60-69: Adequate candidate, significant gaps to address
 - Below 60: Requires major restructuring
 
-ANALYSIS FOCUS:
-- What would make recruiters say YES immediately?
-- What critical gaps might cause rejection?
-- How can this candidate stand out from competition?
-- What specific numbers/metrics are missing?
+ANALYSIS FOCUS (prioritize improvement opportunities):
+- What are the MOST CRITICAL gaps that could cause rejection?
+- Which missing achievements/metrics would have highest impact?
+- What specific improvements would boost this CV from good to exceptional?
+- Which areas need immediate attention to compete in today's market?
+- What quantifiable results are completely missing?
+
+FEEDBACK PRIORITY:
+1. Focus primarily on actionable improvements (60% of analysis)
+2. Identify specific weaknesses with clear solutions (30% of analysis)  
+3. Acknowledge strengths briefly (10% of analysis)
 
 JSON RESPONSE FORMAT ONLY:
 {
   "overall": 85,
   "strengths": [
-    "Strong technical skill diversity with modern frameworks",
-    "Multiple project examples demonstrating practical application",
-    "Good educational foundation in relevant field"
+    "Güçlü teknik beceri çeşitliliği",
+    "Pratik proje deneyimi"
   ],
   "weaknesses": [
-    "Lacks quantified achievements and business impact metrics",
-    "Missing specific project outcomes and results",
-    "No leadership or collaboration examples provided"
+    "Sayısal başarılar ve iş etkisi metrikleri eksik",
+    "Proje sonuçları ve somut çıktılar belirtilmemiş", 
+    "Liderlik ve ekip çalışması örnekleri yok",
+    "Kariyer gelişimi ve artan sorumluluklar vurgulanmamış"
   ],
   "suggestions": [
-    "Add specific metrics: 'Improved performance by X%' or 'Managed projects worth $X'",
-    "Include team size managed or collaboration scope in project descriptions",
-    "Highlight any awards, recognitions, or standout accomplishments"
+    "Her proje için spesifik rakamlar ekleyin: '%X performans artışı' veya '$X değerinde proje yönettim'",
+    "Yönettiğiniz ekip büyüklüğü ve işbirliği kapsamını proje açıklamalarına dahil edin",
+    "Ödüller, takdirler veya öne çıkan başarılarınızı vurgulayın",
+    "Teknolojilerin iş süreçlerine katkısını somut örneklerle açıklayın"
   ]
 }
 
