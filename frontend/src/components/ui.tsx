@@ -1,6 +1,7 @@
 import React from "react"
 import { motion } from "framer-motion"
 import { theme } from "../theme"
+import { buttonVariants, buttonSizes, cx } from "../lib/ui-helpers"
 
 // Container Component
 interface ContainerProps {
@@ -137,7 +138,7 @@ export const Card: React.FC<CardProps> = ({
 // Button Component
 interface ButtonProps {
   children: React.ReactNode
-  variant?: "primary" | "ghost" | "secondary"
+  variant?: "primary" | "ghost" | "secondary" | "danger"
   size?: "sm" | "md" | "lg"
   loading?: boolean
   className?: string
@@ -156,46 +157,6 @@ export const Button: React.FC<ButtonProps> = ({
   onClick,
   type = "button"
 }) => {
-  const baseClasses = `
-    inline-flex items-center justify-center font-semibold relative overflow-hidden
-    ${theme.radius.lg} 
-    ${theme.transitions.smooth}
-    focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2
-    disabled:opacity-40 disabled:cursor-not-allowed
-    group
-  `
-
-  const variantClasses = {
-    primary: `
-      ${theme.colors.primary.gradient}
-      ${theme.colors.primary.gradientHover}
-      ${theme.colors.text.inverse} 
-      ${theme.shadows.glow}
-      hover:${theme.shadows.glowHover}
-    `,
-    ghost: `
-      ${theme.colors.text.secondary} 
-      ${theme.colors.subtle.hover}
-      hover:${theme.colors.text.primary}
-      hover:bg-slate-100/50 dark:hover:bg-slate-800/50
-    `,
-    secondary: `
-      ${theme.colors.surface.card}
-      ${theme.colors.subtle.border} 
-      border 
-      ${theme.colors.text.primary} 
-      hover:${theme.colors.subtle.hover}
-      ${theme.shadows.subtle} 
-      hover:${theme.shadows.soft}
-    `
-  }
-
-  const sizeClasses = {
-    sm: "px-4 py-2 text-sm gap-2",
-    md: "px-6 py-3 text-sm gap-2",
-    lg: "px-8 py-4 text-base gap-3"
-  }
-
   return (
     <motion.button
       whileHover={{
@@ -204,12 +165,7 @@ export const Button: React.FC<ButtonProps> = ({
       }}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 17 }}
-      className={`
-        ${baseClasses}
-        ${variantClasses[variant]}
-        ${sizeClasses[size]}
-        ${className}
-      `}
+      className={cx(buttonVariants(variant), buttonSizes(size), className)}
       disabled={disabled || loading}
       onClick={onClick}
       type={type}
@@ -225,7 +181,10 @@ export const Button: React.FC<ButtonProps> = ({
       )}
 
       <motion.div
-        className={`flex items-center ${loading ? "opacity-0" : "opacity-100"}`}
+        className={cx("flex items-center", {
+          "opacity-0": loading,
+          "opacity-100": !loading
+        })}
         transition={{ duration: 0.2 }}
       >
         {children}

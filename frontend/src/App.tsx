@@ -17,6 +17,7 @@ import { AriaLiveProvider } from "./components/AriaLive"
 import { SettingsProvider, SettingsButton } from "./components/SettingsDrawer"
 import ResetAllButton from "./components/ResetAllButton"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { motionPresets } from "./lib/ui-helpers"
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -31,10 +32,7 @@ const queryClient = new QueryClient({
 // Page Components with modern design
 const HomePage: React.FC = () => (
   <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.6 }}
+    {...motionPresets.fadeIn(0.2)}
     className={`min-h-screen relative ${theme.colors.background.primary} ${theme.spacing.section}`}
   >
     <Container className="text-center relative">
@@ -66,12 +64,7 @@ const HomePage: React.FC = () => (
         <div className="absolute top-2/3 left-1/2 w-32 h-32 bg-pink-500/5 rounded-full blur-2xl" />
       </motion.div>
 
-      <motion.div
-        initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
-        className="relative z-10"
-      >
+      <motion.div {...motionPresets.slideUp(0.2, 40)} className="relative z-10">
         {/* Hero icon with gradient */}
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
@@ -93,9 +86,7 @@ const HomePage: React.FC = () => (
 
         {/* Main heading with gradient text */}
         <motion.h1
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
+          {...motionPresets.slideUp(0.6, 30)}
           className={`text-5xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem] mb-6 ${theme.typography.brand.primary} ${theme.typography.brand.gradient} ${theme.typography.brand.glow}`}
           style={{
             fontFamily:
@@ -123,9 +114,7 @@ const HomePage: React.FC = () => (
 
         {/* Subtitle */}
         <motion.p
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.8 }}
+          {...motionPresets.slideUp(0.8, 30)}
           className={`text-xl md:text-2xl lg:text-3xl xl:text-4xl mb-12 max-w-5xl mx-auto leading-relaxed ${theme.colors.text.secondary}`}
         >
           Create professional resumes with the power of AI. Upload your existing
@@ -135,9 +124,7 @@ const HomePage: React.FC = () => (
 
         {/* CTA Buttons */}
         <motion.div
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1, duration: 0.8 }}
+          {...motionPresets.slideUp(1.0, 40)}
           className="flex flex-col sm:flex-row gap-6 justify-center items-center"
         >
           <Link to="/wizard?upload=true">
@@ -163,9 +150,7 @@ const HomePage: React.FC = () => (
 
         {/* Features preview */}
         <motion.div
-          initial={{ y: 60, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.8 }}
+          {...motionPresets.slideUp(1.2, 60)}
           className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
         >
           {[
@@ -187,9 +172,7 @@ const HomePage: React.FC = () => (
           ].map((feature, i) => (
             <motion.div
               key={i}
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1.4 + i * 0.1, duration: 0.6 }}
+              {...motionPresets.slideUp(1.4 + i * 0.1, 30)}
               className={`${theme.colors.surface.card} ${theme.radius.lg} ${theme.spacing.lg} text-center group hover:scale-105 ${theme.transitions.smooth}`}
             >
               <div className="text-4xl mb-4">{feature.icon}</div>
@@ -211,10 +194,7 @@ const HomePage: React.FC = () => (
 
 const WizardPage: React.FC = () => (
   <motion.div
-    initial={{ opacity: 0, x: 100 }}
-    animate={{ opacity: 1, x: 0 }}
-    exit={{ opacity: 0, x: -100 }}
-    transition={{ duration: 0.3 }}
+    {...motionPresets.slideRight(0, 100)}
     className={`${theme.spacing.section}`}
   >
     <Container>
@@ -242,10 +222,7 @@ const WizardPage: React.FC = () => (
 
 const PreviewPage: React.FC = () => (
   <motion.div
-    initial={{ opacity: 0, scale: 0.95 }}
-    animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 1.05 }}
-    transition={{ duration: 0.3 }}
+    {...motionPresets.scaleIn(0)}
     className={`${theme.spacing.section}`}
   >
     <Container>
@@ -383,9 +360,7 @@ const PageTransition: React.FC<{ children: React.ReactNode }> = ({
   return (
     <motion.div
       className="min-h-screen flex flex-col"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
+      {...motionPresets.fadeIn(0)}
     >
       {children}
     </motion.div>

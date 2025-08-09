@@ -10,9 +10,29 @@ const PORT = process.env.PORT || 4000
 
 // Middleware setup
 app.use(helmet())
+
+// CORS configuration for multiple origins
+const allowedOrigins = [
+  'http://localhost:3000', // Local development
+  'https://cvbuilderwithai.vercel.app', // Production frontend
+  process.env.FRONTEND_URL // Additional environment-specific URL
+].filter(Boolean) // Remove any undefined values
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true)
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`)
+      return callback(new Error('Not allowed by CORS'), false)
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }))
 
 // Rate limiting - 60 requests per minute
@@ -101,6 +121,147 @@ function asyncHandler(fn) {
 }
 
 // API Routes
+
+// Extract raw text endpoint (alias for parse)
+app.post('/api/extract-raw', asyncHandler(async (req, res) => {
+  const validation = parseSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Invalid input',
+      details: validation.error.errors
+    })
+  }
+
+  const { rawText, template } = validation.data
+
+  // If no rawText provided, return empty skeleton
+  if (!rawText || rawText.trim() === '') {
+    const emptySkeleton = {
+      personalInfo: {
+        name: "",
+        email: "",
+        phone: "",
+        location: ""
+      },
+      summary: "",
+      experience: [],
+      education: [],
+      skills: [],
+      projects: [],
+      links: [],
+      certificates: [],
+      languages: [],
+      references: []
+    }
+    return res.json(emptySkeleton)
+  }
+
+  const systemPrompt = `You are an expert CV parser. Extract structured information from raw CV text and return it as JSON.
+
+REQUIRED JSON STRUCTURE (follow this exact format):
+{
+  "personalInfo": {
+    "name": "string",
+    "email": "string", 
+    "phone": "string",
+    "location": "string"
+  },
+  "summary": "string",
+  "experience": [
+    {
+      "title": "string",
+      "company": "string", 
+      "location": "string",
+      "start": "YYYY-MM or YYYY",
+      "end": "YYYY-MM or YYYY or Present",
+      "bullets": ["bullet point 1", "bullet point 2"]
+    }
+  ],
+  "education": [
+    {
+      "degree": "string",
+      "institution": "string",
+      "location": "string", 
+      "start": "YYYY-MM or YYYY",
+      "end": "YYYY-MM or YYYY",
+      "gpa": "string (optional)"
+    }
+  ],
+  "skills": [
+    {
+      "name": "string",
+      "category": "Programming|Tools|Frameworks|Languages|Soft Skills|Other",
+      "level": "Beginner|Intermediate|Advanced|Expert"
+    }
+  ],
+  "projects": [
+    {
+      "name": "string",
+      "description": "string",
+      "technologies": ["tech1", "tech2"],
+      "url": "string (optional)",
+      "start": "YYYY-MM or YYYY (optional)",
+      "end": "YYYY-MM or YYYY (optional)"
+    }
+  ],
+  "links": [
+    {
+      "type": "LinkedIn|GitHub|Portfolio|Website|Other",
+      "url": "string",
+      "label": "string"
+    }
+  ],
+  "certificates": ["string"],
+  "languages": [
+    {
+      "language": "string",
+      "proficiency": "Native|Fluent|Advanced|Intermediate|Beginner"
+    }
+  ],
+  "references": [
+    {
+      "name": "string",
+      "contact": "string",
+      "relationship": "string"
+    }
+  ]
+}
+
+EXTRACTION RULES:
+1. Extract ONLY information clearly present in the text
+2. Normalize dates to YYYY-MM format (or just YYYY if month unknown)
+3. Split job descriptions into bullet points
+4. Categorize skills appropriately 
+5. Clean formatting and remove extra whitespace
+6. If a section has no data, include it as empty array/object
+7. Use "Present" for current positions
+8. Return ONLY valid JSON, no explanations or markdown`
+
+  const userPrompt = `Parse this CV text and extract structured information:
+
+${rawText}
+
+If the input is empty or contains no useful CV information, return an empty skeleton with all fields present but empty arrays/strings.
+
+Return ONLY the JSON object following the exact structure specified in the system prompt.`
+
+  try {
+    const result = await callOpenAI([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ], 3000)
+
+    const parsedData = JSON.parse(result)
+    console.log('CV parsed successfully via extract-raw endpoint')
+    res.json(parsedData)
+  } catch (error) {
+    console.error('Parse CV error (extract-raw):', error)
+    res.status(500).json({
+      error: 'Failed to parse CV',
+      message: error.message
+    })
+  }
+}))
 
 // Parse CV endpoint
 app.post('/api/ai/parse', asyncHandler(async (req, res) => {
