@@ -422,8 +422,8 @@ function App() {
 
   // Enhanced background style helper with intensity levels
   const getChatBackgroundStyle = useCallback((intensity = 'normal') => {
-    // If custom background image exists, always use it
-    if (customBackgroundImage) {
+    // If 'custom' theme is selected and an image exists, use it
+    if (chatBackground === 'custom' && customBackgroundImage) {
       return `url(${customBackgroundImage})`;
     }
 
@@ -604,9 +604,14 @@ function App() {
 
       // Wait for typing effect, then show message
       setTimeout(async () => {
-        setConversation([{ type: 'ai', text: tApp(queue[0].key) }]);
+        const nextQuestion = queue[0];
+        setConversation([{ type: 'ai', text: tApp(nextQuestion.key) }]);
+        // Show choices AFTER the question is rendered
+        if (nextQuestion.isMultipleChoice) {
+          // No special action needed here, choices are rendered based on questionQueue
+        }
         setTimeout(playMessageSound, 100);
-      }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
+      }, 800 + Math.random() * 500); // 0.8-1.3 seconds
     } else {
       debugLog('Queue is empty, calling fetchAiQuestions with data:', data);
       fetchAiQuestions(data); // Script'li soruya gerek yoksa direkt Adım 2'ye geç
@@ -716,21 +721,20 @@ function App() {
 
         // Wait for typing effect, then show message
         setTimeout(() => {
+          const nextQuestion = aiQuestions[0];
           setConversation(prev => {
             const newConversation = prev.filter(msg => msg.type !== 'typing');
-            return [...newConversation, { type: 'ai', text: aiQuestions[0].key }];
+            return [...newConversation, { type: 'ai', text: nextQuestion.key }];
           });
+          // Choices will render with the question
           setTimeout(playMessageSound, 100);
-        }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
+        }, 800 + Math.random() * 500); // 0.8-1.3 seconds
       } else {
         setCanRefine(false);
-        setConversation(prev => [
-          ...prev,
-          { type: 'ai', text: t('noContentError') },
-          { type: 'ai', text: t('finalMessage') }
-        ]);
-        setStep('review');
-        scoreCv(cvData);
+        // Wait before showing final message to let user read the last answer
+        setTimeout(() => {
+          scoreCv(cvData); // This will add the final combined message
+        }, 1000);
       }
     } catch (err) {
       setError(err.response?.data?.message || t('chatError'));
@@ -840,31 +844,25 @@ function App() {
 
       // Wait for typing effect, then show message
       setTimeout(() => {
+        const nextQuestion = remainingQuestions[0];
         setConversation(prev => {
           const filteredConversation = prev.filter(msg => msg.type !== 'typing');
-          return [...filteredConversation, { type: 'ai', text: t(remainingQuestions[0].key) }];
+          return [...filteredConversation, { type: 'ai', text: t(nextQuestion.key) }];
         });
         setTimeout(playMessageSound, 100);
-      }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
+      }, 800 + Math.random() * 500); // 0.8-1.3 seconds
     } else {
       if (step === 'scriptedQuestions') {
         // Show typing indicator immediately when scripted questions end
         setConversation([...newConversation, { type: 'typing' }]);
         fetchAiQuestions(updatedCvData);
       } else {
-        // Show typing indicator first
-        setConversation([...newConversation, { type: 'typing' }]);
-
-        // Wait for typing effect, then show message
+        // All AI questions answered, move to review
+        setConversation([...newConversation]);
+        // Wait before scoring
         setTimeout(() => {
-          setConversation(prev => {
-            const filteredConversation = prev.filter(msg => msg.type !== 'typing');
-            return [...filteredConversation, { type: 'ai', text: t('finalMessage') }];
-          });
-          setTimeout(playMessageSound, 100);
-        }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
-        setStep('review');
-        scoreCv(updatedCvData);
+          scoreCv(updatedCvData); // This will add the final combined message
+        }, 1000);
       }
     }
   };
@@ -908,32 +906,27 @@ function App() {
       debugLog('scoreCv called with data:', data);
       if (!data || Object.keys(data).length === 0) {
         debugLog('scoreCv: Invalid data, skipping...');
+        setStep('review'); // Still move to review step
         return;
       }
       const res = await axios.post(`${API_BASE_URL}/api/ai/score`, { cvData: data, appLanguage: i18n.language });
       debugLog('Score Response:', res.data);
-      setCvScore(res.data.overall || res.data.score);
-      // Backend returns {overall, strengths, weaknesses, suggestions} format
-      // Focus on improvement areas rather than just strengths
-      const improvementComment = res.data.suggestions && res.data.suggestions.length > 0
-        ? 'Bazı alanlarda gelişim fırsatları mevcut.'
-        : res.data.weaknesses && res.data.weaknesses.length > 0
-          ? 'Çeşitli konularda iyileştirme yapılabilir.'
-          : 'CV\'niz genel olarak iyi durumda.';
+      const score = res.data.overall || res.data.score;
+      setCvScore(score);
 
-      // Show typing indicator first
-      setConversation(prev => [...prev, { type: 'typing' }]);
+      const finalMessage = `**CV Analiziniz Tamamlandı! Puanınız: ${score}/100**\n\n${res.data.suggestions.join(' ')}\n\nHazırsanız CV'nizi oluşturalım veya birlikte mükemmelleştirelim.`;
 
-      // Wait for typing effect, then show message
-      setTimeout(() => {
-        setConversation(prev => {
-          const filteredConversation = prev.filter(msg => msg.type !== 'typing');
-          return [...filteredConversation, { type: 'ai', text: `${t('cvScore', { score: res.data.overall || res.data.score })} ${improvementComment}` }];
-        });
-        setTimeout(playMessageSound, 100);
-      }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
+      setConversation(prev => {
+        const newConversation = prev.filter(msg => msg.type !== 'typing');
+        return [...newConversation, { type: 'ai', text: finalMessage }];
+      });
+      setStep('review');
+      setTimeout(playMessageSound, 100);
+
     } catch (err) {
-      // ignore scoring errors
+      errorLog('Scoring error:', err);
+      setConversation(prev => [...prev, { type: 'ai', text: t('finalMessage') }]);
+      setStep('review');
     }
   };
 
@@ -1021,7 +1014,7 @@ function App() {
 
   const handleRefine = () => {
     if (!cvData) return;
-    setConversation(prev => [...prev, { type: 'user', text: t('improveButton') }]);
+    setConversation(prev => [...prev, { type: 'user', text: t('improveButton') }, { type: 'typing' }]);
     fetchAiQuestions(cvData, 2);
   };
 
@@ -1037,35 +1030,65 @@ function App() {
     try {
       const preparedData = applyUserAdditions(JSON.parse(JSON.stringify(cvData)));
 
-      // Kullanıcının girdiği metinden şirket ve pozisyon bilgilerini çıkar
-      const userInput = currentAnswer.toLowerCase();
+      // --- Improved Company and Position Extraction ---
+      const userInput = currentAnswer.trim();
       let extractedCompany = '';
       let extractedPosition = '';
 
-      // Basit keyword extraction
-      if (userInput.includes('google') || userInput.includes('microsoft') || userInput.includes('apple') || userInput.includes('amazon')) {
-        const companies = ['google', 'microsoft', 'apple', 'amazon'];
-        for (const company of companies) {
-          if (userInput.includes(company)) {
-            extractedCompany = company.charAt(0).toUpperCase() + company.slice(1);
-            break;
+      const positionKeywords = [
+        'yazılım mühendisi', 'software engineer', 'yazılım geliştirici', 'software developer',
+        'kıdemli yazılım mühendisi', 'senior software engineer', 'geliştirici', 'developer',
+        'proje müdürü', 'project manager', 'ürün müdürü', 'product manager',
+        'müdür', 'manager', 'uzman', 'specialist', 'analist', 'analyst',
+        'veri bilimci', 'data scientist', 'veri analisti', 'data analyst',
+        'tasarımcı', 'designer', 'ui/ux designer', 'ui/ux tasarımcısı',
+        'mimar', 'architect', 'yönetici', 'director', 'ceo', 'cto', 'cfo',
+        'stajyer', 'intern', 'danışman', 'consultant'
+      ];
+
+      let foundPosition = '';
+      // Find the longest matching position keyword
+      for (const pos of positionKeywords) {
+        if (userInput.toLowerCase().includes(pos)) {
+          if (pos.length > foundPosition.length) {
+            foundPosition = pos;
           }
         }
       }
 
-      if (userInput.includes('developer') || userInput.includes('manager') || userInput.includes('engineer') || userInput.includes('designer')) {
-        const positions = ['developer', 'manager', 'engineer', 'designer'];
-        for (const position of positions) {
-          if (userInput.includes(position)) {
-            extractedPosition = position.charAt(0).toUpperCase() + position.slice(1);
-            break;
-          }
+      if (foundPosition) {
+        extractedPosition = foundPosition;
+        const companyRegex = new RegExp(foundPosition, 'i');
+        extractedCompany = userInput.replace(companyRegex, '').trim();
+
+        // Clean up company name from common suffixes
+        extractedCompany = extractedCompany.replace(/(şirketi|şirket|a\.ş\.|ltd\.|şti\.|as\.|inc\.)/gi, '').trim();
+
+      } else {
+        // Fallback if no keyword is found
+        const words = userInput.split(' ');
+        if (words.length > 2) {
+          extractedPosition = words.slice(-2).join(' ');
+          extractedCompany = words.slice(0, -2).join(' ');
+        } else if (words.length === 2) {
+          extractedPosition = words[1];
+          extractedCompany = words[0];
+        } else {
+          extractedCompany = userInput;
         }
       }
 
-      // State'leri güncelle
-      if (extractedCompany) setCompanyName(extractedCompany);
-      if (extractedPosition) setPositionName(extractedPosition);
+      // Capitalize for better presentation and update state
+      const capitalize = (str) => str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+      if (extractedPosition) {
+        extractedPosition = capitalize(extractedPosition);
+        setPositionName(extractedPosition);
+      }
+      if (extractedCompany) {
+        extractedCompany = capitalize(extractedCompany);
+        setCompanyName(extractedCompany);
+      }
 
       const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/ai/coverletter`, {
         cvData: preparedData,
@@ -1538,12 +1561,27 @@ function App() {
     );
   };
 
-  // Custom Image Modal
+  // Custom Image Modal - Completely Redesigned for a spectacular look and feel
   const CustomImageModal = () => {
     const [previewImage, setPreviewImage] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [statusText, setStatusText] = useState('');
+    // 'upload' or 'url' to show the relevant input
+    const [inputMode, setInputMode] = useState(null);
+
+    useEffect(() => {
+      // Reset state when modal is closed
+      if (!showCustomImageModal) {
+        setPreviewImage(null);
+        setIsLoading(false);
+        setUploadProgress(0);
+        setStatusText('');
+        setInputMode(null);
+        setCustomImageUrl('');
+        setUploadError('');
+      }
+    }, [showCustomImageModal]);
 
     if (!showCustomImageModal) return null;
 
@@ -1552,15 +1590,16 @@ function App() {
       if (!file) return;
 
       if (!file.type.startsWith('image/')) {
-        setUploadError('Please select a valid image file');
+        setUploadError('Please select a valid image file.');
         return;
       }
 
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setUploadError('Image size must be less than 5MB');
+        setUploadError('Image size must be less than 5MB.');
         return;
       }
 
+      setUploadError('');
       const reader = new FileReader();
       setStatusText('Reading file...');
       setUploadProgress(5);
@@ -1572,9 +1611,8 @@ function App() {
       };
       reader.onload = (e) => {
         setPreviewImage(e.target.result);
-        setUploadError('');
         setUploadProgress(100);
-        setStatusText('Preview ready');
+        setStatusText('Preview ready. Click Apply to save.');
       };
       reader.readAsDataURL(file);
     };
@@ -1587,27 +1625,24 @@ function App() {
       setStatusText('Fetching image...');
       setUploadProgress(10);
 
-      // Basic URL validation
       try {
         new URL(customImageUrl);
-
-        // Test if image loads
         const img = new Image();
         img.onload = () => {
           setPreviewImage(customImageUrl);
           setIsLoading(false);
           setUploadProgress(100);
-          setStatusText('Preview ready');
+          setStatusText('Preview ready. Click Apply to save.');
         };
         img.onerror = () => {
-          setUploadError('Could not load image from URL');
+          setUploadError('Could not load image from URL.');
           setIsLoading(false);
           setStatusText('');
           setUploadProgress(0);
         };
         img.src = customImageUrl;
       } catch {
-        setUploadError('Please enter a valid image URL');
+        setUploadError('Please enter a valid image URL.');
         setIsLoading(false);
         setStatusText('');
         setUploadProgress(0);
@@ -1619,115 +1654,85 @@ function App() {
         setCustomBackgroundImage(previewImage);
         setChatBackground('custom');
         setShowCustomImageModal(false);
-        setPreviewImage(null);
-        setUploadError('');
-        setCustomImageUrl('');
       }
     };
 
     const handleRemoveCurrent = () => {
-      setCustomBackgroundImage(null);
-      setChatBackground('default');
-      setPreviewImage(null);
-      setUploadError('');
-      setCustomImageUrl('');
+      setCustomBackgroundImage('');
+      setChatBackground('pattern2'); // Revert to a default
+      setShowCustomImageModal(false);
     };
+
+    const backgroundToShow = previewImage || customBackgroundImage || 'none';
 
     return (
       <div className="modal-overlay show" onClick={() => setShowCustomImageModal(false)}>
-        <div className="modal-content ios-custom-image-modal" onClick={e => e.stopPropagation()}>
-          <div className="ios-header">
-            <h3>Custom Background Image</h3>
-            <button className="ios-close" onClick={() => setShowCustomImageModal(false)}>✕</button>
-          </div>
-
-          <div className="ios-live-preview" style={{ backgroundImage: `url(${previewImage || customBackgroundImage || ''})` }}></div>
-
-          <div className="custom-image-options">
-            <div className="tab-switch">
-              <button className={`tab-btn ${customImageMode === 'upload' ? 'active' : ''}`} onClick={() => setCustomImageMode('upload')}>Upload</button>
-              <button className={`tab-btn ${customImageMode === 'url' ? 'active' : ''}`} onClick={() => setCustomImageMode('url')}>Image URL</button>
+        <div
+          className="modal-content spectacular-custom-image-modal"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="spectacular-bg-preview" style={{ backgroundImage: `url(${backgroundToShow})` }}>
+            <div className="spectacular-header">
+              <h3>Application Theme</h3>
+              <button className="spectacular-close" onClick={() => setShowCustomImageModal(false)}>✕</button>
             </div>
-            {/* Current Custom Image Preview */}
-            {customBackgroundImage && (
-              <div className="option-section current-image-section">
-                <h4>🎨 Current Custom Image</h4>
-                <div className="current-image-preview" style={{ backgroundImage: `url(${customBackgroundImage})` }}>
-                  <div className="current-image-overlay">
-                    <span>Current Background</span>
-                  </div>
+
+            <div className="spectacular-status-overlay">
+              {isLoading && <span>{statusText}</span>}
+              {uploadProgress > 0 && uploadProgress < 100 &&
+                <div className="spectacular-progress-bar">
+                  <div style={{ width: `${uploadProgress}%` }}></div>
                 </div>
-                <button onClick={handleRemoveCurrent} className="remove-button">
-                  Remove Current Image
-                </button>
-              </div>
-            )}
+              }
+              {statusText && !isLoading && <span className="spectacular-status-text">{statusText}</span>}
+            </div>
 
-            {/* Image Upload Section */}
-            {customImageMode === 'upload' && (
-              <div className="option-section compact">
-                <h4>📁 Upload Image</h4>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="file-input"
-                  id="background-upload"
-                />
-                <label htmlFor="background-upload" className="upload-button">Choose Image</label>
-                <div className="upload-progress"><div className="bar" style={{ width: `${uploadProgress}%` }}></div></div>
-                {statusText && <div className="upload-status">{statusText}</div>}
-              </div>
-            )}
-
-            <div className="option-divider">or</div>
-
-            {/* URL Input Section */}
-            {customImageMode === 'url' && (
-              <div className="option-section compact">
-                <h4>🌐 Image URL</h4>
-                <div className="url-input-group">
+            <div className="spectacular-controls-container">
+              {inputMode === 'url' && !previewImage && (
+                <div className="spectacular-url-input-container">
                   <input
                     type="url"
-                    placeholder="https://example.com/image.jpg"
+                    placeholder="Paste image URL here"
                     value={customImageUrl}
                     onChange={(e) => setCustomImageUrl(e.target.value)}
-                    className="url-input"
+                    className="spectacular-url-input"
+                    autoFocus
                   />
-                  <button
-                    onClick={handleUrlSubmit}
-                    className="url-submit-btn"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Loading...' : 'Preview'}
+                  <button onClick={handleUrlSubmit} className="spectacular-control-button" disabled={isLoading}>
+                    {isLoading ? 'Loading...' : 'Preview URL'}
                   </button>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Preview Section */}
-            {previewImage && (
-              <div className="option-section preview-section">
-                <h4>👁️ Preview</h4>
-                <div className="image-preview" style={{ backgroundImage: `url(${previewImage})` }}>
-                  <div className="preview-overlay">
-                    <span>Preview</span>
-                  </div>
+              {previewImage ? (
+                <div className="spectacular-actions">
+                  <button onClick={handleApplyImage} className="spectacular-control-button apply">Apply Theme</button>
+                  <button onClick={() => setPreviewImage(null)} className="spectacular-control-button cancel">Cancel</button>
                 </div>
-                <div className="preview-actions">
-                  <button onClick={handleApplyImage} className="apply-button">
-                    Apply Upload
+              ) : (
+                <div className="spectacular-actions">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    id="spectacular-file-upload"
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="spectacular-file-upload" className="spectacular-control-button">
+                    Upload from Device
+                  </label>
+                  <button onClick={() => setInputMode('url')} className="spectacular-control-button">
+                    Use Image from URL
                   </button>
-                  <button onClick={() => setPreviewImage(null)} className="cancel-button">
-                    Cancel
-                  </button>
+                  {customBackgroundImage && (
+                    <button onClick={handleRemoveCurrent} className="spectacular-control-button remove">
+                      Remove Custom Image
+                    </button>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {uploadError && (
-              <div className="upload-error">{uploadError}</div>
-            )}
+              )}
+            </div>
+            {uploadError && <div className="spectacular-upload-error">{uploadError}</div>}
           </div>
         </div>
       </div>
@@ -1738,6 +1743,18 @@ function App() {
     // Local staging state to avoid global reflows/flicker until Apply
     const [tempCategory, setTempCategory] = useState(backgroundCategory);
     const [tempBackground, setTempBackground] = useState(chatBackground);
+    const hoverTimeoutRef = useRef(null);
+
+    const handleMouseEnterWithDelay = (callback) => {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = setTimeout(() => {
+        callback();
+      }, 1000);
+    };
+
+    const handleMouseLeave = () => {
+      clearTimeout(hoverTimeoutRef.current);
+    };
 
     useEffect(() => {
       if (showBackgroundSelector) {
@@ -1775,11 +1792,6 @@ function App() {
         { id: 'warm1', name: 'Sunset', preview: 'ios-bg-warm1' },
         { id: 'warm2', name: 'Fire', preview: 'ios-bg-warm2' }
       ],
-      custom: [
-        { id: 'upload', name: 'Upload Image', preview: 'ios-bg-upload' },
-        { id: 'url', name: 'Image URL', preview: 'ios-bg-url' },
-        { id: 'current', name: 'Current Custom', preview: 'ios-bg-custom-current' }
-      ]
     };
 
     const defaultsByCategory = {
@@ -1846,20 +1858,46 @@ function App() {
           {/* Canlı Tema Önizlemesi */}
           <div
             className="ios-live-preview"
-            style={{
+          >
+            <div className="live-preview-half light" style={{
               backgroundImage: previewStyle,
               backgroundSize: tempBackground.startsWith('pattern') ? '20px 20px' : 'cover',
               backgroundRepeat: tempBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
               backgroundPosition: 'center'
-            }}
-          />
+            }}>
+              <span className="preview-text">Light</span>
+            </div>
+            <div className="live-preview-half dark" style={{
+              backgroundImage: previewStyle,
+              backgroundSize: tempBackground.startsWith('pattern') ? '20px 20px' : 'cover',
+              backgroundRepeat: tempBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
+              backgroundPosition: 'center'
+            }}>
+              <span className="preview-text">Dark</span>
+            </div>
+          </div>
 
           <div className="ios-bg-categories">
             {categories.map((category) => (
               <button
                 key={category.id}
                 className={`ios-category-item ${tempCategory === category.id ? 'active' : ''}`}
-                onClick={() => handleTempCategorySelect(category.id)}
+                onClick={() => {
+                  if (category.id === 'custom') {
+                    setShowCustomImageModal(true);
+                    setShowBackgroundSelector(false);
+                  } else {
+                    handleTempCategorySelect(category.id);
+                  }
+                }}
+                onMouseEnter={() => handleMouseEnterWithDelay(() => {
+                  if (category.id !== 'custom') {
+                    handleTempCategorySelect(category.id);
+                  } else {
+                    setTempCategory('custom');
+                  }
+                })}
+                onMouseLeave={handleMouseLeave}
               >
                 <div className="ios-category-icon">{category.icon}</div>
                 <div className="ios-category-info">
@@ -1871,25 +1909,57 @@ function App() {
           </div>
 
           <div className="ios-bg-options">
-            {backgroundOptions[tempCategory]?.map((bg) => (
-              <button
-                key={bg.id}
-                className={`ios-bg-option ${tempBackground === bg.id || (['upload', 'url'].includes(bg.id) && tempBackground === 'custom') ? 'active' : ''}`}
-                onClick={() => {
-                  if (bg.id === 'upload' || bg.id === 'url') {
-                    setCustomImageMode(bg.id);
+            {tempCategory === 'custom' ? (
+              <div className="custom-actions-container">
+                {customBackgroundImage && (
+                  <>
+                    <button
+                      className="ios-bg-option"
+                      onMouseEnter={() => handleMouseEnterWithDelay(() => setTempBackground('custom'))}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <div className="ios-bg-preview-mini" style={{ backgroundImage: `url(${customBackgroundImage})`, backgroundSize: 'cover' }}></div>
+                      <div className="ios-bg-name">Preview Current</div>
+                    </button>
+                    <button
+                      className="ios-bg-option"
+                      onClick={() => {
+                        setCustomBackgroundImage('');
+                        setChatBackground('pattern2');
+                        setTempBackground('pattern2');
+                        setTempCategory('patterns');
+                      }}
+                    >
+                      <div className="ios-bg-preview-mini delete-icon">🗑️</div>
+                      <div className="ios-bg-name">Delete</div>
+                    </button>
+                  </>
+                )}
+                <button
+                  className="ios-bg-option"
+                  onClick={() => {
                     setShowCustomImageModal(true);
-                  } else if (bg.id === 'current' && customBackgroundImage) {
-                    setTempBackground('custom');
-                  } else {
-                    setTempBackground(bg.id);
-                  }
-                }}
-              >
-                <div className={`ios-bg-preview-mini ${bg.preview}`}></div>
-                <div className="ios-bg-name">{bg.name}</div>
-              </button>
-            ))}
+                    setShowBackgroundSelector(false);
+                  }}
+                >
+                  <div className="ios-bg-preview-mini ios-bg-upload"></div>
+                  <div className="ios-bg-name">Set New Image</div>
+                </button>
+              </div>
+            ) : (
+              backgroundOptions[tempCategory]?.map((bg) => (
+                <button
+                  key={bg.id}
+                  className={`ios-bg-option ${tempBackground === bg.id ? 'active' : ''}`}
+                  onClick={() => setTempBackground(bg.id)}
+                  onMouseEnter={() => handleMouseEnterWithDelay(() => setTempBackground(bg.id))}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  <div className={`ios-bg-preview-mini ${bg.preview}`}></div>
+                  <div className="ios-bg-name">{bg.name}</div>
+                </button>
+              ))
+            )}
           </div>
 
           <div className="ios-bg-options" style={{ paddingTop: 0 }}>

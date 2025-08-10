@@ -1,0 +1,44 @@
+.ios-bg-option {
+  padding: 8px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: var(--background-secondary-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: calc(33.333% - 8px);
+}
+
+.ios-bg-option:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 122, 255, 0.5);
+}
+
+.ios-bg-option.active {
+  border-color: #007aff;
+  box-shadow: 0 0 0 2px #007aff;
+}
+
+.ios-bg-preview-mini {
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.ios-bg-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.ios-control-center .ios-single-control {
+  background: rgba(255, 255, 255, 0.9) !important;
+  opacity: 1 !important;
+}
+
+.dark .ios-control-center .ios-single-control {
+  background: rgba(58, 58, 60, 0.9) !important;
+}

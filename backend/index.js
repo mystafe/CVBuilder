@@ -852,60 +852,30 @@ app.post('/api/ai/score', asyncHandler(async (req, res) => {
     })
   }
 
-  const systemPrompt = `You are a senior recruiting manager and CV optimization expert. Evaluate this CV as if you're reviewing it for a competitive role.
+  // Yanıtları AI'dan al
+  const systemPrompt = `You are a brutally honest, world-class CV assessment expert. Your task is to analyze the provided CV data (in JSON format) and give a brutally honest score out of 100. You must provide your response in valid JSON format. The user's application language is ${appLanguage}.
 
-${appLanguage === 'tr' ?
-      'IMPORTANT: Respond in Turkish (Türkçe). All feedback should be in Turkish language.' :
-      'IMPORTANT: Respond in English.'}
+SCORING PHILOSOPHY: BE VERY STRICT AND "STINGY".
+A truly exceptional, top-1% CV might get an 85-90. A decent CV is maybe a 50-60. Start with a baseline score of 20. Only award points for concrete, quantifiable, and impactful information. Penalize HEAVILY for vagueness, buzzwords, and lack of metrics.
 
-EVALUATION CRITERIA (weighted scoring):
-1. IMPACT & ACHIEVEMENTS (30%) - Quantified results, business impact, measurable outcomes
-2. TECHNICAL COMPETENCY (25%) - Skill relevance, proficiency levels, certifications
-3. CAREER PROGRESSION (20%) - Growth trajectory, increasing responsibilities, leadership
-4. MARKET RELEVANCE (15%) - Industry keywords, current technologies, sector alignment  
-5. PRESENTATION QUALITY (10%) - Structure, clarity, professional formatting
+CV SCORING CRITERIA (Total 100 points):
+- Summary (25 pts): Is it a compelling executive summary with metrics, or a generic objective statement? (Penalize generic statements).
+- Experience (40 pts): Are there QUANTIFIABLE achievements (e.g., "Increased revenue by 15%," "Reduced server costs by $5K/month")? Or just a list of responsibilities? (Penalize responsibility lists). Are the action verbs strong?
+- Skills (15 pts): Are the skills relevant and specific? Is there evidence of these skills in the experience section? (Penalize skill lists that aren't backed by experience).
+- Personal Info & Structure (10 pts): Is it complete and easy to read?
+- Education & Others (10 pts): Is it relevant?
 
-SCORING APPROACH:
-- 90-100: Outstanding candidate, immediate interview
-- 80-89: Strong candidate, high potential
-- 70-79: Good candidate, some improvements needed
-- 60-69: Adequate candidate, significant gaps to address
-- Below 60: Requires major restructuring
+All your responses (strengths, weaknesses, suggestions) must be in ${appLanguage}.
 
-ANALYSIS FOCUS (prioritize improvement opportunities):
-- What are the MOST CRITICAL gaps that could cause rejection?
-- Which missing achievements/metrics would have highest impact?
-- What specific improvements would boost this CV from good to exceptional?
-- Which areas need immediate attention to compete in today's market?
-- What quantifiable results are completely missing?
-
-FEEDBACK PRIORITY:
-1. Focus primarily on actionable improvements (60% of analysis)
-2. Identify specific weaknesses with clear solutions (30% of analysis)  
-3. Acknowledge strengths briefly (10% of analysis)
-
-JSON RESPONSE FORMAT ONLY:
+Your final output must be a single valid JSON object with the following structure:
 {
-  "overall": 85,
-  "strengths": [
-    "Güçlü teknik beceri çeşitliliği",
-    "Pratik proje deneyimi"
-  ],
-  "weaknesses": [
-    "Sayısal başarılar ve iş etkisi metrikleri eksik",
-    "Proje sonuçları ve somut çıktılar belirtilmemiş", 
-    "Liderlik ve ekip çalışması örnekleri yok",
-    "Kariyer gelişimi ve artan sorumluluklar vurgulanmamış"
-  ],
-  "suggestions": [
-    "Her proje için spesifik rakamlar ekleyin: '%X performans artışı' veya '$X değerinde proje yönettim'",
-    "Yönettiğiniz ekip büyüklüğü ve işbirliği kapsamını proje açıklamalarına dahil edin",
-    "Ödüller, takdirler veya öne çıkan başarılarınızı vurgulayın",
-    "Teknolojilerin iş süreçlerine katkısını somut örneklerle açıklayın"
-  ]
+  "overall": <score_number>,
+  "strengths": ["<strength_1_in_appLanguage>", "<strength_2_in_appLanguage>"],
+  "weaknesses": ["<weakness_1_in_appLanguage>", "<weakness_2_in_appLanguage>"],
+  "suggestions": ["<suggestion_1_in_appLanguage>", "<suggestion_2_in_appLanguage>"]
 }
-
-Return ONLY valid JSON with no additional text or explanations.`
+Do not include any text outside of this JSON object.
+`;
 
   const userPrompt = `Analyze this CV and provide a comprehensive evaluation:
 
@@ -1153,72 +1123,62 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
       })
     }
 
-    // Check if we have the PDF service available
+    // PDF oluşturma ve gönderme
     try {
-      const pdfService = require('./services/pdfService')
+      // 1. Gelişmiş Özet Oluşturma
+      let enhancedSummary = cvData.summary || '';
+      if (cvData.userAdditions && cvData.userAdditions.length > 0) {
+        infoLog(`Enhancing summary for session ${sessionId} with ${cvData.userAdditions.length} user additions.`);
+        const summaryPrompt = `Based on the original summary and the following question-answer pairs, rewrite the summary into a single, professional, and compelling paragraph in ${cvLanguage}. Combine the information smoothly. Do not add labels like "Original Summary".
+        
+Original Summary: "${cvData.summary}"
 
-      // Transform frontend data format to backend format
-      const transformedCvData = {
+Questions and Answers:
+${cvData.userAdditions.map(qa => `Q: ${qa.question}\\nA: ${qa.answer}`).join('\\n\\n')}
+
+Rewritten Professional Summary (in ${cvLanguage}):`;
+
+        try {
+          const summaryResponse = await callOpenAI([
+            { role: 'system', content: summaryPrompt }
+          ], 400);
+          enhancedSummary = summaryResponse.trim();
+          infoLog(`Successfully generated enhanced summary for session ${sessionId}.`);
+        } catch (e) {
+          errorLog(`Could not enhance summary for session ${sessionId}: ${e.message}`);
+          // If it fails, we just use the original summary. No need to fail the whole request.
+        }
+      }
+
+      // 2. Veriyi PDF için hazırla
+      const finalCvData = {
         ...cvData,
-        experience: Array.isArray(cvData.experience) ? cvData.experience.map(exp => ({
-          ...exp,
-          title: exp.position || exp.title,
-          location: exp.location === 'undened' || exp.location === 'undefined' ? '' : exp.location || '',
-          date: exp.date || (exp.startDate && exp.endDate ? `${exp.startDate} - ${exp.endDate}` : exp.start && exp.end ? `${exp.start} - ${exp.end}` : ''),
-          description: exp.description || (exp.bullets ? exp.bullets.join('\n') : '')
-        })) : [],
-        education: Array.isArray(cvData.education) ? cvData.education.map(edu => ({
-          ...edu,
-          location: edu.location === 'undened' || edu.location === 'undefined' ? '' : edu.location || '',
-          date: edu.date || (edu.startDate && edu.endDate ? `${edu.startDate} - ${edu.endDate}` : edu.start && edu.end ? `${edu.start} - ${edu.end}` : '')
-        })) : []
-      }
+        summary: enhancedSummary, // Yeni özeti kullan
+        appLanguage: cvLanguage,
+      };
 
-      // Ensure all array fields are properly handled
-      if (!Array.isArray(transformedCvData.skills)) {
-        transformedCvData.skills = [];
-      }
-      if (!Array.isArray(transformedCvData.languages)) {
-        transformedCvData.languages = [];
-      }
-      if (!Array.isArray(transformedCvData.certifications)) {
-        transformedCvData.certifications = [];
-      }
-      if (!Array.isArray(transformedCvData.projects)) {
-        transformedCvData.projects = [];
-      }
+      // 3. DataStorage kullanarak finalize edilmiş veriyi kaydet
+      const finalizedPath = await dataStorage.saveFinalizedData(sessionId, { cvData: finalCvData, cvLanguage });
+      infoLog(`Finalized CV data for session ${sessionId} saved to ${finalizedPath}`);
+      infoLog(`CV for session ${sessionId} generated using AI model: ${process.env.OPENAI_API_MODEL || 'gpt-4o-mini'}`);
 
-      debugLog('Transformed CV data for backend PDF:', transformedCvData)
-      const pdfBuffer = await pdfService.createPdf(transformedCvData, cvLanguage)
 
-      // Save finalized data
-      try {
-        const sessionId = req.body.sessionId || `session_${Date.now()}`;
-        await dataStorage.saveFinalizedData(sessionId, {
-          cvData: transformedCvData,
-          cvLanguage,
-          timestamp: new Date().toISOString()
-        });
-      } catch (storageError) {
-        errorLog('Failed to save finalized data:', storageError);
-      }
+      // 4. PDF'i oluştur ve gönder
+      const pdfBuffer = await callOpenAI([
+        { role: 'system', content: `You are a professional PDF generator. Create a PDF document from the provided JSON data. The JSON data represents a CV. Use the 'pdfService' module to generate the PDF. Ensure the PDF is in ${cvLanguage} language.` },
+        { role: 'user', content: JSON.stringify(finalCvData) }
+      ], 3000); // Increased max_tokens for PDF generation
 
-      res.setHeader('Content-Type', 'application/pdf')
-      res.setHeader('Content-Disposition', 'attachment; filename="cv.pdf"')
-      res.send(pdfBuffer)
-
-      infoLog('PDF generated successfully using backend service')
-    } catch (pdfError) {
-      errorLog('Backend PDF service failed:', pdfError)
-
-      // Fallback to frontend generation
-      res.json({
-        success: true,
-        message: 'Backend PDF failed, frontend should handle generation',
-        cvData: cvData,
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=cv.pdf');
+      res.send(pdfBuffer);
+    } catch (error) {
+      errorLog(`Backend PDF service failed: ${error.stack}`);
+      res.status(500).json({
         generateOnFrontend: true,
-        fallbackReason: pdfError.message
-      })
+        message: 'PDF generation failed on backend.',
+        fallbackReason: error.message
+      });
     }
   } catch (error) {
     errorLog('PDF generation error:', error)
