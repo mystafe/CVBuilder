@@ -1107,8 +1107,8 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
     // 2. Save Finalized Data (including enhanced summary)
     try {
       const finalData = { ...cvData, summary: enhancedSummary };
-      // Pass the 'req' object to get client info for logging
-      const savedPaths = await dataStorage.saveFinalizedData(sessionId, finalData, req);
+      // Correctly call saveFinalizedData with null for coverLetter and pdfPaths as they are not available yet.
+      const savedPaths = await dataStorage.saveFinalizedData(sessionId, finalData, null, null, req);
       infoLog(`Finalized data saved for session ${sessionId} at ${savedPaths.jsonDataPath}`);
 
       // 3. Generate PDF using the backend service
