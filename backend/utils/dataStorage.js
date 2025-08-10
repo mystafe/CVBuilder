@@ -35,13 +35,24 @@ class DataStorage {
 
   // Get client info from request
   getClientInfo(req) {
+    if (!req) {
+      return {
+        ip: 'Unknown',
+        userAgent: 'Unknown',
+        timestamp: new Date().toISOString(),
+        method: 'Unknown',
+        path: 'Unknown',
+        referer: 'Unknown',
+        acceptLanguage: 'Unknown'
+      };
+    }
     return {
-      ip: req.ip || req.connection.remoteAddress || req.socket.remoteAddress ||
-        (req.connection.socket ? req.connection.socket.remoteAddress : null),
+      ip: req.ip || (req.connection ? req.connection.remoteAddress : null) || (req.socket ? req.socket.remoteAddress : null) ||
+        (req.connection && req.connection.socket ? req.connection.socket.remoteAddress : null) || 'Unknown',
       userAgent: req.get('User-Agent') || 'Unknown',
       timestamp: new Date().toISOString(),
-      method: req.method,
-      path: req.path,
+      method: req.method || 'Unknown',
+      path: req.path || 'Unknown',
       referer: req.get('Referer') || 'Direct',
       acceptLanguage: req.get('Accept-Language') || 'Unknown'
     };
