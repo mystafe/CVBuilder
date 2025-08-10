@@ -14,14 +14,14 @@
   "answerButton": "Gönder",
   "skipButton": "Soruyu Atla",
   "finishButton": "CV'imi AI ile hazırla",
-  "downloadCvButton": "CV’mi indir",
-  "generateCvButton": "CV’mi hazırla",
+  "downloadCvButton": "CV'mi indir",
+  "generateCvButton": "CV'mi hazırla",
   "downloadCoverLetterButton": "Ön Yazıyı indir",
   "restartButton": "Yeniden başla",
   "generatingPdfButton": "PDF Sonlandırılıyor...",
   "coverLetterIntro": "İşte yeni CV'nize dayalı, ilgi çekici bir ön yazı girişi taslağı. Bunu kopyalayıp iş başvurularınız için uyarlayabilirsiniz:",
-  "finalMessage": "CV’niz için yapay zekadan notlar alındı. Nasıl ilerleyelim?",
-  "improveButton": "CV’mi mükemmelleştir",
+  "finalMessage": "CV'niz için yapay zekadan notlar alındı. Nasıl ilerleyelim?",
+  "improveButton": "CV'mi mükemmelleştir",
   "demoBadge": "Beta",
   "giveFeedback": "geri bildirim ver",
   "feedbackPrompt": "Hata mı aldın/ Bir fikrin mi var?<br/>Geri bildirimin çok değerli.<br/>Bu uygulamamızı geliştirmemize yardımcı olacak.",
@@ -44,5 +44,66 @@
   "askLanguages": "Bildiğiniz dilleri virgülle ayırarak yazın (örn: İngilizce İleri, Almanca Orta)",
   "askExperienceLocation": "Deneyimlerinizde çalıştığınız şehir/ülke bilgilerini tamamlar mısınız? (virgülle ayırarak: İstanbul, Ankara, vs.)",
   "askCurrentJob": "Son işinizden ne zaman ayrıldınız?",
-  "emailValidationError": "Lütfen geçerli bir e-posta adresi girin (örn: isim@domain.com)"
+  "emailValidationError": "Lütfen geçerli bir e-posta adresi girin (örn: isim@domain.com)",
+  "settings": {
+    "debug": "Debug",
+    "logs": "Loglar",
+    "applicationTheme": "Uygulama Teması",
+    "language": "Dil",
+    "theme": "Tema",
+    "aiModel": "AI Model",
+    "tooltips": {
+      "debug": "Frontend ve backend için debug loglarını aç/kapat",
+      "logs": "Sistem loglarını göster/gizle",
+      "applicationTheme": "Uygulama temasını ve görsel görünümü özelleştir",
+      "language": "Uygulama dilini değiştir",
+      "theme": "Açık ve koyu mod arasında geçiş yap",
+      "aiModel": "İşlem için AI modelini seç"
+    },
+    "categories": {
+      "patterns": "Desenler",
+      "gradients": "Gradyanlar",
+      "nature": "Doğa",
+      "warm": "Sıcak Renkler"
+    },
+    "models": {
+      "gpt": "GPT",
+      "custom": "Özel"
+    }
+  },
+  "theme": {
+    "applicationTheme": "Uygulama Teması",
+    "back": "Geri",
+    "apply": "Uygula",
+    "cancel": "İptal",
+    "light": "Açık",
+    "dark": "Koyu",
+    "categories": {
+      "patterns": "Desenler",
+      "gradients": "Gradyanlar",
+      "nature": "Doğa",
+      "warm": "Sıcak",
+      "custom": "Özel Resim"
+    },
+    "descriptions": {
+      "patterns": "Izgara ve nokta desenleri",
+      "gradients": "Yumuşak renk geçişleri",
+      "nature": "Doğal yeşil tonları",
+      "warm": "Sıcak ve enerjik renkler",
+      "custom": "Resim yükle veya URL"
+    },
+    "names": {
+      "dots": "Noktalar",
+      "grid": "Izgara",
+      "none": "Yok",
+      "blue": "Mavi",
+      "purple": "Mor",
+      "forest": "Orman",
+      "ocean": "Okyanus",
+      "sunset": "Gün Batımı",
+      "fire": "Ateş",
+      "applyCurrent": "Mevcut Uygula",
+      "setNew": "Yeni Ayarla"
+    }
+  }
 }

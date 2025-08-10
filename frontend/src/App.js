@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { set, get } from 'lodash';
 import { useTranslation } from 'react-i18next';
@@ -85,6 +85,8 @@ function ConfigModal({
   aiModelCategory,
   selectedModel,
 }) {
+  const { t } = useTranslation();
+
   if (!open) return null;
   return (
     <div className="modal-overlay show" onClick={onClose}>
@@ -98,7 +100,7 @@ function ConfigModal({
 
           {/* Debug (admin) */}
           {superMode && (
-            <div className="ios-module ios-module-1x1" title="Toggle debug logging for frontend and backend">
+            <div className="ios-module ios-module-1x1" title={t('settings.tooltips.debug')}>
               <button
                 className={`ios-single-control ${frontendDebug || backendDebug ? 'active' : ''}`}
                 onClick={() => {
@@ -108,65 +110,65 @@ function ConfigModal({
                 }}
               >
                 <div className="ios-module-icon">🐛</div>
-                <div className="ios-module-title">Debug</div>
+                <div className="ios-module-title">{t('settings.debug')}</div>
               </button>
             </div>
           )}
 
           {/* Logs (admin) */}
           {superMode && (
-            <div className="ios-module ios-module-1x1" title="Show/hide system logs viewer">
+            <div className="ios-module ios-module-1x1" title={t('settings.tooltips.logs')}>
               <button
                 className={`ios-single-control ${showLogViewer ? 'active' : ''}`}
                 onClick={() => setShowLogViewer(!showLogViewer)}
               >
                 <div className="ios-module-icon">📋</div>
-                <div className="ios-module-title">Logs</div>
+                <div className="ios-module-title">{t('settings.logs')}</div>
               </button>
             </div>
           )}
 
           {/* Application Theme */}
-          <div className="ios-module ios-module-2x2" title="Customize application theme and visual appearance">
+          <div className="ios-module ios-module-2x2" title={t('settings.tooltips.applicationTheme')}>
             <button className="ios-single-control" onClick={onOpenBackgroundSelector}>
               <div className="ios-module-icon">🎨</div>
               <div className="ios-module-content">
-                <div className="ios-module-title">Application Theme</div>
+                <div className="ios-module-title">{t('settings.applicationTheme')}</div>
                 <div className="ios-module-subtitle">
-                  {backgroundCategory === 'patterns' ? 'Patterns' :
-                    backgroundCategory === 'gradients' ? 'Gradients' :
-                      backgroundCategory === 'nature' ? 'Nature' : 'Warm Colors'}
+                  {backgroundCategory === 'patterns' ? t('settings.categories.patterns') :
+                    backgroundCategory === 'gradients' ? t('settings.categories.gradients') :
+                      backgroundCategory === 'nature' ? t('settings.categories.nature') : t('settings.categories.warm')}
                 </div>
               </div>
             </button>
           </div>
 
           {/* Language */}
-          <div className="ios-module ios-module-1x2" title="Change application language">
+          <div className="ios-module ios-module-1x2" title={t('settings.tooltips.language')}>
             <button className="ios-single-control" onClick={onOpenLanguageSelector}>
               <div className="ios-module-icon">🌍</div>
-              <div className="ios-module-title">Language</div>
+              <div className="ios-module-title">{t('settings.language')}</div>
               <div className="ios-module-subtitle">{i18n.language === 'tr' ? 'Türkçe' : 'English'}</div>
             </button>
           </div>
 
           {/* Theme (admin) */}
-          <div className="ios-module ios-module-1x1" title="Switch between light and dark mode">
+          <div className="ios-module ios-module-1x1" title={t('settings.tooltips.theme')}>
             <button
               className={`ios-single-control ${theme === 'dark' ? 'active' : ''}`}
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               <div className="ios-module-icon">{theme === 'dark' ? '🌙' : '☀️'}</div>
-              <div className="ios-module-title">Theme</div>
+              <div className="ios-module-title">{t('settings.theme')}</div>
             </button>
           </div>
 
           {/* AI Model */}
-          <div className="ios-module ios-module-1x2" title="Select AI model for processing">
+          <div className="ios-module ios-module-1x2" title={t('settings.tooltips.aiModel')}>
             <button className="ios-single-control" onClick={onOpenAiModelSelector}>
               <div className="ios-module-icon">🤖</div>
-              <div className="ios-module-title">AI Model</div>
-              <div className="ios-module-subtitle">{aiModelCategory === 'gpt' ? 'GPT' : 'Custom'} • {selectedModel.replace('gpt-', '').replace('-turbo', '').replace('-', ' ')}</div>
+              <div className="ios-module-title">{t('settings.aiModel')}</div>
+              <div className="ios-module-subtitle">{aiModelCategory === 'gpt' ? t('settings.models.gpt') : t('settings.models.custom')} • {selectedModel.replace('gpt-', '').replace('-turbo', '').replace('-', ' ')}</div>
             </button>
           </div>
 
@@ -230,7 +232,6 @@ function App() {
     return saved || '';
   });
   const [showCustomImageModal, setShowCustomImageModal] = useState(false);
-  const [customImageMode, setCustomImageMode] = useState('upload'); // 'upload' | 'url'
   const [customImageUrl, setCustomImageUrl] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [cvScore, setCvScore] = useState(null);
@@ -1581,7 +1582,7 @@ function App() {
         setCustomImageUrl('');
         setUploadError('');
       }
-    }, [showCustomImageModal]);
+    }, []);
 
     if (!showCustomImageModal) return null;
 
@@ -1653,6 +1654,7 @@ function App() {
       if (previewImage) {
         setCustomBackgroundImage(previewImage);
         setChatBackground('custom');
+        setBackgroundCategory('custom'); // This line fixes the active state for custom image
         setShowCustomImageModal(false);
       }
     };
@@ -1739,76 +1741,104 @@ function App() {
     );
   };
 
-  const BackgroundSelectorModal = () => {
-    // Local staging state to avoid global reflows/flicker until Apply
-    const [tempCategory, setTempCategory] = useState(backgroundCategory);
+  function BackgroundSelectorModal({
+    show,
+    onClose,
+    chatBackground,
+    setChatBackground,
+    backgroundCategory,
+    setBackgroundCategory,
+    customBackgroundImage,
+    setShowCustomImageModal,
+  }) {
+    const { t } = useTranslation();
+    const [selectedCategory, setSelectedCategory] = useState(null);
     const [tempBackground, setTempBackground] = useState(chatBackground);
     const hoverTimeoutRef = useRef(null);
 
-    const handleMouseEnterWithDelay = (callback) => {
+    const handleMouseEnterWithDelay = useCallback((callback) => {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = setTimeout(() => {
         callback();
-      }, 1000);
-    };
+      }, 500);
+    }, []);
 
-    const handleMouseLeave = () => {
+    const handleMouseLeave = useCallback(() => {
       clearTimeout(hoverTimeoutRef.current);
-    };
+    }, []);
 
-    useEffect(() => {
-      if (showBackgroundSelector) {
-        setTempCategory(backgroundCategory);
-        setTempBackground(chatBackground);
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showBackgroundSelector]);
+    const categories = useMemo(() => [
+      { id: 'patterns', name: t('theme.categories.patterns'), icon: '⚫', desc: t('theme.descriptions.patterns') },
+      { id: 'gradients', name: t('theme.categories.gradients'), icon: '🌈', desc: t('theme.descriptions.gradients') },
+      { id: 'nature', name: t('theme.categories.nature'), icon: '🌿', desc: t('theme.descriptions.nature') },
+      { id: 'warm', name: t('theme.categories.warm'), icon: '🔥', desc: t('theme.descriptions.warm') },
+      { id: 'custom', name: t('theme.categories.custom'), icon: '🖼️', desc: t('theme.descriptions.custom') }
+    ], [t]);
 
-    if (!showBackgroundSelector) return null;
-
-    const categories = [
-      { id: 'patterns', name: 'Patterns', icon: '⚫', desc: 'Grid and dot patterns' },
-      { id: 'gradients', name: 'Gradients', icon: '🌈', desc: 'Smooth color transitions' },
-      { id: 'nature', name: 'Nature', icon: '🌿', desc: 'Natural green tones' },
-      { id: 'warm', name: 'Warm', icon: '🔥', desc: 'Warm and energetic colors' },
-      { id: 'custom', name: 'Custom Image', icon: '🖼️', desc: 'Upload or URL image' }
-    ];
-
-    const backgroundOptions = {
+    const backgroundOptions = useMemo(() => ({
       patterns: [
-        { id: 'pattern1', name: 'Dots', preview: 'ios-bg-dots' },
-        { id: 'pattern2', name: 'Grid', preview: 'ios-bg-grid' },
-        { id: 'default', name: 'None', preview: 'ios-bg-default' }
+        { id: 'pattern1', name: t('theme.names.dots'), preview: 'ios-bg-dots' },
+        { id: 'pattern2', name: t('theme.names.grid'), preview: 'ios-bg-grid' },
+        { id: 'default', name: t('theme.names.none'), preview: 'ios-bg-default' }
       ],
       gradients: [
-        { id: 'gradient1', name: 'Blue', preview: 'ios-bg-gradient1' },
-        { id: 'gradient2', name: 'Purple', preview: 'ios-bg-gradient2' }
+        { id: 'gradient1', name: t('theme.names.blue'), preview: 'ios-bg-gradient1' },
+        { id: 'gradient2', name: t('theme.names.purple'), preview: 'ios-bg-gradient2' }
       ],
       nature: [
-        { id: 'nature1', name: 'Forest', preview: 'ios-bg-nature1' },
-        { id: 'nature2', name: 'Ocean', preview: 'ios-bg-nature2' }
+        { id: 'nature1', name: t('theme.names.forest'), preview: 'ios-bg-nature1' },
+        { id: 'nature2', name: t('theme.names.ocean'), preview: 'ios-bg-nature2' }
       ],
       warm: [
-        { id: 'warm1', name: 'Sunset', preview: 'ios-bg-warm1' },
-        { id: 'warm2', name: 'Fire', preview: 'ios-bg-warm2' }
+        { id: 'warm1', name: t('theme.names.sunset'), preview: 'ios-bg-warm1' },
+        { id: 'warm2', name: t('theme.names.fire'), preview: 'ios-bg-warm2' }
       ],
-    };
+    }), [t]);
 
-    const defaultsByCategory = {
+    const defaultsByCategory = useMemo(() => ({
       patterns: 'pattern2',
       gradients: 'gradient1',
       nature: 'nature1',
       warm: 'warm1'
-    };
+    }), []);
 
-    const handleTempCategorySelect = (cat) => {
-      setTempCategory(cat);
-      if (cat !== 'custom') {
-        setTempBackground(defaultsByCategory[cat] || 'pattern2');
+    useEffect(() => {
+      if (show) {
+        setTempBackground(chatBackground);
+      } else {
+        setSelectedCategory(null);
+      }
+    }, [show, chatBackground]);
+
+    if (!show) return null;
+
+    const handleCategoryClick = (category) => {
+      if (category.id === 'custom' && !customBackgroundImage) {
+        setShowCustomImageModal(true);
+        onClose();
+      } else {
+        setSelectedCategory(category);
+        if (category.id !== 'custom') {
+          const defaultTheme = defaultsByCategory[category.id] || 'pattern2';
+          setTempBackground(defaultTheme);
+        } else {
+          setTempBackground('custom');
+        }
       }
     };
 
-    // Local preview style calculator (mirrors getChatBackgroundStyle but uses tempBackground)
+    const handleApply = () => {
+      if (selectedCategory) {
+        setBackgroundCategory(selectedCategory.id);
+      }
+      setChatBackground(tempBackground);
+      onClose();
+    };
+
+    const handleCancel = () => {
+      onClose();
+    };
+
     const previewStyle = (() => {
       const intensityMultiplier = { transient: 0.3, light: 0.6, normal: 1.0, header: 1.4 };
       const mult = intensityMultiplier['normal'];
@@ -1817,159 +1847,95 @@ function App() {
         return `url(${customBackgroundImage})`;
       }
       switch (id) {
-        case 'gradient1':
-          return `linear-gradient(135deg, rgba(59, 130, 246, ${0.1 * mult}) 0%, rgba(147, 197, 253, ${0.05 * mult}) 100%)`;
-        case 'gradient2':
-          return `linear-gradient(135deg, rgba(139, 92, 246, ${0.1 * mult}) 0%, rgba(196, 181, 253, ${0.05 * mult}) 100%)`;
-        case 'pattern1':
-          return `radial-gradient(circle at 2px 2px, rgba(59, 130, 246, ${0.1 * mult}) 1px, transparent 0)`;
-        case 'pattern2':
-          return `linear-gradient(rgba(59, 130, 246, ${0.05 * mult}) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, ${0.05 * mult}) 1px, transparent 1px)`;
-        case 'nature1':
-          return `linear-gradient(135deg, rgba(34, 197, 94, ${0.1 * mult}) 0%, rgba(134, 239, 172, ${0.05 * mult}) 100%)`;
-        case 'nature2':
-          return `linear-gradient(135deg, rgba(16, 185, 129, ${0.1 * mult}) 0%, rgba(110, 231, 183, ${0.05 * mult}) 100%)`;
-        case 'warm1':
-          return `linear-gradient(135deg, rgba(251, 146, 60, ${0.1 * mult}) 0%, rgba(254, 215, 170, ${0.05 * mult}) 100%)`;
-        case 'warm2':
-          return `linear-gradient(135deg, rgba(239, 68, 68, ${0.1 * mult}) 0%, rgba(252, 165, 165, ${0.05 * mult}) 100%)`;
-        default:
-          return 'none';
+        case 'gradient1': return `linear-gradient(135deg, rgba(59, 130, 246, ${0.1 * mult}) 0%, rgba(147, 197, 253, ${0.05 * mult}) 100%)`;
+        case 'gradient2': return `linear-gradient(135deg, rgba(139, 92, 246, ${0.1 * mult}) 0%, rgba(196, 181, 253, ${0.05 * mult}) 100%)`;
+        case 'pattern1': return `radial-gradient(circle at 2px 2px, rgba(59, 130, 246, ${0.1 * mult}) 1px, transparent 0)`;
+        case 'pattern2': return `linear-gradient(rgba(59, 130, 246, ${0.05 * mult}) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, ${0.05 * mult}) 1px, transparent 1px)`;
+        case 'nature1': return `linear-gradient(135deg, rgba(34, 197, 94, ${0.1 * mult}) 0%, rgba(134, 239, 172, ${0.05 * mult}) 100%)`;
+        case 'nature2': return `linear-gradient(135deg, rgba(16, 185, 129, ${0.1 * mult}) 0%, rgba(110, 231, 183, ${0.05 * mult}) 100%)`;
+        case 'warm1': return `linear-gradient(135deg, rgba(251, 146, 60, ${0.1 * mult}) 0%, rgba(254, 215, 170, ${0.05 * mult}) 100%)`;
+        case 'warm2': return `linear-gradient(135deg, rgba(239, 68, 68, ${0.1 * mult}) 0%, rgba(252, 165, 165, ${0.05 * mult}) 100%)`;
+        default: return 'none';
       }
     })();
 
-    const applyTheme = () => {
-      setBackgroundCategory(tempCategory);
-      setChatBackground(tempBackground);
-      setShowBackgroundSelector(false);
-    };
-
-    const cancelTheme = () => {
-      setShowBackgroundSelector(false);
-    };
-
     return (
-      <div className="modal-overlay show" onClick={() => setShowBackgroundSelector(false)}>
+      <div className="modal-overlay show" onClick={handleCancel}>
         <div className="modal-content ios-background-selector" onClick={e => e.stopPropagation()}>
           <div className="ios-header">
-            <button className="ios-close" onClick={() => setShowBackgroundSelector(false)}>✕</button>
-          </div>
-
-          {/* Canlı Tema Önizlemesi */}
-          <div
-            className="ios-live-preview"
-          >
-            <div className="live-preview-half light" style={{
-              backgroundImage: previewStyle,
-              backgroundSize: tempBackground.startsWith('pattern') ? '20px 20px' : 'cover',
-              backgroundRepeat: tempBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
-              backgroundPosition: 'center'
-            }}>
-              <span className="preview-text">Light</span>
-            </div>
-            <div className="live-preview-half dark" style={{
-              backgroundImage: previewStyle,
-              backgroundSize: tempBackground.startsWith('pattern') ? '20px 20px' : 'cover',
-              backgroundRepeat: tempBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
-              backgroundPosition: 'center'
-            }}>
-              <span className="preview-text">Dark</span>
-            </div>
-          </div>
-
-          <div className="ios-bg-categories">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                className={`ios-category-item ${tempCategory === category.id ? 'active' : ''}`}
-                onClick={() => {
-                  if (category.id === 'custom') {
-                    setShowCustomImageModal(true);
-                    setShowBackgroundSelector(false);
-                  } else {
-                    handleTempCategorySelect(category.id);
-                  }
-                }}
-                onMouseEnter={() => handleMouseEnterWithDelay(() => {
-                  if (category.id !== 'custom') {
-                    handleTempCategorySelect(category.id);
-                  } else {
-                    setTempCategory('custom');
-                  }
-                })}
-                onMouseLeave={handleMouseLeave}
-              >
-                <div className="ios-category-icon">{category.icon}</div>
-                <div className="ios-category-info">
-                  <div className="ios-category-name">{category.name}</div>
-                  <div className="ios-category-desc">{category.desc}</div>
-                </div>
+            {selectedCategory && (
+              <button className="ios-back-button" onClick={() => setSelectedCategory(null)}>
+                {/* Text removed for a cleaner look */}
               </button>
-            ))}
+            )}
+            <h3>{selectedCategory ? selectedCategory.name : t('theme.applicationTheme')}</h3>
+            <button className="ios-close" onClick={handleCancel}>✕</button>
           </div>
 
-          <div className="ios-bg-options">
-            {tempCategory === 'custom' ? (
-              <div className="custom-actions-container">
-                {customBackgroundImage && (
+          <div className="ios-live-preview">
+            <div className="live-preview-half light" style={{ backgroundImage: previewStyle, backgroundSize: tempBackground.startsWith('pattern') ? '20px 20px' : 'cover', backgroundRepeat: tempBackground.startsWith('pattern') ? 'repeat' : 'no-repeat', backgroundPosition: 'center' }}>
+              <span className="preview-text">{t('theme.light')}</span>
+            </div>
+            <div className="live-preview-half dark" style={{ backgroundImage: previewStyle, backgroundSize: tempBackground.startsWith('pattern') ? '20px 20px' : 'cover', backgroundRepeat: tempBackground.startsWith('pattern') ? 'repeat' : 'no-repeat', backgroundPosition: 'center' }}>
+              <span className="preview-text">{t('theme.dark')}</span>
+            </div>
+          </div>
+
+          {!selectedCategory ? (
+            <div className="ios-bg-categories">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  className={`ios-category-item ${backgroundCategory === category.id ? 'active' : ''}`}
+                  onClick={() => handleCategoryClick(category)}
+                >
+                  <div className="ios-category-icon">{category.icon}</div>
+                  <div className="ios-category-info">
+                    <div className="ios-category-name">{category.name}</div>
+                    <div className="ios-category-desc">{category.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="ios-bg-options">
+                {selectedCategory.id === 'custom' ? (
                   <>
-                    <button
-                      className="ios-bg-option"
-                      onMouseEnter={() => handleMouseEnterWithDelay(() => setTempBackground('custom'))}
-                      onMouseLeave={handleMouseLeave}
-                    >
+                    <button className="ios-bg-option" onClick={() => setTempBackground('custom')}>
                       <div className="ios-bg-preview-mini" style={{ backgroundImage: `url(${customBackgroundImage})`, backgroundSize: 'cover' }}></div>
-                      <div className="ios-bg-name">Preview Current</div>
+                      <div className="ios-bg-name">{t('theme.names.applyCurrent')}</div>
                     </button>
-                    <button
-                      className="ios-bg-option"
-                      onClick={() => {
-                        setCustomBackgroundImage('');
-                        setChatBackground('pattern2');
-                        setTempBackground('pattern2');
-                        setTempCategory('patterns');
-                      }}
-                    >
-                      <div className="ios-bg-preview-mini delete-icon">🗑️</div>
-                      <div className="ios-bg-name">Delete</div>
+                    <button className="ios-bg-option" onClick={() => { setShowCustomImageModal(true); onClose(); }}>
+                      <div className="ios-bg-preview-mini ios-bg-upload"></div>
+                      <div className="ios-bg-name">{t('theme.names.setNew')}</div>
                     </button>
                   </>
+                ) : (
+                  backgroundOptions[selectedCategory.id]?.map((bg) => (
+                    <button
+                      key={bg.id}
+                      className={`ios-bg-option ${tempBackground === bg.id ? 'active' : ''}`}
+                      onClick={() => setTempBackground(bg.id)}
+                      onMouseEnter={() => handleMouseEnterWithDelay(() => setTempBackground(bg.id))}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <div className={`ios-bg-preview-mini ${bg.preview}`}></div>
+                      <div className="ios-bg-name">{bg.name}</div>
+                    </button>
+                  ))
                 )}
-                <button
-                  className="ios-bg-option"
-                  onClick={() => {
-                    setShowCustomImageModal(true);
-                    setShowBackgroundSelector(false);
-                  }}
-                >
-                  <div className="ios-bg-preview-mini ios-bg-upload"></div>
-                  <div className="ios-bg-name">Set New Image</div>
-                </button>
               </div>
-            ) : (
-              backgroundOptions[tempCategory]?.map((bg) => (
-                <button
-                  key={bg.id}
-                  className={`ios-bg-option ${tempBackground === bg.id ? 'active' : ''}`}
-                  onClick={() => setTempBackground(bg.id)}
-                  onMouseEnter={() => handleMouseEnterWithDelay(() => setTempBackground(bg.id))}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  <div className={`ios-bg-preview-mini ${bg.preview}`}></div>
-                  <div className="ios-bg-name">{bg.name}</div>
-                </button>
-              ))
-            )}
-          </div>
-
-          <div className="ios-bg-options" style={{ paddingTop: 0 }}>
-            <button className="upload-button" onClick={applyTheme}>Apply Theme</button>
-            <button className="cancel-button" onClick={cancelTheme}>Cancel</button>
-          </div>
+              <div className="theme-modal-actions">
+                <button className="apply-button" onClick={handleApply}>{t('theme.apply')}</button>
+                <button className="cancel-button" onClick={handleCancel}>{t('theme.cancel')}</button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
-  };
+  }
 
   // Remove inline ConfigModal to avoid remount on App re-renders
 
@@ -1996,7 +1962,16 @@ function App() {
         aiModelCategory={aiModelCategory}
         selectedModel={selectedModel}
       />
-      <BackgroundSelectorModal />
+      <BackgroundSelectorModal
+        show={showBackgroundSelector}
+        onClose={() => setShowBackgroundSelector(false)}
+        chatBackground={chatBackground}
+        setChatBackground={setChatBackground}
+        backgroundCategory={backgroundCategory}
+        setBackgroundCategory={setBackgroundCategory}
+        customBackgroundImage={customBackgroundImage}
+        setShowCustomImageModal={setShowCustomImageModal}
+      />
       <LanguageSelectorModal />
       <AiModelSelectorModal />
       <CustomImageModal />

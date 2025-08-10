@@ -44,5 +44,66 @@
   "askLanguages": "List the languages you know separated by commas (e.g. English Advanced, German Intermediate)",
   "askExperienceLocation": "Can you complete the city/country information for your work experiences? (comma separated: Istanbul, Ankara, etc.)",
   "askCurrentJob": "When did you leave your latest job?",
-  "emailValidationError": "Please enter a valid email address (e.g. name@domain.com)"
+  "emailValidationError": "Please enter a valid email address (e.g. name@domain.com)",
+  "settings": {
+    "debug": "Debug",
+    "logs": "Logs",
+    "applicationTheme": "Application Theme",
+    "language": "Language",
+    "theme": "Theme",
+    "aiModel": "AI Model",
+    "tooltips": {
+      "debug": "Toggle debug logging for frontend and backend",
+      "logs": "Show/hide system logs viewer",
+      "applicationTheme": "Customize application theme and visual appearance",
+      "language": "Change application language",
+      "theme": "Switch between light and dark mode",
+      "aiModel": "Select AI model for processing"
+    },
+    "categories": {
+      "patterns": "Patterns",
+      "gradients": "Gradients",
+      "nature": "Nature",
+      "warm": "Warm Colors"
+    },
+    "models": {
+      "gpt": "GPT",
+      "custom": "Custom"
+    }
+  },
+  "theme": {
+    "applicationTheme": "Application Theme",
+    "back": "Back",
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "light": "Light",
+    "dark": "Dark",
+    "categories": {
+      "patterns": "Patterns",
+      "gradients": "Gradients",
+      "nature": "Nature",
+      "warm": "Warm",
+      "custom": "Custom Image"
+    },
+    "descriptions": {
+      "patterns": "Grid and dot patterns",
+      "gradients": "Smooth color transitions",
+      "nature": "Natural green tones",
+      "warm": "Warm and energetic colors",
+      "custom": "Upload or URL image"
+    },
+    "names": {
+      "dots": "Dots",
+      "grid": "Grid",
+      "none": "None",
+      "blue": "Blue",
+      "purple": "Purple",
+      "forest": "Forest",
+      "ocean": "Ocean",
+      "sunset": "Sunset",
+      "fire": "Fire",
+      "applyCurrent": "Apply Current",
+      "setNew": "Set New"
+    }
+  }
 }
