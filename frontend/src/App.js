@@ -731,7 +731,7 @@ function App() {
     }
   };
 
-  const fetchSkillAssessmentQuestions = async (currentData) => {
+  const fetchSkillAssessmentQuestions = async (currentData, subsequentAiQuestions = 4) => {
     setLoadingMessage("Analyzing your profession for specific skills...");
     try {
       const res = await axios.post(`${API_BASE_URL}/api/ai/generate-skill-assessment`, {
@@ -742,6 +742,7 @@ function App() {
       const skillQuestions = (res.data.questions || []).map(q => ({
         ...q,
         isSkillAssessment: true, // Flag for special handling
+        subsequentAiQuestions: subsequentAiQuestions // Carry over the number
       }));
 
       if (skillQuestions.length > 0) {
@@ -764,12 +765,12 @@ function App() {
         }, 500 + Math.random() * 300);
       } else {
         // If no specific skills found, skip to general AI questions
-        fetchAiQuestions(currentData);
+        fetchAiQuestions(currentData, subsequentAiQuestions);
       }
     } catch (err) {
       errorLog('Failed to fetch skill assessment questions:', err);
       // Fallback to general AI questions if this step fails
-      fetchAiQuestions(currentData);
+      fetchAiQuestions(currentData, subsequentAiQuestions);
     } finally {
       setLoadingMessage('');
     }
@@ -986,7 +987,9 @@ function App() {
         fetchSkillAssessmentQuestions(updatedCvData); // Go to skill assessment
       } else if (step === 'skillAssessment') {
         setConversation([...newConversation, { type: 'typing' }]);
-        fetchAiQuestions(updatedCvData); // Go to general AI questions
+        // Get the number from the question we just processed.
+        const subsequentAiQuestions = currentQuestion.subsequentAiQuestions || 4;
+        fetchAiQuestions(updatedCvData, subsequentAiQuestions); // Go to general AI questions
       } else {
         // All AI questions answered, move to review
         setConversation([...newConversation]);
@@ -1208,7 +1211,7 @@ function App() {
   const handleRefine = () => {
     if (!cvData) return;
     setConversation(prev => [...prev, { type: 'user', text: t('improveButton') }, { type: 'typing' }]);
-    fetchAiQuestions(cvData, 2);
+    fetchSkillAssessmentQuestions(cvData, 2);
   };
 
   const handleCoverLetterSubmit = async () => {
