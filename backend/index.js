@@ -155,6 +155,11 @@ const coverLetterSchema = z.object({
   positionName: z.string().optional()
 })
 
+const skillQuestionSchema = z.object({
+  cvData: z.any(),
+  appLanguage: z.string().optional().default('en')
+})
+
 // OpenAI API helper
 async function callOpenAI(messages, maxTokens = 2000) {
   try {
@@ -1079,7 +1084,12 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
   try {
     infoLog('PDF generation requested using backend PDF service')
 
-    const { cvData, cvLanguage = 'tr', sessionId } = req.body
+    const {
+      cvData,
+      cvLanguage = 'tr',
+      sessionId,
+      revisionRequest
+    } = req.body
 
     if (!cvData) {
       return res.status(400).json({
@@ -1088,39 +1098,75 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
       })
     }
 
-    // 1. Enhance Summary
-    let enhancedSummary = cvData.summary; // Default to original
-    if (cvData.userAdditions && cvData.userAdditions.length > 0) {
-      infoLog(`Enhancing summary for session ${sessionId} with ${cvData.userAdditions.length} user additions.`);
-      const userAdditionsText = cvData.userAdditions.join('. ');
-      const summaryPrompt = `Based on the original summary and the user's answers, create a new, professionally rewritten, comprehensive summary in ${cvLanguage}.
-      Original Summary: "${cvData.summary}"
+    let dataToProcess = {
+      ...cvData
+    };
+
+    // If a revision request is provided, call AI to update the CV data
+    if (revisionRequest) {
+      infoLog(`Revising CV for session ${sessionId} based on user request.`);
+      const revisionPrompt = `You are a CV revision expert. A user wants to revise their CV. Based on their request, update the provided JSON CV data. Make intelligent and comprehensive changes across the entire CV structure (summary, experience, skills, etc.) to reflect the user's request.
+
+User's Revision Request: "${revisionRequest}"
+
+Current CV JSON Data:
+${JSON.stringify(cvData, null, 2)}
+
+Your task is to return the *complete, updated* CV data in the exact same JSON format.
+- If the user asks to make the summary more professional, rewrite it.
+- If they ask to remove a job, delete that entry from the experience array.
+- If they ask to highlight certain skills, ensure they are prominent.
+- Interpret the request and apply it thoughtfully to the whole CV.
+- The output must be ONLY the revised JSON object.`;
+
+      try {
+        const revisedCvResult = await callOpenAI([{
+          role: 'system',
+          content: revisionPrompt
+        }], 3500);
+        dataToProcess = JSON.parse(revisedCvResult);
+        infoLog(`Successfully revised CV data for session ${sessionId}.`);
+      } catch (e) {
+        errorLog(`Could not revise CV data for session ${sessionId}: ${e.message}`);
+        // If revision fails, proceed with original data but log the error
+      }
+    } else {
+      // 1. Enhance Summary (only if no revision request)
+      if (dataToProcess.userAdditions && dataToProcess.userAdditions.length > 0) {
+        infoLog(`Enhancing summary for session ${sessionId} with ${dataToProcess.userAdditions.length} user additions.`);
+        const userAdditionsText = dataToProcess.userAdditions.join('. ');
+        const summaryPrompt = `Based on the original summary and the user's answers, create a new, professionally rewritten, comprehensive summary in ${cvLanguage}.
+      Original Summary: "${dataToProcess.summary}"
       User's Answers: "${userAdditionsText}"
       Combine, rewrite, and enhance this into a single, cohesive, and impactful professional summary. Ensure the output is a single, valid JSON object with one key: "summary".`;
 
-      try {
-        const summaryResponse = await callOpenAI(
-          [{ role: 'system', content: summaryPrompt }], 400);
-        enhancedSummary = JSON.parse(summaryResponse).summary;
-        infoLog(`Successfully generated enhanced summary for session ${sessionId}.`);
-      } catch (e) {
-        errorLog(`Could not enhance summary for session ${sessionId}: ${e.message}`);
-        // If it fails, we just use the original summary. No need to fail the whole request.
+        try {
+          const summaryResponse = await callOpenAI(
+            [{
+              role: 'system',
+              content: summaryPrompt
+            }], 400);
+          const enhancedSummary = JSON.parse(summaryResponse).summary;
+          dataToProcess.summary = enhancedSummary;
+          infoLog(`Successfully generated enhanced summary for session ${sessionId}.`);
+        } catch (e) {
+          errorLog(`Could not enhance summary for session ${sessionId}: ${e.message}`);
+          // If it fails, we just use the original summary. No need to fail the whole request.
+        }
       }
     }
 
-    // 2. Save Finalized Data (including enhanced summary)
+    // 2. Save Finalized Data (including any revisions or enhancements)
     try {
-      const finalData = { ...cvData, summary: enhancedSummary };
       // Correctly call saveFinalizedData with null for coverLetter and pdfPaths as they are not available yet.
-      const savedPaths = await dataStorage.saveFinalizedData(sessionId, finalData, null, null, req);
+      const savedPaths = await dataStorage.saveFinalizedData(sessionId, dataToProcess, null, null, req);
       infoLog(`Finalized data saved for session ${sessionId} at ${savedPaths.jsonDataPath}`);
 
       // 3. Generate PDF using the backend service
       try {
         const pdfService = require('./services/pdfService');
-        // Use the 'finalData' variable which is correctly defined and call the correct function 'createPdf'
-        const pdfBuffer = await pdfService.createPdf(finalData, cvLanguage);
+        // Use the 'dataToProcess' variable which contains the potentially revised data
+        const pdfBuffer = await pdfService.createPdf(dataToProcess, cvLanguage);
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=cv.pdf');
@@ -1377,6 +1423,63 @@ app.use((error, req, res, next) => {
     message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
   })
 })
+
+// New endpoint to generate a dynamic skill-related question
+app.post('/api/ai/generate-skill-question', asyncHandler(async (req, res) => {
+  const validation = skillQuestionSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Invalid input',
+      details: validation.error.errors
+    })
+  }
+
+  const {
+    cvData,
+    appLanguage
+  } = validation.data
+
+  const lastJob = cvData.experience && cvData.experience.length > 0 ? cvData.experience[0] : null
+  const jobTitle = lastJob ? lastJob.position : 'your field'
+
+  const systemPrompt = `You are a helpful AI assistant. Your goal is to generate a personalized question to ask the user about their skills, based on their CV. The question should have two parts:
+1. Ask if their most recent job is still current.
+2. Ask for their key skills, customizing the example skills based on their job title.
+
+Respond in ${appLanguage}.
+
+Your response must be a single JSON object with the key "question".
+`
+  const userPrompt = `Generate a personalized skill question for a user whose most recent job title is "${jobTitle}".
+
+Examples:
+- If the job is "Software Developer", the question could be: "Is your role as a Senior Software Developer still current? Also, could you list your key technical skills (e.g., Python, AWS, SQL)?"
+- If the job is "Accountant", it could be: "Are you still working as an Accountant? Also, please list your main accounting skills (e.g., Financial Reporting, Tax Preparation, QuickBooks)."
+- If no job title is available, use a general question: "Is your last professional role still current? Also, please list your key professional skills."
+
+Generate the question now.
+`
+
+  try {
+    const result = await callOpenAI([{
+      role: 'system',
+      content: systemPrompt
+    }, {
+      role: 'user',
+      content: userPrompt
+    }], 200)
+
+    const questionData = JSON.parse(result)
+    infoLog(`Generated skill question for job title: ${jobTitle}`)
+    res.json(questionData)
+  } catch (error) {
+    errorLog('Generate skill question error:', error)
+    res.status(500).json({
+      error: 'Failed to generate skill question',
+      message: error.message
+    })
+  }
+}))
 
 
 process.on('SIGTERM', () => {

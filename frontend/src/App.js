@@ -246,6 +246,7 @@ function App() {
   });
   const [clickCount, setClickCount] = useState(0);
   const [showConfig, setShowConfig] = useState(false);
+  const [isRevising, setIsRevising] = useState(false);
 
   // Memoize modal states to prevent unnecessary re-renders
   // const modalStates = useMemo(() => ({
@@ -506,7 +507,7 @@ function App() {
 
   // --- Yeni Akışa Uygun Fonksiyonlar ---
 
-  const startScriptedQuestions = (data, cvWasUploaded = true) => {
+  const startScriptedQuestions = (data, cvWasUploaded = true, skillQuestionObject = null) => {
     const queue = [];
     const tApp = i18n.getFixedT(i18n.language);
 
@@ -578,10 +579,10 @@ function App() {
     }
 
     // YETENEKLER - Yetersizse sor (daha yüksek threshold)
-    const skills = get(data, 'skills') || [];
-    if (skills.length < 8) {
-      queue.push({ key: 'askSkills', path: 'skills', isArray: true });
-    }
+    // const skills = get(data, 'skills') || [];
+    // if (skills.length < 8) {
+    //   queue.push({ key: 'askSkills', path: 'skills', isArray: true });
+    // }
 
     // DİLLER - En az 1 dil bilgisi (HER ZAMAN kontrol et)
     if (!get(data, 'languages') || get(data, 'languages').length === 0) {
@@ -617,7 +618,36 @@ function App() {
       debugLog('Queue is empty, calling fetchAiQuestions with data:', data);
       fetchAiQuestions(data); // Script'li soruya gerek yoksa direkt Adım 2'ye geç
     }
+
+    if (skillQuestionObject) {
+      queue.unshift(skillQuestionObject);
+    }
   };
+
+  const playSuccessSound = useCallback(() => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      const now = audioContext.currentTime;
+      gainNode.gain.setValueAtTime(0.1, now);
+      oscillator.type = 'sine';
+
+      // Simple success chime: C5 -> G5
+      oscillator.frequency.setValueAtTime(523.25, now); // C5
+      oscillator.frequency.setValueAtTime(783.99, now + 0.1); // G5
+
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.5);
+    } catch (error) {
+      console.log('Audio not supported or blocked');
+    }
+  }, []);
 
   const handleInitialParse = async (retryCount = 0) => {
     const file = fileInputRef.current?.files?.[0]; if (!file) return;
@@ -644,11 +674,37 @@ function App() {
       // Backend direkt CV data'sını döndürüyor, sessionId yok
       // Kendimiz bir sessionId oluşturalım
       const sessionId = Date.now().toString();
+      const parsedCvData = res.data;
       debugLog('Generated Session ID:', sessionId);
-      debugLog('CV Data:', res.data);
+      debugLog('CV Data:', parsedCvData);
 
       setSessionId(sessionId);
-      startScriptedQuestions(res.data, true); // CV uploaded
+      setCvData(parsedCvData); // Set CV data before fetching question
+
+      // Now, fetch the dynamic skill question
+      try {
+        const skillQuestionRes = await axios.post(`${API_BASE_URL}/api/ai/generate-skill-question`, {
+          cvData: parsedCvData,
+          appLanguage: i18n.language,
+        });
+        const dynamicQuestion = skillQuestionRes.data.question;
+
+        // Add the dynamic question to the start of the queue
+        const skillQuestionObject = {
+          key: dynamicQuestion, // The key is the question itself
+          path: 'skills', // The answer will update the skills
+          isArray: true, // The answer will be parsed as an array
+          isDynamic: true // Flag to identify this question
+        };
+
+        startScriptedQuestions(parsedCvData, true, skillQuestionObject);
+
+      } catch (skillQuestionError) {
+        errorLog('Failed to fetch dynamic skill question:', skillQuestionError);
+        // Fallback to the old scripted questions if the new endpoint fails
+        startScriptedQuestions(parsedCvData, true);
+      }
+
     } catch (err) {
       errorLog('API request error:', err);
 
@@ -779,8 +835,13 @@ function App() {
       if (currentQuestion.path) {
         if (currentQuestion.isArray) {
           // Yetenekler gibi array alanlar için
-          const skills = userAnswer.split(',').map(s => s.trim()).filter(Boolean);
-          set(updatedCvData, currentQuestion.path, skills);
+          const skills = userAnswer.split(',').map(s => s.trim()).filter(s => s.toLowerCase() !== 'yok' && s.toLowerCase() !== 'hayır' && s.toLowerCase() !== 'no');
+          // If the user said "yok" and the array is empty, keep it empty.
+          if (skills.length > 0) {
+            set(updatedCvData, currentQuestion.path, skills);
+          } else {
+            set(updatedCvData, currentQuestion.path, []); // Ensure it's an empty array
+          }
         } else if (currentQuestion.key === 'askCurrentJob') {
           // Son iş deneyimi için özel işleme
           if (userAnswer === 'Halen çalışıyorum') {
@@ -848,7 +909,8 @@ function App() {
         const nextQuestion = remainingQuestions[0];
         setConversation(prev => {
           const filteredConversation = prev.filter(msg => msg.type !== 'typing');
-          return [...filteredConversation, { type: 'ai', text: t(nextQuestion.key) }];
+          const questionText = nextQuestion.isDynamic ? nextQuestion.key : t(nextQuestion.key);
+          return [...filteredConversation, { type: 'ai', text: questionText }];
         });
         setTimeout(playMessageSound, 100);
       }, 500 + Math.random() * 300); // 0.5-0.8 seconds
@@ -976,6 +1038,7 @@ function App() {
           const url = window.URL.createObjectURL(blob);
           setCvPdfUrl(url);
           window.open(url, '_blank');
+          playSuccessSound();
           infoLog('PDF generated using frontend fallback system');
         } catch (frontendError) {
           errorLog('Both backend and frontend PDF generation failed:', frontendError);
@@ -1159,6 +1222,7 @@ function App() {
     setStep('upload');
     if (fileInputRef.current) fileInputRef.current.value = '';
     debugLog('Application restarted - all states reset');
+    setIsRevising(false);
   };
 
   const handleSkipUpload = () => {
@@ -1189,6 +1253,59 @@ function App() {
 
     // Boş CV ile script sorularını başlat
     startScriptedQuestions(emptyCvData, false); // No CV uploaded
+  };
+
+  const handleRevisionRequest = () => {
+    setIsRevising(true);
+    setConversation(prev => [
+      ...prev,
+      {
+        type: 'ai',
+        text: t('revisionPrompt')
+      }
+    ]);
+  };
+
+  const handleRevisionSubmit = async () => {
+    if (!currentAnswer.trim()) return;
+
+    setConversation(prev => [...prev, {
+      type: 'user',
+      text: currentAnswer
+    }]);
+    setLoadingMessage(t('revisingCvButton'));
+    setError('');
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, {
+        cvData,
+        cvLanguage,
+        sessionId: sessionId || `session_${Date.now()}`,
+        revisionRequest: currentAnswer // Send the revision text to the backend
+      }, {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data], {
+        type: 'application/pdf'
+      }));
+      setCvPdfUrl(url);
+      window.open(url, '_blank');
+      playSuccessSound();
+
+      setConversation(prev => [...prev, {
+        type: 'ai',
+        text: t('revisionSuccessMessage')
+      }]);
+      setIsRevising(false);
+      setCurrentAnswer('');
+
+    } catch (err) {
+      errorLog('CV revision failed:', err);
+      setError(t('pdfError'));
+    } finally {
+      setLoadingMessage('');
+    }
   };
 
   // Süper Mod Kontrolü
@@ -2144,11 +2261,39 @@ function App() {
                       </>
                     )}
 
-                    {!showCoverLetterForm && (
+                    {!showCoverLetterForm && !isRevising && (
                       <>
                         <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`primary ${cvScore !== null && cvScore >= 80 ? 'highlight' : ''}`}>{t('downloadCvButton')}</button>
                         <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
-                        <button onClick={handleRestart} className="accent">{t('restartButton')}</button>
+                        <button onClick={handleRevisionRequest} disabled={isLoading} className="accent">{t('reviseCvButton')}</button>
+                        <button onClick={handleRestart} className="secondary">{t('restartButton')}</button>
+                      </>
+                    )}
+                    {isRevising && (
+                      <>
+                        <textarea
+                          value={currentAnswer}
+                          onChange={(e) => setCurrentAnswer(e.target.value)}
+                          placeholder={t('revisionPlaceholder')}
+                          disabled={isLoading}
+                          onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleRevisionSubmit())}
+                        />
+                        <div className="button-group">
+                          <button
+                            onClick={handleRevisionSubmit}
+                            disabled={isLoading || !currentAnswer.trim()}
+                            className="reply-button"
+                          >
+                            {isLoading ? t('revisingCvButton') : t('submitRevisionButton')} <SendIcon />
+                          </button>
+                          <button
+                            onClick={() => setIsRevising(false)}
+                            disabled={isLoading}
+                            className="secondary"
+                          >
+                            {t('cancelButton')}
+                          </button>
+                        </div>
                       </>
                     )}
                   </>
