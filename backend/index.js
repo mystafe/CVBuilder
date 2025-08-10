@@ -658,19 +658,18 @@ ${appLanguage === 'tr' ?
 
 ANALYSIS & QUESTION STRATEGY:
 1.  **Analyze Holistically**: First, understand the candidate's industry (e.g., Tech, Finance, Marketing), experience level (e.g., Junior, Senior, Manager), and career trajectory.
-2.  **Prioritize Impact, Not Just Metrics**: Move beyond only asking for numbers. Ask about the *'how'* and the *'why'*.
-    *   **Instead of**: "By what percentage did you increase sales?"
-    *   **Ask**: "What was a specific strategy you implemented that led to significant sales growth?" or "Can you describe a challenging project and how you led it to success?"
-3.  **Sector-Specific Probing**: Ask questions a hiring manager in their *specific field* would ask.
-    *   **Tech**: "I see you used React on Project X. Could you tell me about the most complex component you built and the challenges you faced?"
-    *   **Marketing**: "Your experience at Company Y is impressive. What was a marketing campaign you ran that you are particularly proud of, and what were its results?"
-    *   **Finance**: "You mentioned financial modeling. What types of models are you most experienced with, and what was the scope of a recent analysis you performed?"
+2.  **Prioritize High-Level Impact**: Avoid getting bogged down in minor project details. Focus on the bigger picture.
+    *   **Instead of**: "Tell me more about the database migration in Project X."
+    *   **Ask**: "Looking at your experience, what do you consider your most significant professional achievement and why was it impactful?" or "What kind of role are you targeting next, and how does your experience align with that goal?"
+3.  **Identify Narrative Gaps**: Look for missing stories in their career.
+    *   "You moved from Company X to Company Y where your role seems similar. What new skills or responsibilities did you take on in that transition?"
+    *   "I see a collection of impressive skills. Can you give an example of a time you combined several of those skills to solve a particularly complex problem?"
 4.  **Personalize Your Interaction**:
     *   If the user's name is available (e.g., '${userName}'), use it occasionally and naturally. Example: "Thanks, ${userName}. Now, let's dive into your experience at..."
     *   Vary your question style. Don't ask the same type of question repeatedly. Mix project-based questions, skill-deepening questions, and impact-quantification questions.
 5.  **Avoid Redundancy**: Do not ask questions that have already been asked. A list of previously asked question keys is provided.
 
-**Do NOT ask generic, boring questions like "What are your skills?" or "Describe your experience."**
+**Do NOT ask overly specific, low-level technical questions about individual projects unless it's the only area lacking detail. Focus on career growth, strategic impact, and unique skills.**
 
 JSON FORMAT (exactly ${maxQuestions} unique, high-impact questions):
 {

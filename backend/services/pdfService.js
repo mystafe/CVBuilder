@@ -64,6 +64,15 @@ const renderSkills = (skills = []) => {
 const generateCvHtml = (data, language = 'en') => {
     const t = headingMap[language] || headingMap.en;
     const fullName = (data.personalInfo?.name || `${data.personalInfo?.firstName || ''} ${data.personalInfo?.lastName || ''}`.trim()).trim();
+
+    // Defensively ensure all mappable fields are arrays
+    const experiences = Array.isArray(data.experience) ? data.experience : [];
+    const educations = Array.isArray(data.education) ? data.education : [];
+    const skills = Array.isArray(data.skills) ? data.skills : [];
+    const projects = Array.isArray(data.projects) ? data.projects : [];
+    const languages = Array.isArray(data.languages) ? data.languages : [];
+    const certificates = Array.isArray(data.certificates) ? data.certificates : [];
+
     // HTML şablonu, sohbet sırasında eklenen yeni bölümleri (projects, languages vb.)
     // dinamik olarak render edebilir.
     return `
@@ -97,12 +106,12 @@ const generateCvHtml = (data, language = 'en') => {
     <div class="page">
         ${fullName ? `<div class="header"><h1 class="name">${fullName}</h1><p class="contact-info">${data.personalInfo?.email || ''} | ${data.personalInfo?.phone || ''} | ${data.personalInfo?.location || ''}</p></div>` : ''}
         ${data.summary ? `<div class="section"><h2 class="section-title">${t.summary}</h2><p>${data.summary}</p></div>` : ''}
-        ${data.experience && data.experience.length > 0 ? `<div class="section"><h2 class="section-title">${t.experience}</h2>${data.experience.map(exp => `<div class="item-container"><div class="item-content"><h3>${exp.title || ''}</h3><div class="sub-header">${exp.company || ''} | ${exp.location || ''}</div><ul>${(exp.description || '').split('\\n').filter(d => d.trim() !== '').map(d => `<li>${d.replace(/^- /, '')}</li>`).join('')}</ul></div><div class="item-date">${exp.date || ''}</div></div>`).join('')}</div>` : ''}
-        ${data.education && data.education.length > 0 ? `<div class="section"><h2 class="section-title">${t.education}</h2>${data.education.map(edu => `<div class="item-container"><div class="item-content"><h3>${edu.degree || ''}</h3><p>${edu.institution || ''}</p></div><div class="item-date">${edu.date || ''}</div></div>`).join('')}</div>` : ''}
-        ${data.skills && data.skills.length > 0 ? `<div class="section"><h2 class="section-title">${t.skills}</h2>${renderSkills(data.skills)}</div>` : ''}
-        ${data.projects && data.projects.length > 0 ? `<div class="section projects"><h2 class="section-title">${t.projects}</h2>${data.projects.map(proj => `<div><h3>${proj.name || ''}</h3><p>${proj.description || ''}</p>${proj.url ? `<p><a href="${proj.url}">${proj.url}</a></p>` : ''}</div>`).join('')}</div>` : ''}
-        ${data.languages && data.languages.length > 0 ? `<div class="section"><h2 class="section-title">${t.languages}</h2>${data.languages.map(lang => `<p>${(lang.language || '')} ${lang.proficiency ? '(' + lang.proficiency + ')' : ''}</p>`).join('')}</div>` : ''}
-        ${data.certificates && data.certificates.length > 0 ? `<div class="section"><h2 class="section-title">${t.certificates}</h2>${data.certificates.map(cert => {
+        ${experiences.length > 0 ? `<div class="section"><h2 class="section-title">${t.experience}</h2>${experiences.map(exp => `<div class="item-container"><div class="item-content"><h3>${exp.title || exp.position || ''}</h3><div class="sub-header">${exp.company || ''} | ${exp.location || ''}</div><ul>${(exp.description || '').split('\\n').filter(d => d.trim() !== '').map(d => `<li>${d.replace(/^- /, '')}</li>`).join('')}</ul></div><div class="item-date">${exp.endDate ? `${exp.startDate || ''} - ${exp.endDate || ''}` : exp.date || ''}</div></div>`).join('')}</div>` : ''}
+        ${educations.length > 0 ? `<div class="section"><h2 class="section-title">${t.education}</h2>${educations.map(edu => `<div class="item-container"><div class="item-content"><h3>${edu.degree || ''}</h3><p>${edu.institution || ''}</p></div><div class="item-date">${edu.endDate ? `${edu.startDate || ''} - ${edu.endDate || ''}` : edu.date || ''}</div></div>`).join('')}</div>` : ''}
+        ${skills.length > 0 ? `<div class="section"><h2 class="section-title">${t.skills}</h2>${renderSkills(skills)}</div>` : ''}
+        ${projects.length > 0 ? `<div class="section projects"><h2 class="section-title">${t.projects}</h2>${projects.map(proj => `<div><h3>${proj.name || ''}</h3><p>${proj.description || ''}</p>${proj.url ? `<p><a href="${proj.url}">${proj.url}</a></p>` : ''}</div>`).join('')}</div>` : ''}
+        ${languages.length > 0 ? `<div class="section"><h2 class="section-title">${t.languages}</h2>${languages.map(lang => `<p>${(lang.language || '')} ${lang.proficiency ? '(' + lang.proficiency + ')' : ''}</p>`).join('')}</div>` : ''}
+        ${certificates.length > 0 ? `<div class="section"><h2 class="section-title">${t.certificates}</h2>${certificates.map(cert => {
         if (typeof cert === 'string') { return `<p>${cert}</p>`; }
         const parts = [cert.name || cert.title, cert.issuer, cert.date].filter(Boolean);
         return `<p>${parts.join(' - ')}</p>`;
