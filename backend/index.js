@@ -8,6 +8,7 @@ const multer = require('multer')
 const pdfParse = require('pdf-parse')
 const mammoth = require('mammoth')
 const { z } = require('zod')
+const web_search = require('./services/webSearch'); // Added for web search functionality
 
 // Debug mode configuration
 let DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development'
@@ -873,61 +874,51 @@ app.post('/api/ai/coverletter', asyncHandler(async (req, res) => {
 
   const { cvData, appLanguage = 'en', sessionId, roleHint, companyName, positionName } = validation.data
 
-  const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
-
-${appLanguage === 'tr' ?
-      'IMPORTANT: Respond in Turkish (Türkçe). Generate the cover letter in Turkish language.' :
-      'IMPORTANT: Respond in English.'}
-
-Cover letter guidelines:
-1. Professional yet engaging tone
-2. Highlight 2-3 most relevant achievements from the CV
-3. Show genuine interest in the role/company
-4. Demonstrate value proposition clearly
-5. Call to action in closing
-6. Keep to 3-4 paragraphs, ~300-400 words
-7. Avoid generic phrases and clichés
-
-Structure:
-- Opening: Enthusiasm and position interest
-- Body: Relevant achievements and skills alignment
-- Closing: Value proposition and next steps
-
-Return JSON with the cover letter content and metadata.`
-
-  const userPrompt = `Create a professional cover letter based on this CV:
-
-CV Information:
-${JSON.stringify(cvData, null, 2)}
-
-${companyName || positionName ?
-      `Target Application Details:
-  ${companyName ? `Company: ${companyName}` : ''}
-  ${positionName ? `Position: ${positionName}` : ''}
-  
-  Please customize the cover letter for this specific company and role.` :
-      'Create a versatile cover letter suitable for roles in their field.'
+  let companyInfo = '';
+  if (companyName) {
+    try {
+      // Perform a quick web search for company info
+      const searchResults = await web_search.search(`What is the company ${companyName} known for?`);
+      if (searchResults && searchResults.length > 0) {
+        companyInfo = `Company Background: ${searchResults[0].snippet}`;
+      }
+    } catch (searchError) {
+      errorLog('Web search for company info failed:', searchError.message);
+      // Proceed without company info if search fails
     }
+  }
 
-${roleHint ? `Additional Context: ${roleHint}` : ''}
+  const systemPrompt = `You are a professional cover letter writer. Your task is to generate a **concise, simple, and professional** cover letter based on the provided CV data. The response should be a single JSON object with a "coverLetter" key.
 
-Generate a compelling cover letter that highlights their strongest qualifications and achievements.
+  **Tone**: Professional, direct, and confident.
+  **Language**: ${appLanguage}.
 
-Return in this JSON format:
-{
-  "coverLetter": "Full cover letter text here...",
-  "wordCount": 350,
-  "tone": "professional",
-  "keyHighlights": ["Achievement 1", "Achievement 2", "Skill 1"]
-}`
+  **Core Instructions**:
+  1.  **Keep it Simple & High-Level**: The goal is a clean, easy-to-read cover letter. **DO NOT go into deep details about specific projects from the CV.** Instead, summarize the candidate's overall experience and key skill areas.
+  2.  **Generic vs. Specific**:
+      *   If **companyName** and **positionName** are NOT provided, write a strong, **general-purpose** cover letter. It should highlight their main qualifications.
+      *   If **companyName** and **positionName** ARE provided, write a **targeted** letter. Use the company and position in the opening and closing. Subtly align the user's general skills to the role.
+  3.  **Use Web Search Info (Subtly)**:
+      *   If 'Company Background' info is available, you can add *one* sentence that shows interest in the company (e.g., "I have been following [Company Name]'s innovations in the field..."). Do not overdo it.
+  4.  **Structure**:
+      *   **Introduction**: State the purpose of the letter and the position being applied for (if known).
+      *   **Body Paragraph**: In one or two short paragraphs, summarize the candidate's main qualifications and how their general experience (e.g., "my background in marketing," "my experience in software development") makes them a suitable candidate.
+      *   **Conclusion**: A simple closing statement reiterating interest and inviting them to review the attached CV.
+  5.  **Conciseness is Key**: The entire letter should be short, around 3 paragraphs.
+
+  **CV Data for Context**:
+  \`\`\`json
+  ${JSON.stringify(cvData, null, 2)}
+  \`\`\`
+  ${companyInfo ? `\n**Company Research**: ${companyInfo}` : ''}
+
+  Generate the cover letter based on these refined instructions. Output ONLY the JSON object.`;
 
   try {
-    const result = await callOpenAI([
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ], 2500)
+    const coverLetterText = await callOpenAI(
+      [{ role: 'system', content: systemPrompt }], 1000); // Reduced max_tokens for cover letter
 
-    const coverLetterData = JSON.parse(result)
+    const coverLetterData = JSON.parse(coverLetterText);
 
     // Save session data with cover letter
     try {
@@ -963,6 +954,20 @@ app.post('/api/ai/coverletter-pdf', asyncHandler(async (req, res) => {
   }
 
   const { cvData, appLanguage = 'en', sessionId, roleHint, companyName, positionName } = validation.data
+
+  let companyInfo = '';
+  if (companyName) {
+    try {
+      // Perform a quick web search for company info
+      const searchResults = await web_search.search(`About ${companyName} company`);
+      if (searchResults && searchResults.length > 0) {
+        companyInfo = `Company Background: ${searchResults[0].snippet}`;
+      }
+    } catch (searchError) {
+      errorLog('Web search for company info failed:', searchError.message);
+      // Proceed without company info if search fails
+    }
+  }
 
   try {
     // Ensure cvData has proper structure for cover letter generation
@@ -1009,9 +1014,10 @@ ${companyName || positionName ?
   ${positionName ? `Position: ${positionName}` : ''}
   
   Please customize the cover letter for this specific company and role.` :
-        'Create a versatile cover letter suitable for roles in their field.'
+        'Create a versatile and professional generic cover letter suitable for various roles in their field. It should be easily adaptable by the user.'
       }
 
+${companyInfo ? `\n\nUse this brief company information to tailor the letter's tone and content: ${companyInfo}` : ''}
 ${roleHint ? `Additional Context: ${roleHint}` : ''}
 
 Generate a compelling cover letter that highlights their strongest qualifications and achievements.
