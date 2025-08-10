@@ -29,13 +29,10 @@ const Logo = ({ onBadgeClick, onLogoClick, superMode }) => {
       </span>
       <div className="badge-container">
         <button className="demo-badge rotating-badge" onClick={onBadgeClick}>
-          <span className="beta-text">{t('demoBadge')}</span> |
+          <span className="beta-text">{superMode ? 'Admin' : t('demoBadge')}</span> |
           <span className="info-icon">ℹ︎</span>
           <span className="badge-tooltip">{t('giveFeedback')}</span>
         </button>
-        {superMode && (
-          <span className="admin-badge">Admin</span>
-        )}
       </div>
     </div>
   );

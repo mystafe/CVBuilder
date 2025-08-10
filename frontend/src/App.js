@@ -739,7 +739,12 @@ function App() {
         }
       }
 
-      // PDF indirildikten sonra success mesajı göster
+      // PDF indirildikten sonra success mesajını AI yanıtı gibi göster
+      setConversation(prev => [...prev, {
+        type: 'ai',
+        text: `✅ **CV'niz Başarıyla Hazırlandı!**\n\nCV'niz oluşturuldu ve indirmeye hazır. Aşağıdan indirebilirsiniz.\n\n**Ön Yazı Oluşturalım**\n\nBaşvurmak istediğiniz firma ve pozisyon bilgisini iletirseniz ön yazınızı ona göre oluşturabilirim. İsterseniz bu adımı atlayabilirsiniz.`
+      }]);
+
       setStep('final');
       setHasGeneratedPdf(true);
       setShowCoverLetterForm(true);
@@ -770,8 +775,11 @@ function App() {
     fetchAiQuestions(cvData, 2);
   };
 
-  const handleGenerateCoverLetterWithInfo = async () => {
+  const handleCoverLetterSubmit = async () => {
     if (!cvData) return;
+
+    // Kullanıcı mesajını conversation'a ekle
+    setConversation(prev => [...prev, { type: 'user', text: currentAnswer }]);
 
     setLoadingMessage("Ön yazı oluşturuluyor...");
     setError('');
@@ -779,18 +787,46 @@ function App() {
     try {
       const preparedData = applyUserAdditions(JSON.parse(JSON.stringify(cvData)));
 
+      // Kullanıcının girdiği metinden şirket ve pozisyon bilgilerini çıkar
+      const userInput = currentAnswer.toLowerCase();
+      let extractedCompany = '';
+      let extractedPosition = '';
+
+      // Basit keyword extraction
+      if (userInput.includes('google') || userInput.includes('microsoft') || userInput.includes('apple') || userInput.includes('amazon')) {
+        const companies = ['google', 'microsoft', 'apple', 'amazon'];
+        for (const company of companies) {
+          if (userInput.includes(company)) {
+            extractedCompany = company.charAt(0).toUpperCase() + company.slice(1);
+            break;
+          }
+        }
+      }
+
+      if (userInput.includes('developer') || userInput.includes('manager') || userInput.includes('engineer') || userInput.includes('designer')) {
+        const positions = ['developer', 'manager', 'engineer', 'designer'];
+        for (const position of positions) {
+          if (userInput.includes(position)) {
+            extractedPosition = position.charAt(0).toUpperCase() + position.slice(1);
+            break;
+          }
+        }
+      }
+
       const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/ai/coverletter`, {
         cvData: preparedData,
         appLanguage: cvLanguage,
         sessionId: sessionId || `session_${Date.now()}`,
-        companyName: companyName || '',
-        positionName: positionName || ''
+        companyName: extractedCompany || companyName || '',
+        positionName: extractedPosition || positionName || ''
       });
 
       let coverLetterText = coverLetterResponse.data.coverLetter;
+
+      // AI yanıtını conversation'a ekle
       setConversation(prev => [
         ...prev,
-        { type: 'ai', text: `${t('coverLetterIntro')}\n\n"${coverLetterText}"` }
+        { type: 'ai', text: `📝 **Ön Yazınız Hazır!**\n\n"${coverLetterText}"\n\nÖn yazınızı indirmek için aşağıdaki butonu kullanabilirsiniz.` }
       ]);
 
       // Generate cover letter PDF
@@ -799,8 +835,8 @@ function App() {
           cvData: preparedData,
           appLanguage: cvLanguage,
           sessionId: sessionId || `session_${Date.now()}`,
-          companyName: companyName || '',
-          positionName: positionName || ''
+          companyName: extractedCompany || companyName || '',
+          positionName: extractedPosition || positionName || ''
         }, { responseType: 'blob' });
 
         const coverLetterUrl = window.URL.createObjectURL(new Blob([coverLetterPdfResponse.data], { type: 'application/pdf' }));
@@ -810,6 +846,10 @@ function App() {
         errorLog('Cover letter PDF generation failed:', pdfError);
         setError('Ön yazı PDF\'i oluşturulamadı. Metin olarak kullanabilirsiniz.');
       }
+
+      // Form'u kapat ve currentAnswer'ı temizle
+      setShowCoverLetterForm(false);
+      setCurrentAnswer('');
 
     } catch (error) {
       errorLog('Cover letter generation failed:', error);
@@ -1101,19 +1141,23 @@ function App() {
 
     const categories = [
       { id: 'gpt', name: 'GPT Models', icon: '🤖', desc: 'OpenAI GPT series' },
-      { id: 'custom', name: 'Custom API', icon: '⚙️', desc: 'Custom endpoints' }
+      ...(superMode ? [{ id: 'custom', name: 'Custom API', icon: '⚙️', desc: 'Custom endpoints' }] : [])
     ];
 
     const modelOptions = {
       gpt: [
         { id: 'gpt-4o', name: 'GPT-4o', desc: 'Latest multimodal' },
-        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', desc: 'Fast and efficient' },
-        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', desc: 'High performance' },
-        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', desc: 'Cost effective' }
+        ...(superMode ? [
+          { id: 'gpt-4o-mini', name: 'GPT-4o Mini', desc: 'Fast and efficient' },
+          { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', desc: 'High performance' },
+          { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', desc: 'Cost effective' }
+        ] : [])
       ],
-      custom: [
-        { id: 'custom-api', name: 'Custom API', desc: 'Your own endpoint' }
-      ]
+      ...(superMode ? {
+        custom: [
+          { id: 'custom-api', name: 'Custom API', desc: 'Your own endpoint' }
+        ]
+      } : {})
     };
 
     const handleModelSelect = (modelId) => {
@@ -1438,42 +1482,37 @@ function App() {
               </button>
             </div>
 
-            {/* Debug Module (1x1) */}
-            <div className="ios-module ios-module-1x1" title="Toggle debug logging for frontend and backend">
-              <button
-                className={`ios-single-control ${frontendDebug || backendDebug ? 'active' : ''}`}
-                onClick={() => {
-                  const newValue = !(frontendDebug || backendDebug);
-                  if (newValue !== frontendDebug) handleFrontendDebugToggle();
-                  if (newValue !== backendDebug) handleBackendDebugToggle();
-                }}
-              >
-                <div className="ios-module-icon">🐛</div>
-                <div className="ios-module-title">Debug</div>
-              </button>
-            </div>
+            {/* Debug Module (1x1) - Only visible in admin mode */}
+            {superMode && (
+              <div className="ios-module ios-module-1x1" title="Toggle debug logging for frontend and backend">
+                <button
+                  className={`ios-single-control ${frontendDebug || backendDebug ? 'active' : ''}`}
+                  onClick={() => {
+                    const newValue = !(frontendDebug || backendDebug);
+                    if (newValue !== frontendDebug) handleFrontendDebugToggle();
+                    if (newValue !== backendDebug) handleBackendDebugToggle();
+                  }}
+                >
+                  <div className="ios-module-icon">🐛</div>
+                  <div className="ios-module-title">Debug</div>
+                </button>
+              </div>
+            )}
 
-            {/* Log Viewer Module (1x1) */}
-            <div className="ios-module ios-module-1x1" title="Show/hide system logs viewer">
-              <button
-                className={`ios-single-control ${showLogViewer ? 'active' : ''}`}
-                onClick={() => setShowLogViewer(!showLogViewer)}
-              >
-                <div className="ios-module-icon">📋</div>
-                <div className="ios-module-title">Logs</div>
-              </button>
-            </div>
+            {/* Log Viewer Module (1x1) - Only visible in admin mode */}
+            {superMode && (
+              <div className="ios-module ios-module-1x1" title="Show/hide system logs viewer">
+                <button
+                  className={`ios-single-control ${showLogViewer ? 'active' : ''}`}
+                  onClick={() => setShowLogViewer(!showLogViewer)}
+                >
+                  <div className="ios-module-icon">📋</div>
+                  <div className="ios-module-title">Logs</div>
+                </button>
+              </div>
+            )}
 
-            {/* Admin Module (1x1) */}
-            <div className="ios-module ios-module-1x1" title="Enable admin super mode with advanced features">
-              <button
-                className={`ios-single-control ${superMode ? 'active' : ''}`}
-                onClick={() => setSuperMode(!superMode)}
-              >
-                <div className="ios-module-icon">👑</div>
-                <div className="ios-module-title">Admin</div>
-              </button>
-            </div>
+
 
             {/* Camera Module (Background) */}
             <div className="ios-module ios-module-2x2" title="Customize application theme and visual appearance">
@@ -1493,19 +1532,35 @@ function App() {
               </button>
             </div>
 
-            {/* Flashlight (Theme) */}
-            <div className="ios-module ios-module-1x1" title="Switch between light and dark mode">
+            {/* Language Module (1x2) */}
+            <div className="ios-module ios-module-1x2" title="Change application language">
               <button
-                className={`ios-single-control ${theme === 'dark' ? 'active' : ''}`}
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="ios-single-control"
+                onClick={() => setShowLanguageSelector(true)}
               >
-                <div className="ios-module-icon">{theme === 'dark' ? '🌙' : '☀️'}</div>
-                <div className="ios-module-title">Theme</div>
+                <div className="ios-module-icon">🌍</div>
+                <div className="ios-module-title">Language</div>
+                <div className="ios-module-subtitle">
+                  {i18n.language === 'tr' ? 'Türkçe' : 'English'}
+                </div>
               </button>
             </div>
 
-            {/* AI Model (2x1) */}
-            <div className="ios-module ios-module-2x1" title="Select AI model for processing">
+            {/* Theme Module (1x1) - Only in admin mode */}
+            {superMode && (
+              <div className="ios-module ios-module-1x1" title="Switch between light and dark mode">
+                <button
+                  className={`ios-single-control ${theme === 'dark' ? 'active' : ''}`}
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                >
+                  <div className="ios-module-icon">{theme === 'dark' ? '🌙' : '☀️'}</div>
+                  <div className="ios-module-title">Theme</div>
+                </button>
+              </div>
+            )}
+
+            {/* AI Model (1x2) - Vertical and rightmost */}
+            <div className="ios-module ios-module-1x2" title="Select AI model for processing">
               <button
                 className="ios-single-control"
                 onClick={() => setShowAiModelSelector(true)}
@@ -1516,22 +1571,6 @@ function App() {
                   {aiModelCategory === 'gpt' ? 'GPT' : 'Custom'} • {selectedModel.replace('gpt-', '').replace('-turbo', '').replace('-', ' ')}
                 </div>
               </button>
-            </div>
-
-            {/* Timer (Stats) */}
-            <div className="ios-module ios-module-1x1" title="View system statistics and performance metrics">
-              <div className="ios-single-control">
-                <div className="ios-module-icon">📊</div>
-                <div className="ios-module-title">Stats</div>
-              </div>
-            </div>
-
-            {/* Voice Memos (System Info) */}
-            <div className="ios-module ios-module-1x1" title="System information and app details">
-              <div className="ios-single-control">
-                <div className="ios-module-icon">ℹ️</div>
-                <div className="ios-module-title">Info</div>
-              </div>
             </div>
 
           </div>
@@ -1556,7 +1595,7 @@ function App() {
           backgroundRepeat: chatBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
           backgroundAttachment: 'fixed'
         }}>
-          <div className="settings-bar">{superMode ? <button className="config-button" onClick={() => setShowConfig(true)} title="Super Mode Settings">⚙️</button> : <ThemeSwitcher theme={theme} setTheme={setTheme} />}<LanguageSwitcher /></div>
+          <div className="settings-bar"><button className="config-button" onClick={() => setShowConfig(true)} title="Settings">⚙️</button><LanguageSwitcher /></div>
           <Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} />
           <h1><span>{t('mainTitle')}</span></h1>
           <p>{t('subtitle')}</p>
@@ -1595,7 +1634,7 @@ function App() {
             display: 'flex',
             flexDirection: 'column'
           }}>
-            <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} /><div className="settings-bar">{superMode ? (<><button className="config-button" onClick={() => setShowConfig(true)} title="Super Mode Settings">⚙️</button><ThemeSwitcher theme={theme} setTheme={setTheme} /></>) : <ThemeSwitcher theme={theme} setTheme={setTheme} />}<LanguageSwitcher /></div></div>
+            <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} /><div className="settings-bar"><button className="config-button" onClick={() => setShowConfig(true)} title="Settings">⚙️</button><LanguageSwitcher /></div></div>
             <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
             <div className="chat-input-area">
               {(step === 'scriptedQuestions' || step === 'aiQuestions') && (() => {
@@ -1689,58 +1728,34 @@ function App() {
                 {step === 'final' && hasGeneratedPdf && (
                   <>
                     {showCoverLetterForm && (
-                      <div className="cover-letter-form">
-                        <div className="success-message">
-                          <div className="success-icon">✅</div>
-                          <h3>CV'niz Başarıyla Hazırlandı!</h3>
-                          <p>CV'niz oluşturuldu ve indirmeye hazır. Aşağıdan indirebilirsiniz.</p>
+                      <>
+                        <textarea
+                          value={currentAnswer}
+                          onChange={(e) => {
+                            setCurrentAnswer(e.target.value);
+                            if (error) setError('');
+                          }}
+                          placeholder="Şirket adı ve pozisyon bilgilerini yazabilir veya 'atla' diyebilirsiniz..."
+                          disabled={isLoading}
+                          onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleCoverLetterSubmit())}
+                        />
+                        <div className="button-group">
+                          <button
+                            onClick={handleCoverLetterSubmit}
+                            disabled={isLoading}
+                            className="reply-button"
+                          >
+                            {isLoading ? 'Oluşturuluyor...' : 'Ön Yazı Oluştur'} <SendIcon />
+                          </button>
+                          <button
+                            onClick={() => setShowCoverLetterForm(false)}
+                            disabled={isLoading}
+                            className="secondary"
+                          >
+                            Atla
+                          </button>
                         </div>
-
-                        <div className="company-form">
-                          <h4>Ön Yazı Oluşturalım</h4>
-                          <p>Başvurmak istediğiniz firma ve pozisyon bilgisini iletirseniz ön yazınızı ona göre oluşturabilirim.</p>
-
-                          <div className="form-group">
-                            <label>Şirket Adı (İsteğe bağlı)</label>
-                            <input
-                              type="text"
-                              value={companyName}
-                              onChange={(e) => setCompanyName(e.target.value)}
-                              placeholder="Örn: Google, Microsoft..."
-                              className="form-input"
-                            />
-                          </div>
-
-                          <div className="form-group">
-                            <label>Pozisyon (İsteğe bağlı)</label>
-                            <input
-                              type="text"
-                              value={positionName}
-                              onChange={(e) => setPositionName(e.target.value)}
-                              placeholder="Örn: Frontend Developer, Product Manager..."
-                              className="form-input"
-                            />
-                          </div>
-
-                          <div className="form-actions">
-                            <button
-                              onClick={() => {
-                                setShowCoverLetterForm(false);
-                                handleGenerateCoverLetterWithInfo();
-                              }}
-                              className="primary"
-                            >
-                              <span>{companyName || positionName ? 'Kişiselleştirilmiş Ön Yazı Oluştur' : 'Genel Ön Yazı Oluştur'}</span>
-                            </button>
-                            <button
-                              onClick={() => setShowCoverLetterForm(false)}
-                              className="outline"
-                            >
-                              <span>Atla</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      </>
                     )}
 
                     {!showCoverLetterForm && (

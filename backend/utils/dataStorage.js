@@ -238,6 +238,27 @@ class DataStorage {
     }
   }
 
+  // Save feedback
+  async saveFeedback(feedbackData) {
+    try {
+      await this.ensureDirectories();
+
+      const feedbackDir = path.join(this.dataDir, 'feedback');
+      await fs.mkdir(feedbackDir, { recursive: true });
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `feedback_${timestamp}.json`;
+      const filepath = path.join(feedbackDir, filename);
+
+      await fs.writeFile(filepath, JSON.stringify(feedbackData, null, 2));
+
+      return { filename, path: filepath };
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      throw error;
+    }
+  }
+
   // Get all finalized data folders
   async getFinalizedFolders() {
     try {

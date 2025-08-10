@@ -1296,6 +1296,62 @@ app.delete('/api/logs', asyncHandler(async (req, res) => {
   })
 }))
 
+// Feedback endpoint
+app.post('/api/feedback', asyncHandler(async (req, res) => {
+  try {
+    const { name, email, message, sessionId, language, theme } = req.body
+
+    // Validate required fields
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Message is required',
+        message: 'Please provide a feedback message'
+      })
+    }
+
+    // Optional email validation if provided
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        error: 'Invalid email format',
+        message: 'Please provide a valid email address'
+      })
+    }
+
+    // Save feedback to data storage
+    const feedbackData = {
+      name: name || 'Anonymous',
+      email: email || '',
+      message: message.trim(),
+      sessionId: sessionId || 'unknown',
+      language: language || 'en',
+      theme: theme || 'light',
+      timestamp: new Date().toISOString()
+    }
+
+    await dataStorage.saveFeedback(feedbackData)
+
+    infoLog('Feedback received:', {
+      name: feedbackData.name,
+      email: feedbackData.email ? '***@***.***' : 'not provided',
+      sessionId: feedbackData.sessionId,
+      language: feedbackData.language,
+      theme: feedbackData.theme
+    })
+
+    res.json({
+      success: true,
+      message: 'Feedback submitted successfully',
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    errorLog('Failed to submit feedback:', error)
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to submit feedback. Please try again later.'
+    })
+  }
+}))
+
 // Get data storage stats endpoint (for admin)
 app.get('/api/admin/stats', asyncHandler(async (req, res) => {
   try {

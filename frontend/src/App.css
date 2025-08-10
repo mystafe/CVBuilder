@@ -73,6 +73,8 @@ body.dark {
   padding: 1rem;
   box-sizing: border-box;
   position: relative;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 .fade-in {
@@ -362,6 +364,10 @@ body.dark {
 .config-modal {
   max-width: 600px;
   max-height: 85vh;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .config-section {
@@ -1444,10 +1450,10 @@ body.dark {
 }
 
 .language-switcher button.active {
-  background: rgba(0, 122, 255, 0.9);
+  background: linear-gradient(135deg, rgb(99, 102, 241), rgb(79, 70, 229));
   color: white;
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
 .language-switcher button:not(.active):hover {
@@ -1471,36 +1477,55 @@ body.dark {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(10px);
 }
 .feedback-modal .modal-content {
-  background: var(--surface-color);
-  padding: 1rem;
-  border-radius: 8px;
-  width: 80%;
-  max-width: 300px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2rem;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  gap: 1rem;
+  font-size: 1rem;
   position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: slideInUp 0.3s ease-out;
 }
 .feedback-modal input,
 .feedback-modal textarea {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--background-color);
-  color: var(--text-primary-color);
+  padding: 1rem;
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #2d3748;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.feedback-modal input:focus,
+.feedback-modal textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+  background: rgba(255, 255, 255, 0.95);
 }
 .feedback-modal textarea {
-  min-height: 80px;
+  min-height: 120px;
   resize: vertical;
+  font-family: inherit;
 }
 .feedback-modal .feedback-actions {
   display: flex;
@@ -1512,30 +1537,74 @@ body.dark {
   color: var(--text-secondary-color);
 }
 .feedback-modal button {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+  padding: 1rem 2rem;
+  border-radius: 12px;
   cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+.feedback-modal button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+.feedback-modal button:hover::before {
+  left: 100%;
+}
+.feedback-modal button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+.feedback-modal button:active {
+  transform: translateY(0);
 }
 .feedback-modal button:disabled {
-  background: var(--secondary-color);
+  background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
   cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .feedback-modal .close-button {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  background: transparent;
-  border: none;
-  font-size: 1rem;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
   cursor: pointer;
-  color: var(--text-secondary-color);
+  color: #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 .feedback-modal .close-button:hover {
-  color: var(--text-primary-color);
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #667eea;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 footer {
   text-align: center;
@@ -1907,7 +1976,7 @@ input[type="file"] {
 }
 .error-text {
   color: #d93025;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   text-align: center;
   font-weight: 500;
 }
@@ -1931,7 +2000,7 @@ input[type="file"] {
 }
 
 .demo-badge {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, rgb(99, 102, 241), rgb(79, 70, 229));
   color: white;
   font-size: 10px;
   font-weight: 600;
@@ -1940,7 +2009,7 @@ input[type="file"] {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   animation: pulse-blue 2s infinite;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -2572,11 +2641,7 @@ input[type="file"] {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    135deg,
-    var(--primary-color),
-    var(--primary-hover-color)
-  );
+  background: linear-gradient(135deg, rgb(99, 102, 241), rgb(79, 70, 229));
   opacity: 0;
   transition: opacity 0.3s ease;
   border-radius: 8px;
@@ -3148,7 +3213,7 @@ input[type="file"] {
 .ios-control-center {
   max-width: 380px;
   max-height: 90vh;
-  background: rgba(245, 245, 247, 0.98);
+  background: rgba(245, 245, 247, 0.7);
   backdrop-filter: blur(60px);
   border-radius: 32px;
   overflow: hidden;
@@ -3685,6 +3750,37 @@ input[type="file"] {
 
 .dark .ios-bg-preview {
   border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Dark mode feedback modal */
+.dark .feedback-modal .modal-content {
+  background: rgba(45, 55, 72, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.dark .feedback-modal input,
+.dark .feedback-modal textarea {
+  background: rgba(45, 55, 72, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.dark .feedback-modal input:focus,
+.dark .feedback-modal textarea:focus {
+  border-color: #667eea;
+  background: rgba(45, 55, 72, 0.95);
+}
+
+.dark .feedback-modal .close-button {
+  background: rgba(45, 55, 72, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.dark .feedback-modal .close-button:hover {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: #667eea;
 }
 
 /* New Background Types */
@@ -4379,13 +4475,13 @@ input[type="file"] {
     font-size: 1rem;
     padding: 0;
     border-radius: 50%;
-    background: rgba(0, 122, 255, 0.9);
+    background: linear-gradient(135deg, rgb(99, 102, 241), rgb(79, 70, 229));
     color: white;
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 12px rgba(0, 122, 255, 0.4);
+    box-shadow: 0 2px 12px rgba(99, 102, 241, 0.4);
   }
 
   /* Mobile upload step */
