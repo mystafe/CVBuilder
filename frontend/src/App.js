@@ -612,7 +612,7 @@ function App() {
           // No special action needed here, choices are rendered based on questionQueue
         }
         setTimeout(playMessageSound, 100);
-      }, 800 + Math.random() * 500); // 0.8-1.3 seconds
+      }, 500 + Math.random() * 300); // 0.5-0.8 seconds
     } else {
       debugLog('Queue is empty, calling fetchAiQuestions with data:', data);
       fetchAiQuestions(data); // Script'li soruya gerek yoksa direkt Adım 2'ye geç
@@ -729,7 +729,7 @@ function App() {
           });
           // Choices will render with the question
           setTimeout(playMessageSound, 100);
-        }, 800 + Math.random() * 500); // 0.8-1.3 seconds
+        }, 500 + Math.random() * 300); // 0.5-0.8 seconds
       } else {
         setCanRefine(false);
         // Wait before showing final message to let user read the last answer
@@ -851,7 +851,7 @@ function App() {
           return [...filteredConversation, { type: 'ai', text: t(nextQuestion.key) }];
         });
         setTimeout(playMessageSound, 100);
-      }, 800 + Math.random() * 500); // 0.8-1.3 seconds
+      }, 500 + Math.random() * 300); // 0.5-0.8 seconds
     } else {
       if (step === 'scriptedQuestions') {
         // Show typing indicator immediately when scripted questions end

@@ -647,90 +647,50 @@ app.post('/api/ai/questions', asyncHandler(async (req, res) => {
     })
   }
 
-  const { cvData, maxQuestions = 4, appLanguage = 'en' } = validation.data
-  debugLog('Questions endpoint - Extracted cvData:', cvData ? 'EXISTS' : 'NULL')
-  debugLog('Questions endpoint - cvData keys:', cvData ? Object.keys(cvData) : 'N/A')
-  debugLog('Questions endpoint - App Language:', appLanguage)
+  const { cvData, maxQuestions = 3, appLanguage = 'en', askedQuestions = [] } = validation.data;
+  const userName = cvData?.personalInfo?.name?.split(' ')[0] || '';
 
-  // Check if cvData is null or empty
-  if (!cvData || typeof cvData !== 'object' || cvData === null || Object.keys(cvData).length === 0) {
-    debugLog('Questions endpoint - CV data check failed')
-    debugLog('Questions endpoint - cvData type:', typeof cvData)
-    debugLog('Questions endpoint - cvData value:', cvData)
-    return res.status(400).json({
-      error: 'CV data is required',
-      message: 'Please provide valid CV data for question generation'
-    })
-  }
-
-  const systemPrompt = `You are an expert CV optimization consultant. Your mission: identify the HIGHEST-IMPACT gaps in this CV and generate strategic questions to fill them.
+  const systemPrompt = `You are a world-class CV optimization consultant and career coach named 'Alex'. Your mission is to identify the HIGHEST-IMPACT gaps in a user's CV and generate strategic, non-generic questions to fill them. You are friendly, insightful, and vary your questions.
 
 ${appLanguage === 'tr' ?
-      'IMPORTANT: Respond in Turkish (Türkçe). Generate all questions and text in Turkish language.' :
-      'IMPORTANT: Respond in English.'}
+      'IMPORTANT: Respond in Turkish (Türkçe). Generate all questions and text in Turkish language. Address the user by their name if available.' :
+      'IMPORTANT: Respond in English. Address the user by their name if available.'}
 
-EXPERTISE-BASED ANALYSIS:
-First, analyze the CV to determine the candidate's expertise area:
-- FINANCE/BANKING: Focus on financial metrics, risk management, portfolio performance, regulatory compliance
-- SOFTWARE/TECH: Focus on programming languages, frameworks, technical projects, system architecture
-- MARKETING/SALES: Focus on campaign performance, revenue growth, market expansion, customer acquisition
-- HEALTHCARE/MEDICAL: Focus on patient outcomes, medical procedures, research, clinical experience
-- EDUCATION/TEACHING: Focus on student outcomes, curriculum development, teaching methods, academic achievements
-- CONSULTING/MANAGEMENT: Focus on client projects, team leadership, strategic initiatives, business impact
-- MANUFACTURING/ENGINEERING: Focus on production efficiency, quality control, process improvement, technical specifications
-- RETAIL/HOSPITALITY: Focus on customer satisfaction, sales performance, operational efficiency, team management
+ANALYSIS & QUESTION STRATEGY:
+1.  **Analyze Holistically**: First, understand the candidate's industry (e.g., Tech, Finance, Marketing), experience level (e.g., Junior, Senior, Manager), and career trajectory.
+2.  **Prioritize Impact, Not Just Metrics**: Move beyond only asking for numbers. Ask about the *'how'* and the *'why'*.
+    *   **Instead of**: "By what percentage did you increase sales?"
+    *   **Ask**: "What was a specific strategy you implemented that led to significant sales growth?" or "Can you describe a challenging project and how you led it to success?"
+3.  **Sector-Specific Probing**: Ask questions a hiring manager in their *specific field* would ask.
+    *   **Tech**: "I see you used React on Project X. Could you tell me about the most complex component you built and the challenges you faced?"
+    *   **Marketing**: "Your experience at Company Y is impressive. What was a marketing campaign you ran that you are particularly proud of, and what were its results?"
+    *   **Finance**: "You mentioned financial modeling. What types of models are you most experienced with, and what was the scope of a recent analysis you performed?"
+4.  **Personalize Your Interaction**:
+    *   If the user's name is available (e.g., '${userName}'), use it occasionally and naturally. Example: "Thanks, ${userName}. Now, let's dive into your experience at..."
+    *   Vary your question style. Don't ask the same type of question repeatedly. Mix project-based questions, skill-deepening questions, and impact-quantification questions.
+5.  **Avoid Redundancy**: Do not ask questions that have already been asked. A list of previously asked question keys is provided.
 
-ANALYSIS PRIORITY (focus on these KEY areas based on expertise):
-1. QUANTIFIABLE ACHIEVEMENTS - Missing numbers, metrics, business impact
-2. TECHNICAL PROFICIENCY - Skill levels, certifications, tools mastery (relevant to their field)
-3. LEADERSHIP IMPACT - Team management, project leadership, decision-making
-4. CAREER PROGRESSION - Growth trajectory, increasing responsibilities
-5. INDUSTRY RELEVANCE - Sector-specific keywords, domain expertise
+**Do NOT ask generic, boring questions like "What are your skills?" or "Describe your experience."**
 
-QUESTION STRATEGY:
-- Ask for SPECIFIC metrics (%, $, numbers, timeframes) relevant to their expertise area
-- Target gaps that recruiters in their specific industry notice immediately
-- Focus on areas where candidates in their field typically undervalue themselves
-- Prioritize recent/relevant experience over old positions
-- Avoid generic questions - be laser-focused on their specific expertise profile
-- For obvious typos or common company names, suggest corrections with multiple choice options
-- Sometimes provide multiple choice answers to speed up interaction
-- NEVER ask about skills outside their expertise area (e.g., don't ask a finance professional about programming languages)
-
-JSON FORMAT (exactly ${maxQuestions} questions):
+JSON FORMAT (exactly ${maxQuestions} unique, high-impact questions):
 {
   "questions": [
     {
-      "id": "q1", 
-      "question": "Specific, actionable question targeting a critical gap",
-                        "category": "achievements|technical|leadership|growth|industry|typo_correction",
-      "hint": "Clear guidance on what type of answer will maximize CV impact",
-      "isMultipleChoice": false,
-      "choices": ["Option 1", "Option 2", "Option 3", "Bunların dışında"]
+      "id": "q1",
+      "question": "A specific, actionable question targeting a critical gap, sometimes personalized with the user's name.",
+      "category": "project_deep_dive|skill_validation|impact_quantification|career_narrative",
+      "hint": "Provide a clear, concise hint on what a strong answer looks like."
     }
   ]
-}
+}`;
 
-MULTIPLE CHOICE & TYPO CORRECTION STRATEGY:
-            - ACTIVELY look for obvious typos in company names, technologies, locations, skills
-            - MANDATORY typo check for: company names (Apple, Google, Microsoft, Amazon, etc.), technologies (JavaScript, Python, React, etc.), cities (İstanbul, Ankara, etc.)
-            - Examples: "Aple" → ["Apple", "Custom input"], "Gogle" → ["Google", "Custom input"], "javasptit" → ["JavaScript", "Custom input"], "reactjs" → ["React", "Custom input"]
-            - ANY suspicious spelling should trigger a correction question
-- For time-based questions: ["2024", "2023", "Custom input"] 
-- For yes/no questions: ["Evet", "Hayır"] or ["Yes", "No"]
-- For levels: ["Beginner", "Advanced", "Custom input"]
-- MAX 2 predefined options + always include "Custom input" as third option
-- Use isMultipleChoice: true and provide exactly 2-3 options
-- ONLY include "choices" array when isMultipleChoice is true
-- Prioritize typo corrections - if you see ANY suspicious spellings, create correction questions
+  const userPrompt = `Based on this CV, generate ${maxQuestions} targeted, non-generic, and varied questions to help improve their profile.
+Do not repeat any questions from this list of already asked questions: [${askedQuestions.join(', ')}]
 
-CRITICAL: Base questions on actual CV content analysis, not generic templates.`
-
-  const userPrompt = `Based on this CV, generate ${maxQuestions} targeted questions to help improve their profile:
-
+User's Name: ${userName}
 CV Data: ${JSON.stringify(cvData, null, 2)}
 
-Generate questions that will help uncover missing achievements, quantify impact, and highlight their unique value proposition.`
+Generate questions that will help uncover the stories and specific details behind their achievements.`;
 
   try {
     const result = await callOpenAI([
@@ -1147,31 +1107,32 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
     // 2. Save Finalized Data (including enhanced summary)
     try {
       const finalData = { ...cvData, summary: enhancedSummary };
+      // Pass the 'req' object to get client info for logging
       const savedPaths = await dataStorage.saveFinalizedData(sessionId, finalData, req);
       infoLog(`Finalized data saved for session ${sessionId} at ${savedPaths.jsonDataPath}`);
+
+      // 3. Generate PDF using the backend service
+      try {
+        const pdfService = require('./services/pdfService');
+        // Use the 'finalData' variable which is correctly defined
+        const pdfBuffer = await pdfService.createCvPdf(finalData, cvLanguage);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=cv.pdf');
+        res.send(pdfBuffer);
+        infoLog('CV PDF generated successfully using backend service');
+      } catch (pdfError) {
+        errorLog('Backend CV PDF service failed:', pdfError);
+        // Fallback to simple text response
+        res.status(500).json({
+          // Define a fallback message instead of using an undefined variable
+          message: 'PDF generation failed on the server.',
+          error: pdfError.message
+        });
+      }
     } catch (saveError) {
-      errorLog(`Error saving finalized data: ${saveError}`);
-      // We can still proceed with PDF generation even if saving fails
-    }
-
-
-    // 3. Generate PDF using the backend service
-    try {
-      const pdfService = require('./services/pdfService')
-      const pdfBuffer = await pdfService.createCvPdf(finalCvData, cvLanguage);
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=cv.pdf');
-      res.send(pdfBuffer);
-      infoLog('CV PDF generated successfully using backend service');
-    } catch (pdfError) {
-      errorLog('Backend CV PDF service failed:', pdfError)
-      // Fallback to simple text response
-      res.json({
-        coverLetter: coverText,
-        message: 'PDF generation failed, returning text only',
-        error: pdfError.message
-      })
+      errorLog(`Error saving finalized data: ${saveError.message}`);
+      res.status(500).json({ message: 'Failed to save finalized CV data.', error: saveError.message });
     }
   } catch (error) {
     errorLog('PDF generation error:', error)
