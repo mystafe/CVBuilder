@@ -4,7 +4,6 @@ import { set, get } from 'lodash';
 import { useTranslation } from 'react-i18next';
 import Logo from './components/Logo';
 import LanguageSwitcher from './components/LanguageSwitcher';
-import ThemeSwitcher from './components/ThemeSwitcher';
 import Feedback from './components/Feedback';
 import './App.css';
 
@@ -32,8 +31,150 @@ const API_BASE_URL = getApiBaseUrl();
 // API Debug info will be shown when component mounts
 
 // --- Statik Ikon ve Bileşenler ---
-const TypingIndicator = () => <div className="message ai typing"><span></span><span></span><span></span></div>;
+const TypingIndicator = () => {
+  // Play typing sound
+  React.useEffect(() => {
+    const playTypingSound = () => {
+      try {
+        // Create a simple beep sound using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.type = 'sine';
+
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+      } catch (error) {
+        console.log('Audio not supported or blocked');
+      }
+    };
+
+    playTypingSound();
+  }, []);
+
+  return <div className="message ai typing"><span></span><span></span><span></span></div>;
+};
 const SendIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <line x1="22" y1="2" x2="11" y2="13"></line> <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon> </svg>);
+
+// Extracted ConfigModal to avoid remounts on App re-render
+function ConfigModal({
+  open,
+  onClose,
+  superMode,
+  frontendDebug,
+  backendDebug,
+  onToggleFrontendDebug,
+  onToggleBackendDebug,
+  showLogViewer,
+  setShowLogViewer,
+  onOpenBackgroundSelector,
+  onOpenLanguageSelector,
+  onOpenAiModelSelector,
+  backgroundCategory,
+  theme,
+  setTheme,
+  i18n,
+  aiModelCategory,
+  selectedModel,
+}) {
+  if (!open) return null;
+  return (
+    <div className="modal-overlay show" onClick={onClose}>
+      <div className="modal-content ios-control-center" onClick={e => e.stopPropagation()}>
+        <div className="ios-header">
+          <button className="ios-close" onClick={onClose}>✕</button>
+        </div>
+
+        {/* iOS Control Center Grid */}
+        <div className="ios-control-grid">
+
+          {/* Debug (admin) */}
+          {superMode && (
+            <div className="ios-module ios-module-1x1" title="Toggle debug logging for frontend and backend">
+              <button
+                className={`ios-single-control ${frontendDebug || backendDebug ? 'active' : ''}`}
+                onClick={() => {
+                  const newValue = !(frontendDebug || backendDebug);
+                  if (newValue !== frontendDebug) onToggleFrontendDebug();
+                  if (newValue !== backendDebug) onToggleBackendDebug();
+                }}
+              >
+                <div className="ios-module-icon">🐛</div>
+                <div className="ios-module-title">Debug</div>
+              </button>
+            </div>
+          )}
+
+          {/* Logs (admin) */}
+          {superMode && (
+            <div className="ios-module ios-module-1x1" title="Show/hide system logs viewer">
+              <button
+                className={`ios-single-control ${showLogViewer ? 'active' : ''}`}
+                onClick={() => setShowLogViewer(!showLogViewer)}
+              >
+                <div className="ios-module-icon">📋</div>
+                <div className="ios-module-title">Logs</div>
+              </button>
+            </div>
+          )}
+
+          {/* Application Theme */}
+          <div className="ios-module ios-module-2x2" title="Customize application theme and visual appearance">
+            <button className="ios-single-control" onClick={onOpenBackgroundSelector}>
+              <div className="ios-module-icon">🎨</div>
+              <div className="ios-module-content">
+                <div className="ios-module-title">Application Theme</div>
+                <div className="ios-module-subtitle">
+                  {backgroundCategory === 'patterns' ? 'Patterns' :
+                    backgroundCategory === 'gradients' ? 'Gradients' :
+                      backgroundCategory === 'nature' ? 'Nature' : 'Warm Colors'}
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Language */}
+          <div className="ios-module ios-module-1x2" title="Change application language">
+            <button className="ios-single-control" onClick={onOpenLanguageSelector}>
+              <div className="ios-module-icon">🌍</div>
+              <div className="ios-module-title">Language</div>
+              <div className="ios-module-subtitle">{i18n.language === 'tr' ? 'Türkçe' : 'English'}</div>
+            </button>
+          </div>
+
+          {/* Theme (admin) */}
+          <div className="ios-module ios-module-1x1" title="Switch between light and dark mode">
+            <button
+              className={`ios-single-control ${theme === 'dark' ? 'active' : ''}`}
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              <div className="ios-module-icon">{theme === 'dark' ? '🌙' : '☀️'}</div>
+              <div className="ios-module-title">Theme</div>
+            </button>
+          </div>
+
+          {/* AI Model */}
+          <div className="ios-module ios-module-1x2" title="Select AI model for processing">
+            <button className="ios-single-control" onClick={onOpenAiModelSelector}>
+              <div className="ios-module-icon">🤖</div>
+              <div className="ios-module-title">AI Model</div>
+              <div className="ios-module-subtitle">{aiModelCategory === 'gpt' ? 'GPT' : 'Custom'} • {selectedModel.replace('gpt-', '').replace('-turbo', '').replace('-', ' ')}</div>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   // --- State & Ref Yönetimi ---
@@ -89,6 +230,7 @@ function App() {
     return saved || '';
   });
   const [showCustomImageModal, setShowCustomImageModal] = useState(false);
+  const [customImageMode, setCustomImageMode] = useState('upload'); // 'upload' | 'url'
   const [customImageUrl, setCustomImageUrl] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [cvScore, setCvScore] = useState(null);
@@ -103,6 +245,15 @@ function App() {
   });
   const [clickCount, setClickCount] = useState(0);
   const [showConfig, setShowConfig] = useState(false);
+
+  // Memoize modal states to prevent unnecessary re-renders
+  // const modalStates = useMemo(() => ({
+  //   showBackgroundSelector,
+  //   showLanguageSelector,
+  //   showAiModelSelector,
+  //   showCustomImageModal,
+  //   showConfig
+  // }), [showBackgroundSelector, showLanguageSelector, showAiModelSelector, showCustomImageModal, showConfig]);
   const [backendDebug, setBackendDebug] = useState(() => {
     return localStorage.getItem('backendDebug') === 'true';
   });
@@ -115,6 +266,10 @@ function App() {
   const [backendLogs, setBackendLogs] = useState([]);
   const [logViewMode, setLogViewMode] = useState('tail'); // 'tail' or 'scroll'
   const [activeLogTab, setActiveLogTab] = useState('frontend'); // 'all', 'frontend', 'backend'
+  const [autoLogPolling, setAutoLogPolling] = useState(() => {
+    const saved = localStorage.getItem('autoLogPolling');
+    return saved ? JSON.parse(saved) : true;
+  });
 
   // DEBUG değişkenini component içinde tanımlayalım
   const DEBUG = frontendDebug;
@@ -131,6 +286,41 @@ function App() {
       setFrontendLogs(prev => [...prev.slice(-49), logEntry]); // Son 50 log tut
     }
   }, [superMode]);
+
+  // Sound effects
+  // Delay function for typing effect
+  // const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const playMessageSound = useCallback(() => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Çok hoş, yumuşak bildirim sesi
+      const now = audioContext.currentTime;
+
+      // Ana ton
+      oscillator.frequency.setValueAtTime(523.25, now); // C5
+      oscillator.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+      oscillator.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+      oscillator.type = 'sine';
+
+      // Yumuşak envelope
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.03, now + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.25);
+    } catch (error) {
+      console.log('Audio not supported or blocked');
+    }
+  }, []);
 
   const debugLog = useCallback((...args) => {
     const message = args.join(' ');
@@ -162,6 +352,7 @@ function App() {
   useEffect(() => { localStorage.setItem('superMode', superMode.toString()); }, [superMode]);
   useEffect(() => { localStorage.setItem('frontendDebug', frontendDebug.toString()); }, [frontendDebug]);
   useEffect(() => { localStorage.setItem('backendDebug', backendDebug.toString()); }, [backendDebug]);
+  useEffect(() => { localStorage.setItem('autoLogPolling', JSON.stringify(autoLogPolling)); }, [autoLogPolling]);
 
   // API Configuration Debug
   useEffect(() => {
@@ -231,8 +422,6 @@ function App() {
 
   // Enhanced background style helper with intensity levels
   const getChatBackgroundStyle = useCallback((intensity = 'normal') => {
-    debugLog('Background style requested:', chatBackground, customBackgroundImage, intensity);
-
     // If custom background image exists, always use it
     if (customBackgroundImage) {
       return `url(${customBackgroundImage})`;
@@ -269,7 +458,7 @@ function App() {
       default:
         return 'none';
     }
-  }, [chatBackground, customBackgroundImage, debugLog]);
+  }, [chatBackground, customBackgroundImage]);
 
   // Apply background CSS custom properties to the document
   const applyChatBackgroundVars = useCallback(() => {
@@ -279,11 +468,19 @@ function App() {
     const bgSize = chatBackground.startsWith('pattern') ? '20px 20px' : 'cover';
     const bgRepeat = chatBackground.startsWith('pattern') ? 'repeat' : 'no-repeat';
 
+    // Apply to document root for global access
     document.documentElement.style.setProperty('--chat-header-bg', headerBg);
     document.documentElement.style.setProperty('--chat-window-bg', windowBg);
     document.documentElement.style.setProperty('--global-bg', globalBg);
     document.documentElement.style.setProperty('--chat-bg-size', bgSize);
     document.documentElement.style.setProperty('--chat-bg-repeat', bgRepeat);
+
+    // Also apply to body for better compatibility
+    document.body.style.setProperty('--chat-header-bg', headerBg);
+    document.body.style.setProperty('--chat-window-bg', windowBg);
+    document.body.style.setProperty('--global-bg', globalBg);
+    document.body.style.setProperty('--chat-bg-size', bgSize);
+    document.body.style.setProperty('--chat-bg-repeat', bgRepeat);
   }, [chatBackground, getChatBackgroundStyle]);
 
   // Apply background variables when chatBackground changes
@@ -402,7 +599,14 @@ function App() {
 
     if (queue.length > 0) {
       debugLog('Queue has items, showing first question');
-      setConversation([{ type: 'ai', text: tApp(queue[0].key) }]);
+      // Show typing indicator first
+      setConversation([{ type: 'typing' }]);
+
+      // Wait for typing effect, then show message
+      setTimeout(async () => {
+        setConversation([{ type: 'ai', text: tApp(queue[0].key) }]);
+        setTimeout(playMessageSound, 100);
+      }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
     } else {
       debugLog('Queue is empty, calling fetchAiQuestions with data:', data);
       fetchAiQuestions(data); // Script'li soruya gerek yoksa direkt Adım 2'ye geç
@@ -507,7 +711,17 @@ function App() {
         setQuestionQueue(aiQuestions);
         setAskedAiQuestions(prev => [...prev, ...aiQuestions.map(q => q.key)]);
         setStep('aiQuestions');
-        setConversation(prev => [...prev, { type: 'ai', text: aiQuestions[0].key }]);
+        // Show typing indicator first
+        setConversation(prev => [...prev, { type: 'typing' }]);
+
+        // Wait for typing effect, then show message
+        setTimeout(() => {
+          setConversation(prev => {
+            const newConversation = prev.filter(msg => msg.type !== 'typing');
+            return [...newConversation, { type: 'ai', text: aiQuestions[0].key }];
+          });
+          setTimeout(playMessageSound, 100);
+        }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
       } else {
         setCanRefine(false);
         setConversation(prev => [
@@ -621,13 +835,34 @@ function App() {
     setCurrentAnswer('');
 
     if (remainingQuestions.length > 0) {
-      setConversation([...newConversation, { type: 'ai', text: t(remainingQuestions[0].key) }]);
+      // Show typing indicator first
+      setConversation([...newConversation, { type: 'typing' }]);
+
+      // Wait for typing effect, then show message
+      setTimeout(() => {
+        setConversation(prev => {
+          const filteredConversation = prev.filter(msg => msg.type !== 'typing');
+          return [...filteredConversation, { type: 'ai', text: t(remainingQuestions[0].key) }];
+        });
+        setTimeout(playMessageSound, 100);
+      }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
     } else {
       if (step === 'scriptedQuestions') {
-        setConversation([...newConversation]);
+        // Show typing indicator immediately when scripted questions end
+        setConversation([...newConversation, { type: 'typing' }]);
         fetchAiQuestions(updatedCvData);
       } else {
-        setConversation([...newConversation, { type: 'ai', text: t('finalMessage') }]);
+        // Show typing indicator first
+        setConversation([...newConversation, { type: 'typing' }]);
+
+        // Wait for typing effect, then show message
+        setTimeout(() => {
+          setConversation(prev => {
+            const filteredConversation = prev.filter(msg => msg.type !== 'typing');
+            return [...filteredConversation, { type: 'ai', text: t('finalMessage') }];
+          });
+          setTimeout(playMessageSound, 100);
+        }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
         setStep('review');
         scoreCv(updatedCvData);
       }
@@ -686,7 +921,17 @@ function App() {
           ? 'Çeşitli konularda iyileştirme yapılabilir.'
           : 'CV\'niz genel olarak iyi durumda.';
 
-      setConversation(prev => [...prev, { type: 'ai', text: `${t('cvScore', { score: res.data.overall || res.data.score })} ${improvementComment}` }]);
+      // Show typing indicator first
+      setConversation(prev => [...prev, { type: 'typing' }]);
+
+      // Wait for typing effect, then show message
+      setTimeout(() => {
+        setConversation(prev => {
+          const filteredConversation = prev.filter(msg => msg.type !== 'typing');
+          return [...filteredConversation, { type: 'ai', text: `${t('cvScore', { score: res.data.overall || res.data.score })} ${improvementComment}` }];
+        });
+        setTimeout(playMessageSound, 100);
+      }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
     } catch (err) {
       // ignore scoring errors
     }
@@ -999,12 +1244,16 @@ function App() {
 
   // Admin stats functionality removed for now
 
-  // Backend log polling
+  // Backend log polling - pause while any settings modal is open to avoid UI re-renders
+  const isAnySettingsOpen = showConfig || showBackgroundSelector || showLanguageSelector || showAiModelSelector || showCustomImageModal;
   useEffect(() => {
-    const interval = setInterval(fetchBackendLogs, 2000); // Her 2 saniyede bir
-    fetchBackendLogs(); // İlk fetch
+    if (!superMode || !showLogViewer || isAnySettingsOpen || !autoLogPolling) {
+      return;
+    }
+    const interval = setInterval(fetchBackendLogs, 2000);
+    fetchBackendLogs();
     return () => clearInterval(interval);
-  }, [fetchBackendLogs]);
+  }, [fetchBackendLogs, superMode, showLogViewer, isAnySettingsOpen, autoLogPolling]);
 
   // Log viewer auto-scroll effect
   const logContentRef = useRef(null);
@@ -1064,6 +1313,22 @@ function App() {
               {logViewMode === 'tail' ? '📜' : '🔽'}
             </button>
             <button
+              onClick={() => setAutoLogPolling(!autoLogPolling)}
+              className={`log-control-btn ${autoLogPolling ? 'active' : ''}`}
+              title={autoLogPolling ? 'Auto refresh ON' : 'Auto refresh OFF'}
+            >
+              {autoLogPolling ? '🔁' : '⏸️'}
+            </button>
+            {!autoLogPolling && (
+              <button
+                onClick={fetchBackendLogs}
+                className="log-control-btn"
+                title="Refresh logs now"
+              >
+                ↻
+              </button>
+            )}
+            <button
               onClick={clearAllLogs}
               className="log-control-btn"
               title="Clear all logs"
@@ -1073,7 +1338,7 @@ function App() {
           </div>
         </div>
 
-        <div className="log-content">
+        <div className="log-content" aria-live="polite">
           {activeLogTab === 'frontend' ? (
             <div className="log-entries">
               {displayFrontendLogs.length === 0 ? (
@@ -1119,17 +1384,11 @@ function App() {
   };
 
   // Background category handler
-  const handleCategorySelect = (category) => {
-    setBackgroundCategory(category);
-    // Set default background for category
-    const defaults = {
-      patterns: 'pattern2',
-      gradients: 'gradient1',
-      nature: 'nature1',
-      warm: 'warm1'
-    };
-    setChatBackground(defaults[category] || 'pattern2');
-  };
+  // const handleCategorySelect = (category) => {
+  //   setBackgroundCategory(category);
+  //   const defaults = { patterns: 'pattern2', gradients: 'gradient1', nature: 'nature1', warm: 'warm1' };
+  //   setChatBackground(defaults[category] || 'pattern2');
+  // };
 
   // Language category handler
   const handleLanguageCategorySelect = (category) => {
@@ -1281,6 +1540,11 @@ function App() {
 
   // Custom Image Modal
   const CustomImageModal = () => {
+    const [previewImage, setPreviewImage] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [statusText, setStatusText] = useState('');
+
     if (!showCustomImageModal) return null;
 
     const handleImageUpload = (event) => {
@@ -1298,29 +1562,75 @@ function App() {
       }
 
       const reader = new FileReader();
+      setStatusText('Reading file...');
+      setUploadProgress(5);
+      reader.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.max(5, Math.min(95, Math.round((e.loaded / e.total) * 100)));
+          setUploadProgress(percent);
+        }
+      };
       reader.onload = (e) => {
-        setCustomBackgroundImage(e.target.result);
-        setChatBackground('custom');
-        setShowCustomImageModal(false);
+        setPreviewImage(e.target.result);
         setUploadError('');
+        setUploadProgress(100);
+        setStatusText('Preview ready');
       };
       reader.readAsDataURL(file);
     };
 
-    const handleUrlSubmit = () => {
+    const handleUrlSubmit = async () => {
       if (!customImageUrl) return;
+
+      setIsLoading(true);
+      setUploadError('');
+      setStatusText('Fetching image...');
+      setUploadProgress(10);
 
       // Basic URL validation
       try {
         new URL(customImageUrl);
-        setCustomBackgroundImage(customImageUrl);
-        setChatBackground('custom');
-        setShowCustomImageModal(false);
-        setUploadError('');
-        setCustomImageUrl('');
+
+        // Test if image loads
+        const img = new Image();
+        img.onload = () => {
+          setPreviewImage(customImageUrl);
+          setIsLoading(false);
+          setUploadProgress(100);
+          setStatusText('Preview ready');
+        };
+        img.onerror = () => {
+          setUploadError('Could not load image from URL');
+          setIsLoading(false);
+          setStatusText('');
+          setUploadProgress(0);
+        };
+        img.src = customImageUrl;
       } catch {
         setUploadError('Please enter a valid image URL');
+        setIsLoading(false);
+        setStatusText('');
+        setUploadProgress(0);
       }
+    };
+
+    const handleApplyImage = () => {
+      if (previewImage) {
+        setCustomBackgroundImage(previewImage);
+        setChatBackground('custom');
+        setShowCustomImageModal(false);
+        setPreviewImage(null);
+        setUploadError('');
+        setCustomImageUrl('');
+      }
+    };
+
+    const handleRemoveCurrent = () => {
+      setCustomBackgroundImage(null);
+      setChatBackground('default');
+      setPreviewImage(null);
+      setUploadError('');
+      setCustomImageUrl('');
     };
 
     return (
@@ -1331,40 +1641,89 @@ function App() {
             <button className="ios-close" onClick={() => setShowCustomImageModal(false)}>✕</button>
           </div>
 
+          <div className="ios-live-preview" style={{ backgroundImage: `url(${previewImage || customBackgroundImage || ''})` }}></div>
+
           <div className="custom-image-options">
-            <div className="option-section">
-              <h4>📁 Upload Image</h4>
-              <p>Choose an image from your device</p>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="file-input"
-                id="background-upload"
-              />
-              <label htmlFor="background-upload" className="upload-button">
-                Choose Image
-              </label>
+            <div className="tab-switch">
+              <button className={`tab-btn ${customImageMode === 'upload' ? 'active' : ''}`} onClick={() => setCustomImageMode('upload')}>Upload</button>
+              <button className={`tab-btn ${customImageMode === 'url' ? 'active' : ''}`} onClick={() => setCustomImageMode('url')}>Image URL</button>
             </div>
+            {/* Current Custom Image Preview */}
+            {customBackgroundImage && (
+              <div className="option-section current-image-section">
+                <h4>🎨 Current Custom Image</h4>
+                <div className="current-image-preview" style={{ backgroundImage: `url(${customBackgroundImage})` }}>
+                  <div className="current-image-overlay">
+                    <span>Current Background</span>
+                  </div>
+                </div>
+                <button onClick={handleRemoveCurrent} className="remove-button">
+                  Remove Current Image
+                </button>
+              </div>
+            )}
+
+            {/* Image Upload Section */}
+            {customImageMode === 'upload' && (
+              <div className="option-section compact">
+                <h4>📁 Upload Image</h4>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="file-input"
+                  id="background-upload"
+                />
+                <label htmlFor="background-upload" className="upload-button">Choose Image</label>
+                <div className="upload-progress"><div className="bar" style={{ width: `${uploadProgress}%` }}></div></div>
+                {statusText && <div className="upload-status">{statusText}</div>}
+              </div>
+            )}
 
             <div className="option-divider">or</div>
 
-            <div className="option-section">
-              <h4>🌐 Image URL</h4>
-              <p>Enter a direct image URL</p>
-              <div className="url-input-group">
-                <input
-                  type="url"
-                  placeholder="https://example.com/image.jpg"
-                  value={customImageUrl}
-                  onChange={(e) => setCustomImageUrl(e.target.value)}
-                  className="url-input"
-                />
-                <button onClick={handleUrlSubmit} className="url-submit-btn">
-                  Apply
-                </button>
+            {/* URL Input Section */}
+            {customImageMode === 'url' && (
+              <div className="option-section compact">
+                <h4>🌐 Image URL</h4>
+                <div className="url-input-group">
+                  <input
+                    type="url"
+                    placeholder="https://example.com/image.jpg"
+                    value={customImageUrl}
+                    onChange={(e) => setCustomImageUrl(e.target.value)}
+                    className="url-input"
+                  />
+                  <button
+                    onClick={handleUrlSubmit}
+                    className="url-submit-btn"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Loading...' : 'Preview'}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Preview Section */}
+            {previewImage && (
+              <div className="option-section preview-section">
+                <h4>👁️ Preview</h4>
+                <div className="image-preview" style={{ backgroundImage: `url(${previewImage})` }}>
+                  <div className="preview-overlay">
+                    <span>Preview</span>
+                  </div>
+                </div>
+                <div className="preview-actions">
+                  <button onClick={handleApplyImage} className="apply-button">
+                    Apply Upload
+                  </button>
+                  <button onClick={() => setPreviewImage(null)} className="cancel-button">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {uploadError && (
               <div className="upload-error">{uploadError}</div>
@@ -1376,6 +1735,18 @@ function App() {
   };
 
   const BackgroundSelectorModal = () => {
+    // Local staging state to avoid global reflows/flicker until Apply
+    const [tempCategory, setTempCategory] = useState(backgroundCategory);
+    const [tempBackground, setTempBackground] = useState(chatBackground);
+
+    useEffect(() => {
+      if (showBackgroundSelector) {
+        setTempCategory(backgroundCategory);
+        setTempBackground(chatBackground);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showBackgroundSelector]);
+
     if (!showBackgroundSelector) return null;
 
     const categories = [
@@ -1406,8 +1777,63 @@ function App() {
       ],
       custom: [
         { id: 'upload', name: 'Upload Image', preview: 'ios-bg-upload' },
-        { id: 'url', name: 'Image URL', preview: 'ios-bg-url' }
+        { id: 'url', name: 'Image URL', preview: 'ios-bg-url' },
+        { id: 'current', name: 'Current Custom', preview: 'ios-bg-custom-current' }
       ]
+    };
+
+    const defaultsByCategory = {
+      patterns: 'pattern2',
+      gradients: 'gradient1',
+      nature: 'nature1',
+      warm: 'warm1'
+    };
+
+    const handleTempCategorySelect = (cat) => {
+      setTempCategory(cat);
+      if (cat !== 'custom') {
+        setTempBackground(defaultsByCategory[cat] || 'pattern2');
+      }
+    };
+
+    // Local preview style calculator (mirrors getChatBackgroundStyle but uses tempBackground)
+    const previewStyle = (() => {
+      const intensityMultiplier = { transient: 0.3, light: 0.6, normal: 1.0, header: 1.4 };
+      const mult = intensityMultiplier['normal'];
+      const id = tempBackground;
+      if (customBackgroundImage && (id === 'custom')) {
+        return `url(${customBackgroundImage})`;
+      }
+      switch (id) {
+        case 'gradient1':
+          return `linear-gradient(135deg, rgba(59, 130, 246, ${0.1 * mult}) 0%, rgba(147, 197, 253, ${0.05 * mult}) 100%)`;
+        case 'gradient2':
+          return `linear-gradient(135deg, rgba(139, 92, 246, ${0.1 * mult}) 0%, rgba(196, 181, 253, ${0.05 * mult}) 100%)`;
+        case 'pattern1':
+          return `radial-gradient(circle at 2px 2px, rgba(59, 130, 246, ${0.1 * mult}) 1px, transparent 0)`;
+        case 'pattern2':
+          return `linear-gradient(rgba(59, 130, 246, ${0.05 * mult}) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, ${0.05 * mult}) 1px, transparent 1px)`;
+        case 'nature1':
+          return `linear-gradient(135deg, rgba(34, 197, 94, ${0.1 * mult}) 0%, rgba(134, 239, 172, ${0.05 * mult}) 100%)`;
+        case 'nature2':
+          return `linear-gradient(135deg, rgba(16, 185, 129, ${0.1 * mult}) 0%, rgba(110, 231, 183, ${0.05 * mult}) 100%)`;
+        case 'warm1':
+          return `linear-gradient(135deg, rgba(251, 146, 60, ${0.1 * mult}) 0%, rgba(254, 215, 170, ${0.05 * mult}) 100%)`;
+        case 'warm2':
+          return `linear-gradient(135deg, rgba(239, 68, 68, ${0.1 * mult}) 0%, rgba(252, 165, 165, ${0.05 * mult}) 100%)`;
+        default:
+          return 'none';
+      }
+    })();
+
+    const applyTheme = () => {
+      setBackgroundCategory(tempCategory);
+      setChatBackground(tempBackground);
+      setShowBackgroundSelector(false);
+    };
+
+    const cancelTheme = () => {
+      setShowBackgroundSelector(false);
     };
 
     return (
@@ -1417,12 +1843,23 @@ function App() {
             <button className="ios-close" onClick={() => setShowBackgroundSelector(false)}>✕</button>
           </div>
 
+          {/* Canlı Tema Önizlemesi */}
+          <div
+            className="ios-live-preview"
+            style={{
+              backgroundImage: previewStyle,
+              backgroundSize: tempBackground.startsWith('pattern') ? '20px 20px' : 'cover',
+              backgroundRepeat: tempBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
+              backgroundPosition: 'center'
+            }}
+          />
+
           <div className="ios-bg-categories">
             {categories.map((category) => (
               <button
                 key={category.id}
-                className={`ios-category-item ${backgroundCategory === category.id ? 'active' : ''}`}
-                onClick={() => handleCategorySelect(category.id)}
+                className={`ios-category-item ${tempCategory === category.id ? 'active' : ''}`}
+                onClick={() => handleTempCategorySelect(category.id)}
               >
                 <div className="ios-category-icon">{category.icon}</div>
                 <div className="ios-category-info">
@@ -1434,17 +1871,18 @@ function App() {
           </div>
 
           <div className="ios-bg-options">
-            {backgroundOptions[backgroundCategory]?.map((bg) => (
+            {backgroundOptions[tempCategory]?.map((bg) => (
               <button
                 key={bg.id}
-                className={`ios-bg-option ${chatBackground === bg.id || (bg.id === 'upload' && chatBackground === 'custom') || (bg.id === 'url' && chatBackground === 'custom') ? 'active' : ''}`}
+                className={`ios-bg-option ${tempBackground === bg.id || (['upload', 'url'].includes(bg.id) && tempBackground === 'custom') ? 'active' : ''}`}
                 onClick={() => {
                   if (bg.id === 'upload' || bg.id === 'url') {
+                    setCustomImageMode(bg.id);
                     setShowCustomImageModal(true);
-                    setShowBackgroundSelector(false);
+                  } else if (bg.id === 'current' && customBackgroundImage) {
+                    setTempBackground('custom');
                   } else {
-                    setChatBackground(bg.id);
-                    setShowBackgroundSelector(false);
+                    setTempBackground(bg.id);
                   }
                 }}
               >
@@ -1453,125 +1891,41 @@ function App() {
               </button>
             ))}
           </div>
-        </div>
-      </div>
-    );
-  };
 
-  const ConfigModal = () => {
-    const modalRef = useRef(null);
-
-    if (!showConfig) return null;
-
-    return (
-      <div className="modal-overlay show" onClick={() => setShowConfig(false)}>
-        <div className="modal-content ios-control-center" ref={modalRef} onClick={e => e.stopPropagation()}>
-          <div className="ios-header">
-            <button className="ios-close" onClick={() => setShowConfig(false)}>✕</button>
-          </div>
-
-          {/* iOS Control Center Grid */}
-          <div className="ios-control-grid">
-
-            {/* Debug Module (1x1) - Only visible in admin mode */}
-            {superMode && (
-              <div className="ios-module ios-module-1x1" title="Toggle debug logging for frontend and backend">
-                <button
-                  className={`ios-single-control ${frontendDebug || backendDebug ? 'active' : ''}`}
-                  onClick={() => {
-                    const newValue = !(frontendDebug || backendDebug);
-                    if (newValue !== frontendDebug) handleFrontendDebugToggle();
-                    if (newValue !== backendDebug) handleBackendDebugToggle();
-                  }}
-                >
-                  <div className="ios-module-icon">🐛</div>
-                  <div className="ios-module-title">Debug</div>
-                </button>
-              </div>
-            )}
-
-            {/* Log Viewer Module (1x1) - Only visible in admin mode */}
-            {superMode && (
-              <div className="ios-module ios-module-1x1" title="Show/hide system logs viewer">
-                <button
-                  className={`ios-single-control ${showLogViewer ? 'active' : ''}`}
-                  onClick={() => setShowLogViewer(!showLogViewer)}
-                >
-                  <div className="ios-module-icon">📋</div>
-                  <div className="ios-module-title">Logs</div>
-                </button>
-              </div>
-            )}
-
-            {/* Camera Module (Background) */}
-            <div className="ios-module ios-module-2x2" title="Customize application theme and visual appearance">
-              <button
-                className="ios-single-control"
-                onClick={() => setShowBackgroundSelector(true)}
-              >
-                <div className="ios-module-icon">🎨</div>
-                <div className="ios-module-content">
-                  <div className="ios-module-title">Application Theme</div>
-                  <div className="ios-module-subtitle">
-                    {backgroundCategory === 'patterns' ? 'Patterns' :
-                      backgroundCategory === 'gradients' ? 'Gradients' :
-                        backgroundCategory === 'nature' ? 'Nature' : 'Warm Colors'}
-                  </div>
-                </div>
-              </button>
-            </div>
-
-            {/* Language Module (1x2) */}
-            <div className="ios-module ios-module-1x2" title="Change application language">
-              <button
-                className="ios-single-control"
-                onClick={() => setShowLanguageSelector(true)}
-              >
-                <div className="ios-module-icon">🌍</div>
-                <div className="ios-module-title">Language</div>
-                <div className="ios-module-subtitle">
-                  {i18n.language === 'tr' ? 'Türkçe' : 'English'}
-                </div>
-              </button>
-            </div>
-
-            {/* Theme Module (1x1) - Only in admin mode */}
-            {superMode && (
-              <div className="ios-module ios-module-1x1" title="Switch between light and dark mode">
-                <button
-                  className={`ios-single-control ${theme === 'dark' ? 'active' : ''}`}
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                >
-                  <div className="ios-module-icon">{theme === 'dark' ? '🌙' : '☀️'}</div>
-                  <div className="ios-module-title">Theme</div>
-                </button>
-              </div>
-            )}
-
-            {/* AI Model (1x2) - Vertical and rightmost */}
-            <div className="ios-module ios-module-1x2" title="Select AI model for processing">
-              <button
-                className="ios-single-control"
-                onClick={() => setShowAiModelSelector(true)}
-              >
-                <div className="ios-module-icon">🤖</div>
-                <div className="ios-module-title">AI Model</div>
-                <div className="ios-module-subtitle">
-                  {aiModelCategory === 'gpt' ? 'GPT' : 'Custom'} • {selectedModel.replace('gpt-', '').replace('-turbo', '').replace('-', ' ')}
-                </div>
-              </button>
-            </div>
-
+          <div className="ios-bg-options" style={{ paddingTop: 0 }}>
+            <button className="upload-button" onClick={applyTheme}>Apply Theme</button>
+            <button className="cancel-button" onClick={cancelTheme}>Cancel</button>
           </div>
         </div>
       </div>
     );
   };
+
+  // Remove inline ConfigModal to avoid remount on App re-renders
 
   return (
     <div className="app-container">
       <Feedback open={feedbackOpen} setOpen={setFeedbackOpen} sessionId={sessionId} language={i18n.language} theme={theme} />
-      <ConfigModal />
+      <ConfigModal
+        open={showConfig}
+        onClose={() => setShowConfig(false)}
+        superMode={superMode}
+        frontendDebug={frontendDebug}
+        backendDebug={backendDebug}
+        onToggleFrontendDebug={handleFrontendDebugToggle}
+        onToggleBackendDebug={handleBackendDebugToggle}
+        showLogViewer={showLogViewer}
+        setShowLogViewer={setShowLogViewer}
+        onOpenBackgroundSelector={() => setShowBackgroundSelector(true)}
+        onOpenLanguageSelector={() => setShowLanguageSelector(true)}
+        onOpenAiModelSelector={() => setShowAiModelSelector(true)}
+        backgroundCategory={backgroundCategory}
+        theme={theme}
+        setTheme={setTheme}
+        i18n={i18n}
+        aiModelCategory={aiModelCategory}
+        selectedModel={selectedModel}
+      />
       <BackgroundSelectorModal />
       <LanguageSelectorModal />
       <AiModelSelectorModal />
@@ -1581,8 +1935,7 @@ function App() {
           backgroundImage: getChatBackgroundStyle('transient'),
           backgroundSize: chatBackground.startsWith('pattern') ? '20px 20px' : 'cover',
           backgroundPosition: 'center',
-          backgroundRepeat: chatBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
-          backgroundAttachment: 'fixed'
+          backgroundRepeat: chatBackground.startsWith('pattern') ? 'repeat' : 'no-repeat'
         }}>
           <div className="settings-bar"><button className="config-button" onClick={() => setShowConfig(true)} title="Settings">⚙️</button><LanguageSwitcher /></div>
           <Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} />
@@ -1618,7 +1971,6 @@ function App() {
             backgroundSize: chatBackground.startsWith('pattern') ? '20px 20px' : 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: chatBackground.startsWith('pattern') ? 'repeat' : 'no-repeat',
-            backgroundAttachment: 'fixed',
             minHeight: '100%',
             display: 'flex',
             flexDirection: 'column'

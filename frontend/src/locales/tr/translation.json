@@ -9,7 +9,7 @@
   "askNameDirect": "Merhaba! Başlamak için tam adınızı yazar mısınız?",
   "askEmail": "Anlaşıldı. İletişim için bir e-posta adresi ekleyelim mi?",
   "askPhone": "Çok iyi. Telefon numaranızı da eklemek ister misiniz?",
-  "askLocation": "Anlaşıldı. Bulunduğunuz konumu da paylaşır mısınız?",
+  "askLocation": "Harika! Şimdi de bulunduğunuz şehir ve ülke bilgisini paylaşır mısınız? (Örn: İstanbul, Türkiye)",
   "chatPlaceholder": "Cevabınızı buraya yazın...",
   "answerButton": "Gönder",
   "skipButton": "Soruyu Atla",

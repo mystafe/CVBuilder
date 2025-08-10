@@ -669,21 +669,33 @@ ${appLanguage === 'tr' ?
       'IMPORTANT: Respond in Turkish (Türkçe). Generate all questions and text in Turkish language.' :
       'IMPORTANT: Respond in English.'}
 
-ANALYSIS PRIORITY (focus on these KEY areas):
+EXPERTISE-BASED ANALYSIS:
+First, analyze the CV to determine the candidate's expertise area:
+- FINANCE/BANKING: Focus on financial metrics, risk management, portfolio performance, regulatory compliance
+- SOFTWARE/TECH: Focus on programming languages, frameworks, technical projects, system architecture
+- MARKETING/SALES: Focus on campaign performance, revenue growth, market expansion, customer acquisition
+- HEALTHCARE/MEDICAL: Focus on patient outcomes, medical procedures, research, clinical experience
+- EDUCATION/TEACHING: Focus on student outcomes, curriculum development, teaching methods, academic achievements
+- CONSULTING/MANAGEMENT: Focus on client projects, team leadership, strategic initiatives, business impact
+- MANUFACTURING/ENGINEERING: Focus on production efficiency, quality control, process improvement, technical specifications
+- RETAIL/HOSPITALITY: Focus on customer satisfaction, sales performance, operational efficiency, team management
+
+ANALYSIS PRIORITY (focus on these KEY areas based on expertise):
 1. QUANTIFIABLE ACHIEVEMENTS - Missing numbers, metrics, business impact
-2. TECHNICAL PROFICIENCY - Skill levels, certifications, tools mastery
+2. TECHNICAL PROFICIENCY - Skill levels, certifications, tools mastery (relevant to their field)
 3. LEADERSHIP IMPACT - Team management, project leadership, decision-making
 4. CAREER PROGRESSION - Growth trajectory, increasing responsibilities
 5. INDUSTRY RELEVANCE - Sector-specific keywords, domain expertise
 
 QUESTION STRATEGY:
-- Ask for SPECIFIC metrics (%, $, numbers, timeframes)  
-- Target gaps that recruiters notice immediately
-- Focus on areas where candidates typically undervalue themselves
+- Ask for SPECIFIC metrics (%, $, numbers, timeframes) relevant to their expertise area
+- Target gaps that recruiters in their specific industry notice immediately
+- Focus on areas where candidates in their field typically undervalue themselves
 - Prioritize recent/relevant experience over old positions
-- Avoid generic questions - be laser-focused on their profile
+- Avoid generic questions - be laser-focused on their specific expertise profile
 - For obvious typos or common company names, suggest corrections with multiple choice options
 - Sometimes provide multiple choice answers to speed up interaction
+- NEVER ask about skills outside their expertise area (e.g., don't ask a finance professional about programming languages)
 
 JSON FORMAT (exactly ${maxQuestions} questions):
 {
@@ -1024,6 +1036,16 @@ app.post('/api/ai/coverletter-pdf', asyncHandler(async (req, res) => {
   const { cvData, appLanguage = 'en', sessionId, roleHint, companyName, positionName } = validation.data
 
   try {
+    // Ensure cvData has proper structure for cover letter generation
+    const safeCvData = {
+      ...cvData,
+      experience: Array.isArray(cvData.experience) ? cvData.experience : [],
+      education: Array.isArray(cvData.education) ? cvData.education : [],
+      skills: Array.isArray(cvData.skills) ? cvData.skills : [],
+      languages: Array.isArray(cvData.languages) ? cvData.languages : [],
+      certifications: Array.isArray(cvData.certifications) ? cvData.certifications : [],
+      projects: Array.isArray(cvData.projects) ? cvData.projects : []
+    }
     // First get the cover letter content
     const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
 
@@ -1050,7 +1072,7 @@ Return JSON with the cover letter content and metadata.`
     const userPrompt = `Create a professional cover letter based on this CV:
 
 CV Information:
-${JSON.stringify(cvData, null, 2)}
+${JSON.stringify(safeCvData, null, 2)}
 
 ${companyName || positionName ?
         `Target Application Details:
@@ -1084,7 +1106,7 @@ Return in this JSON format:
     // Save finalized data with cover letter
     try {
       const sessionId = req.body.sessionId || `session_${Date.now()}`;
-      await dataStorage.saveFinalizedData(sessionId, cvData, coverText, { coverLetterPdf: true }, req);
+      await dataStorage.saveFinalizedData(sessionId, safeCvData, coverText, { coverLetterPdf: true }, req);
     } catch (storageError) {
       errorLog('Failed to save finalized data with cover letter:', storageError);
     }
@@ -1138,18 +1160,32 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
       // Transform frontend data format to backend format
       const transformedCvData = {
         ...cvData,
-        experience: cvData.experience?.map(exp => ({
+        experience: Array.isArray(cvData.experience) ? cvData.experience.map(exp => ({
           ...exp,
           title: exp.position || exp.title,
           location: exp.location === 'undened' || exp.location === 'undefined' ? '' : exp.location || '',
           date: exp.date || (exp.startDate && exp.endDate ? `${exp.startDate} - ${exp.endDate}` : exp.start && exp.end ? `${exp.start} - ${exp.end}` : ''),
           description: exp.description || (exp.bullets ? exp.bullets.join('\n') : '')
-        })) || [],
-        education: cvData.education?.map(edu => ({
+        })) : [],
+        education: Array.isArray(cvData.education) ? cvData.education.map(edu => ({
           ...edu,
           location: edu.location === 'undened' || edu.location === 'undefined' ? '' : edu.location || '',
           date: edu.date || (edu.startDate && edu.endDate ? `${edu.startDate} - ${edu.endDate}` : edu.start && edu.end ? `${edu.start} - ${edu.end}` : '')
-        })) || []
+        })) : []
+      }
+
+      // Ensure all array fields are properly handled
+      if (!Array.isArray(transformedCvData.skills)) {
+        transformedCvData.skills = [];
+      }
+      if (!Array.isArray(transformedCvData.languages)) {
+        transformedCvData.languages = [];
+      }
+      if (!Array.isArray(transformedCvData.certifications)) {
+        transformedCvData.certifications = [];
+      }
+      if (!Array.isArray(transformedCvData.projects)) {
+        transformedCvData.projects = [];
       }
 
       debugLog('Transformed CV data for backend PDF:', transformedCvData)

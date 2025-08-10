@@ -10,7 +10,7 @@
   "askNameDirect": "Hello! To get started, please provide your full name.",
   "askEmail": "Got it. Let's add a contact email address.",
   "askPhone": "Perfect. Would you like to add your phone number as well?",
-  "askLocation": "Great. Could you share your location?",
+  "askLocation": "Great! Now could you share your city and country? (e.g., Istanbul, Turkey)",
   "chatPlaceholder": "Type your answer here...",
   "answerButton": "Send",
   "skipButton": "Skip Question",

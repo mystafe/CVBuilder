@@ -58,10 +58,13 @@ body.dark {
 }
 
 #root {
+  background: var(--global-bg, var(--background-color));
+  background-size: var(--chat-bg-size, cover);
+  background-repeat: var(--chat-bg-repeat, no-repeat);
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
   position: relative;
 }
 
@@ -180,7 +183,7 @@ body.dark {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -584,7 +587,7 @@ body.dark {
   max-height: 120px;
   font-size: 0.65rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(var(--theme-blur, 10px));
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
@@ -624,7 +627,7 @@ body.dark {
     rgba(255, 255, 255, 0.05) 100%
   );
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(var(--theme-blur, 10px));
 }
 
 .log-title-section {
@@ -1392,19 +1395,25 @@ body.dark {
 
 .settings-bar {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 20px;
+  right: 20px;
   display: flex;
-  gap: 10px;
+  gap: 15px;
   z-index: 10;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-radius: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 .language-switcher,
 .theme-switcher {
   display: flex;
-  gap: 0;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
-  padding: 4px;
+  padding: 8px 12px;
   border-radius: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1626,35 +1635,23 @@ footer {
   margin-top: auto; /* Konteynerin dibine iter */
 }
 
-/* Upload Adımı */
+/* Upload Adımı - Application theme desteği */
 .upload-step {
   position: relative;
-  background-color: var(--surface-color);
-  padding: 4rem 3rem 1rem 3rem; /* Üst kısım için ekstra boşluk */
+  background: var(--global-bg, rgba(255, 255, 255, 0.9));
+  background-size: var(--chat-bg-size, cover);
+  background-repeat: var(--chat-bg-repeat, no-repeat);
+  background-position: center;
+  backdrop-filter: blur(10px);
+  padding: 4rem 3rem 1rem 3rem;
   border-radius: 12px;
   box-shadow: var(--shadow);
   text-align: center;
-  max-width: 50rem; /* Desktop'ta daha geniş */
-  min-width: 42rem; /* Minimum genişlik artırıldı */
+  max-width: 50rem;
+  min-width: 42rem;
   width: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.upload-step::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: var(--chat-window-bg, none);
-  background-size: var(--chat-bg-size, cover);
-  background-position: center;
-  background-repeat: var(--chat-bg-repeat, no-repeat);
-  opacity: 0.4;
-  z-index: -1;
-  border-radius: 12px;
 }
 .upload-step h1 {
   margin-top: 0;
@@ -1730,19 +1727,87 @@ input[type="file"] {
   opacity: 0.7;
 }
 
-/* Sohbet Adımı */
+/* ===== TEMİZLENMİŞ ARKA PLAN SİSTEMİ ===== */
+
+/* Ana arka plan - sadece root'ta */
+#root {
+  background: var(--global-bg, var(--background-color));
+  background-size: var(--chat-bg-size, cover);
+  background-repeat: var(--chat-bg-repeat, no-repeat);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+/* App container - sadece layout */
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  padding: 1rem;
+  box-sizing: border-box;
+  position: relative;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Upload ve Chat step - Application theme desteği */
+.upload-step,
 .chat-step {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 66rem; /* Desktop'ta daha geniş */
-  min-width: 48rem; /* Minimum genişlik artırıldı */
+  max-width: 66rem;
+  min-width: 48rem;
   height: 90dvh;
-  background-color: var(--surface-color);
   border-radius: 12px;
   box-shadow: var(--shadow);
   overflow: hidden;
+  position: relative;
+  background: var(--global-bg, rgba(255, 255, 255, 0.9));
+  background-size: var(--chat-bg-size, cover);
+  background-repeat: var(--chat-bg-repeat, no-repeat);
+  background-position: center;
+  transition: background-image 200ms ease-out, background-color 200ms ease-out;
+  will-change: background-image, background-color;
 }
+
+/* Chat step özel stilleri */
+.chat-step {
+  background: var(--global-bg, transparent);
+  background-size: var(--chat-bg-size, cover);
+  background-repeat: var(--chat-bg-repeat, no-repeat);
+  background-position: center;
+  position: relative;
+}
+
+/* Chat step'e tema overlay'i ekle */
+.chat-step::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--global-bg, transparent);
+  background-size: var(--chat-bg-size, cover);
+  background-repeat: var(--chat-bg-repeat, no-repeat);
+  background-position: center;
+  opacity: 0.35;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Chat içeriğini overlay'in üzerine getir */
+.chat-step > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Chat header - sadece header alanı */
 .chat-header {
   display: flex;
   justify-content: space-between;
@@ -1750,7 +1815,158 @@ input[type="file"] {
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+
+/* Chat window - sadece mesaj alanı */
+.chat-window {
+  flex-grow: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  position: relative;
+}
+
+/* Chat input area - sadece input alanı */
+.chat-input-area {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+
+/* ===== DARK MODE DESTEĞİ ===== */
+.dark .chat-header,
+.dark .chat-input-area {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+/* ===== MOBİL DESTEĞİ ===== */
+@media (max-width: 768px) {
+  .app-container {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 0;
+  }
+
+  .upload-step,
+  .chat-step {
+    width: 100%;
+    height: 100vh;
+    max-width: none;
+    min-width: auto;
+    border-radius: 0;
+  }
+}
+
+/* ===== OKUNABİLİRLİK GARANTİSİ ===== */
+/* Tüm metin elementleri için güçlü kontrast */
+.upload-step h1,
+.upload-step p,
+.upload-step button,
+.upload-step input,
+.upload-step textarea,
+.chat-step .message,
+.chat-step h1,
+.chat-step h2,
+.chat-step h3,
+.chat-step p,
+.chat-step span,
+.chat-step div,
+.chat-header *,
+.chat-input-area *,
+.logo-container *,
+.settings-bar * {
+  color: var(--text-primary-color);
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.dark .upload-step h1,
+.dark .upload-step p,
+.dark .upload-step button,
+.dark .upload-step input,
+.dark .upload-step textarea,
+.dark .chat-step .message,
+.dark .chat-step h1,
+.dark .chat-step h2,
+.dark .chat-step h3,
+.dark .chat-step p,
+.dark .chat-step span,
+.dark .chat-step div,
+.dark .chat-header *,
+.dark .chat-input-area *,
+.dark .logo-container *,
+.dark .settings-bar * {
+  color: var(--text-primary-color);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Button'lar için güçlü arka plan */
+.upload-step button,
+.chat-step button,
+.chat-header button,
+.chat-input-area button,
+.settings-bar button {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark .upload-step button,
+.dark .chat-step button,
+.dark .chat-header button,
+.dark .chat-input-area button,
+.dark .settings-bar button {
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+}
+
+.dark .typing {
+  background: linear-gradient(
+    135deg,
+    var(--ai-message-bg) 0%,
+    rgba(45, 55, 72, 0.8) 100%
+  );
+  color: var(--text-primary-color);
+}
+
+.dark .typing::before {
+  border-right-color: var(--ai-message-bg);
+}
+
+/* Sohbet Adımı */
+.chat-step {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 66rem;
+  min-width: 48rem;
+  height: 90dvh;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+  background: transparent;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
   position: relative;
 }
@@ -1761,12 +1977,7 @@ input[type="file"] {
 .chat-header .settings-bar {
   position: static;
 }
-.chat-container {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  transition: background 0.3s ease;
-}
+/* chat-container kaldırıldı - gereksizdi */
 
 .chat-window {
   flex-grow: 1;
@@ -1855,8 +2066,8 @@ input[type="file"] {
 .chat-input-area {
   padding: 1rem;
   border-top: 1px solid var(--border-color);
-  background-color: rgba(0, 0, 0, 0.15);
-  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
   position: relative;
 }
 
@@ -1966,7 +2177,39 @@ input[type="file"] {
 .typing {
   display: flex;
   align-items: center;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  max-width: 75%;
+  line-height: 1.6;
+  position: relative;
+  font-size: 0.95rem;
+  background: linear-gradient(
+    135deg,
+    var(--ai-message-bg) 0%,
+    rgba(241, 245, 249, 0.8) 100%
+  );
+  color: var(--text-primary-color);
+  align-self: flex-start;
+  border-radius: 20px 20px 20px 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  animation: slideIn 0.4s ease-out;
 }
+
+.typing::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -6px;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-right-color: var(--ai-message-bg);
+  border-bottom: none;
+  border-left: none;
+  transform: rotate(-15deg);
+}
+
 .typing span {
   height: 8px;
   width: 8px;
@@ -3234,12 +3477,13 @@ input[type="file"] {
 .ios-control-center {
   max-width: 380px;
   max-height: 90vh;
-  background: rgba(245, 245, 247, 0.7);
+  background: rgba(245, 245, 247, 1);
+  opacity: 0.75; /* Only this container becomes semi-transparent */
   backdrop-filter: blur(60px);
   border-radius: 32px;
   overflow: hidden;
   margin: 16px auto;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.4),
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.35),
     0 0 0 0.5px rgba(255, 255, 255, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -3856,18 +4100,32 @@ input[type="file"] {
   );
 }
 
-/* iOS Background Selector Modal */
+/* iOS Background Selector Modal - İyileştirilmiş */
 .ios-background-selector {
-  max-width: 400px;
-  max-height: 90vh;
+  max-width: 450px;
+  max-height: 85vh;
   background: rgba(245, 245, 247, 0.98);
   backdrop-filter: blur(60px);
   border-radius: 32px;
   overflow: hidden;
-  margin: 16px auto;
+  margin: 20px auto;
   box-shadow: 0 32px 80px rgba(0, 0, 0, 0.4),
     0 0 0 0.5px rgba(255, 255, 255, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: slideInUp 0.3s ease-out;
+}
+
+/* Live preview alanı */
+.ios-live-preview {
+  height: 160px;
+  background: var(
+    --global-bg,
+    linear-gradient(135deg, #667eea 0%, #764ba2 100%)
+  );
+  background-size: var(--chat-bg-size, cover);
+  background-repeat: var(--chat-bg-repeat, no-repeat);
+  background-position: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .ios-bg-categories {
@@ -4024,11 +4282,45 @@ input[type="file"] {
     sans-serif;
 }
 
-/* Custom Image Modal Styles */
+/* Custom Image Modal Styles - İyileştirilmiş */
 .ios-custom-image-modal {
-  max-width: 480px;
+  max-width: 500px;
   width: 90%;
-  max-height: 600px;
+  max-height: 650px;
+  animation: slideInUp 0.3s ease-out;
+}
+
+/* Compact tabs for custom image */
+.tab-switch {
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 6px;
+  margin: 12px 24px 0;
+}
+.tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary-color);
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab-btn.active {
+  background: rgba(255, 255, 255, 0.2);
+}
+.option-section.compact h4,
+.option-section.compact p {
+  display: none;
+}
+.option-section.compact .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .custom-image-options {
@@ -4160,6 +4452,122 @@ input[type="file"] {
   margin-top: 16px;
 }
 
+/* Yükleme ilerleme çubuğu */
+.upload-progress {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+.upload-progress .bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(135deg, #007aff 0%, #0051d5 100%);
+  transition: width 0.2s ease;
+}
+.upload-status {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Custom Image Modal Preview Styles */
+.current-image-section,
+.preview-section {
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.current-image-preview,
+.image-preview {
+  width: 100%;
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px;
+  margin: 12px 0;
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.current-image-overlay,
+.preview-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.remove-button {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.remove-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+}
+
+.preview-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: center;
+}
+
+.apply-button {
+  flex: 1;
+  padding: 10px;
+  background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.apply-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56, 161, 105, 0.4);
+}
+
+.cancel-button {
+  flex: 1;
+  padding: 10px;
+  background: rgba(107, 114, 128, 0.8);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-button:hover {
+  background: rgba(107, 114, 128, 1);
+  transform: translateY(-1px);
+}
+
 .ios-bg-upload,
 .ios-bg-url {
   background: linear-gradient(
@@ -4179,6 +4587,34 @@ input[type="file"] {
 
 .ios-bg-url::after {
   content: "🌐";
+}
+
+.ios-bg-custom-current {
+  background-image: var(
+    --global-bg,
+    linear-gradient(135deg, #667eea 0%, #764ba2 100%)
+  );
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.ios-bg-custom-current::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
 }
 
 .ios-module-subtitle {
