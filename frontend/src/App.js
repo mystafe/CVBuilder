@@ -187,7 +187,7 @@ function App() {
     return localStorage.getItem('frontendDebug') === 'true';
   });
   const [cvLanguage, setCvLanguage] = useState('tr');
-  const [step, setStep] = useState('upload'); // 'upload', 'scriptedQuestions', 'aiQuestions', 'review', 'final'
+  const [step, setStep] = useState('upload'); // 'upload', 'scriptedQuestions', 'skillAssessment', 'aiQuestions', 'review', 'final'
   const [cvData, setCvData] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [questionQueue, setQuestionQueue] = useState([]);
@@ -731,6 +731,50 @@ function App() {
     }
   };
 
+  const fetchSkillAssessmentQuestions = async (currentData) => {
+    setLoadingMessage("Analyzing your profession for specific skills...");
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/ai/generate-skill-assessment`, {
+        cvData: currentData,
+        appLanguage: i18n.language,
+      });
+
+      const skillQuestions = (res.data.questions || []).map(q => ({
+        ...q,
+        isSkillAssessment: true, // Flag for special handling
+      }));
+
+      if (skillQuestions.length > 0) {
+        setQuestionQueue(skillQuestions);
+        setStep('skillAssessment');
+        setConversation(prev => [...prev, {
+          type: 'typing'
+        }]);
+
+        setTimeout(() => {
+          const nextQuestion = skillQuestions[0];
+          setConversation(prev => {
+            const newConversation = prev.filter(msg => msg.type !== 'typing');
+            return [...newConversation, {
+              type: 'ai',
+              text: nextQuestion.question
+            }];
+          });
+          setTimeout(playMessageSound, 100);
+        }, 500 + Math.random() * 300);
+      } else {
+        // If no specific skills found, skip to general AI questions
+        fetchAiQuestions(currentData);
+      }
+    } catch (err) {
+      errorLog('Failed to fetch skill assessment questions:', err);
+      // Fallback to general AI questions if this step fails
+      fetchAiQuestions(currentData);
+    } finally {
+      setLoadingMessage('');
+    }
+  };
+
   const fetchAiQuestions = async (currentData, maxQuestions = 4) => {
     setLoadingMessage("AI CV'nizi Analiz Ediyor...");
     try {
@@ -842,6 +886,27 @@ function App() {
           } else {
             set(updatedCvData, currentQuestion.path, []); // Ensure it's an empty array
           }
+        } else if (currentQuestion.isSkillAssessment) {
+          // Handle skill assessment answers
+          const skillName = currentQuestion.question.match(/proficiency level in (.*?)\?|proficiency in (.*?)\?/i);
+          const skill = skillName ? (skillName[1] || skillName[2]).replace(/software \(e\.g\., MS Project, Primavera\)/i, '').trim() : currentQuestion.id;
+
+          if (userAnswer.toLowerCase() !== 'yok' && userAnswer.toLowerCase() !== 'none') {
+            // Ensure skills is an array of objects
+            if (!Array.isArray(updatedCvData.skills)) {
+              updatedCvData.skills = [];
+            }
+            // Add or update skill with level
+            const existingSkillIndex = updatedCvData.skills.findIndex(s => typeof s === 'object' && s.name === skill);
+            if (existingSkillIndex > -1) {
+              updatedCvData.skills[existingSkillIndex].level = userAnswer;
+            } else {
+              updatedCvData.skills.push({
+                name: skill,
+                level: userAnswer
+              });
+            }
+          }
         } else if (currentQuestion.key === 'askCurrentJob') {
           // Son iş deneyimi için özel işleme
           if (userAnswer === 'Halen çalışıyorum') {
@@ -918,7 +983,10 @@ function App() {
       if (step === 'scriptedQuestions') {
         // Show typing indicator immediately when scripted questions end
         setConversation([...newConversation, { type: 'typing' }]);
-        fetchAiQuestions(updatedCvData);
+        fetchSkillAssessmentQuestions(updatedCvData); // Go to skill assessment
+      } else if (step === 'skillAssessment') {
+        setConversation([...newConversation, { type: 'typing' }]);
+        fetchAiQuestions(updatedCvData); // Go to general AI questions
       } else {
         // All AI questions answered, move to review
         setConversation([...newConversation]);
@@ -1063,6 +1131,67 @@ function App() {
       setError(t('pdfError'));
     } finally {
       setLoadingMessage(''); // Her durumda yükleme mesajını temizle
+    }
+  };
+
+  const handleFinalizeAndGeneratePdf = async () => {
+    if (!cvData) return;
+
+    setLoadingMessage(t('generatingPdfButton'));
+    setError('');
+
+    try {
+      // Step 1: Holistically improve the CV with all collected answers
+      let improvedCvData = { ...cvData };
+      if (cvData.userAdditions && cvData.userAdditions.length > 0) {
+        setLoadingMessage("AI finalizing your CV..."); // Update status
+        try {
+          const improveResponse = await axios.post(`${API_BASE_URL}/api/ai/improve`, {
+            cv: cvData,
+            answers: cvData.userAdditions.reduce((acc, item) => {
+              acc[item.question] = item.answer;
+              return acc;
+            }, {})
+          });
+          improvedCvData = improveResponse.data;
+          setCvData(improvedCvData); // Update state with the improved CV
+          infoLog('CV data holistically improved by AI.');
+        } catch (improveErr) {
+          errorLog('Holistic CV improvement failed, proceeding with original data.', improveErr);
+          // If improvement fails, we can still proceed with the data we have
+        }
+      }
+
+      // Step 2: Generate the PDF with the (potentially) improved data
+      setLoadingMessage("Creating PDF document..."); // Update status
+      const pdfResponse = await axios.post(`${API_BASE_URL}/api/finalize-and-create-pdf`, {
+        cvData: improvedCvData,
+        cvLanguage,
+        sessionId: sessionId || `session_${Date.now()}`
+      }, {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([pdfResponse.data], {
+        type: 'application/pdf'
+      }));
+      setCvPdfUrl(url);
+      window.open(url, '_blank');
+      playSuccessSound();
+
+      setConversation(prev => [...prev, {
+        type: 'ai',
+        text: `✅ **CV'niz Başarıyla Hazırlandı!**\n\nCV'niz oluşturuldu ve indirmeye hazır. Aşağıdan indirebilirsiniz.\n\n**Ön Yazı Oluşturalım**\n\nBaşvurmak istediğiniz firma ve pozisyon bilgisini iletirseniz ön yazınızı ona göre oluşturabilirim. İsterseniz bu adımı atlayabilirsiniz.`
+      }]);
+
+      setStep('final');
+      setHasGeneratedPdf(true);
+      setShowCoverLetterForm(true);
+
+    } catch (err) {
+      setError(t('pdfError'));
+    } finally {
+      setLoadingMessage('');
     }
   };
 
@@ -2140,7 +2269,7 @@ function App() {
             <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} /><div className="settings-bar"><button className="config-button" onClick={() => setShowConfig(true)} title="Settings">⚙️</button><LanguageSwitcher /></div></div>
             <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
             <div className="chat-input-area">
-              {(step === 'scriptedQuestions' || step === 'aiQuestions') && (() => {
+              {(step === 'scriptedQuestions' || step === 'aiQuestions' || step === 'skillAssessment') && (() => {
                 const currentQuestion = questionQueue[0];
                 const isMultipleChoice = currentQuestion?.isMultipleChoice;
 
@@ -2212,7 +2341,7 @@ function App() {
                 );
               })()}
               <div className="button-group">
-                {(step === 'scriptedQuestions' || step === 'aiQuestions') && (
+                {(step === 'scriptedQuestions' || step === 'aiQuestions' || step === 'skillAssessment') && (
                   <>
                     <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
                     <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
@@ -2221,7 +2350,7 @@ function App() {
 
                 {step === 'review' && (
                   <>
-                    <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
+                    <button onClick={handleFinalizeAndGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
                       {isLoading ? loadingMessage : t('generateCvButton')}
                     </button>
                     {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`accent ${cvScore !== null && cvScore < 80 ? 'highlight' : ''}`}>{t('improveButton')}</button>}

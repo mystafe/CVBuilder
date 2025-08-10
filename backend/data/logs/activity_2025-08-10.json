@@ -150,5 +150,24 @@
       "pdfGenerated": true,
       "timestampFolder": "2025-08-10_20-48-40"
     }
+  },
+  {
+    "type": "cv_finalized",
+    "timestamp": "2025-08-10T20:49:04.129Z",
+    "clientInfo": {
+      "ip": "::1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+      "timestamp": "2025-08-10T20:49:04.129Z",
+      "method": "POST",
+      "path": "/api/finalize-and-create-pdf",
+      "referer": "http://localhost:3000/",
+      "acceptLanguage": "en,tr;q=0.9,en-US;q=0.8,ru;q=0.7"
+    },
+    "data": {
+      "sessionId": "1754858832031",
+      "hasCoverLetter": false,
+      "pdfGenerated": false,
+      "timestampFolder": "2025-08-10_00-49-04"
+    }
   }
 ]

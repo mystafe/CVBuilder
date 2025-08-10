@@ -45,6 +45,13 @@
   "askExperienceLocation": "Deneyimlerinizde çalıştığınız şehir/ülke bilgilerini tamamlar mısınız? (virgülle ayırarak: İstanbul, Ankara, vs.)",
   "askCurrentJob": "Son işinizden ne zaman ayrıldınız?",
   "emailValidationError": "Lütfen geçerli bir e-posta adresi girin (örn: isim@domain.com)",
+  "reviseCvButton": "CV'yi Revize Et",
+  "revisionPrompt": "Lütfen CV'nizde yapmak istediğiniz değişiklikleri açıklayın. Yapay zeka, talebinize göre tüm CV'nizi akıllıca güncelleyecektir.",
+  "revisingCvButton": "Revize ediliyor...",
+  "submitRevisionButton": "Revizyonu Gönder",
+  "revisionPlaceholder": "örn: 'Özetimi daha profesyonel yap' veya 'İkinci işimi kaldır'",
+  "cancelButton": "İptal",
+  "revisionSuccessMessage": "CV'niz başarıyla revize edildi ve indirilmeye hazır!",
   "settings": {
     "debug": "Debug",
     "logs": "Loglar",

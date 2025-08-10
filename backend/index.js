@@ -160,6 +160,11 @@ const skillQuestionSchema = z.object({
   appLanguage: z.string().optional().default('en')
 })
 
+const skillAssessmentSchema = z.object({
+  cvData: z.any(),
+  appLanguage: z.string().optional().default('en')
+})
+
 // OpenAI API helper
 async function callOpenAI(messages, maxTokens = 2000) {
   try {
@@ -727,37 +732,30 @@ app.post('/api/ai/improve', asyncHandler(async (req, res) => {
 
   const { cv, answers } = validation.data
 
-  const systemPrompt = `You are an expert CV writer and career coach. Merge user answers into the existing CV JSON, enhancing clarity and impact while preserving structure.
+  const systemPrompt = `You are an expert CV writer and career coach. Your task is to perform a **holistic revision** of a CV based on user-provided answers to clarifying questions. You must intelligently integrate the new information, correct typos, and rewrite sections for maximum impact, particularly the summary.
 
-CRITICAL REQUIREMENTS:
-1. Output ONLY valid JSON in the exact same structure as input CV
-2. Preserve ALL existing data unless directly contradicted by answers
-3. Use dates in ISO format (YYYY-MM) consistently
-4. Enhance bullet points with quantified metrics when provided
-5. Integrate answers strategically into appropriate CV sections
+**Core Instructions:**
 
-ENHANCEMENT RULES:
-- Merge answers into relevant experience/education/skills sections
-- Convert vague descriptions into specific, quantified achievements
-- Add metrics, percentages, dollar amounts when mentioned in answers
-- Use action verbs: led, developed, implemented, optimized, increased, reduced
-- Maintain professional tone and formatting consistency
-- If answers contradict existing data, use the answer information
-- If answers provide new information, add it to appropriate sections
-- Keep all arrays (experience, education, skills, etc.) intact unless adding new items
+1.  **Holistic Analysis**: First, review the entire original CV and all the user's answers to understand the full context of their career, skills, and recent input.
+2.  **Smart Integration & Typo Correction**:
+    *   Integrate the user's answers into the appropriate sections of the CV (experience, skills, projects, etc.).
+    *   **Crucially, correct any spelling or grammatical errors (typos)** found in the user's answers to ensure the final CV is professional.
+    *   Do more than just insert text. Rephrase and weave the new information into existing descriptions to create a smooth, compelling narrative.
+3.  **Rewrite the Summary**:
+    *   This is the most important part. **Completely rewrite the "summary" section.**
+    *   The new summary should be a professional, impactful paragraph that synthesizes the most important aspects of the original CV **AND** the new information from the user's answers. It should reflect their overall professional profile.
+4.  **Maintain Consistency**: Ensure the tone, formatting, and date formats (YYYY-MM) are consistent throughout the entire revised CV.
+5.  **Output Format**:
+    *   Return **ONLY** the complete, updated CV as a single, valid JSON object.
+    *   The JSON structure must be identical to the input CV. Do not add or remove top-level keys.
 
-DATE FORMATTING:
-- Always use YYYY-MM format for start/end dates
-- Use "Present" for current positions
-- Convert any date format in answers to YYYY-MM
+**Example Thought Process:**
+*User Answer: "I led a team of 5 engineers and we improved performance by 25% on the 'X' project."*
+1.  **Integration**: Find the 'X' project or related job in the "experience" section.
+2.  **Enhancement**: Add a bullet point like: "Led a team of 5 engineers to optimize Project X, achieving a 25% performance improvement."
+3.  **Summary Rewrite**: Incorporate this achievement into the new summary: "...a results-oriented leader with proven experience in team management and performance optimization, as demonstrated by a 25% efficiency gain in a key project."
 
-BULLET POINT ENHANCEMENT:
-- Transform "responsible for X" into "Led X initiative resulting in Y"
-- Add quantified impact: "Increased sales by 25%" vs "Increased sales"
-- Include specific technologies, methodologies, team sizes when mentioned
-- Focus on achievements and outcomes, not just duties
-
-Return ONLY the improved CV JSON with no explanations or markdown.`
+Now, perform this comprehensive revision.`
 
   const userPrompt = `Merge the following answers into the CV JSON structure:
 
@@ -1276,7 +1274,7 @@ app.get('/api/config', asyncHandler(async (req, res) => {
     debug: DEBUG,
     aiModel: CURRENT_AI_MODEL,
     nodeEnv: process.env.NODE_ENV,
-    version: '1.2508.091851',
+    version: '1.2508.101530',
     timestamp: new Date().toISOString()
   })
 }))
@@ -1476,6 +1474,65 @@ Generate the question now.
     errorLog('Generate skill question error:', error)
     res.status(500).json({
       error: 'Failed to generate skill question',
+      message: error.message
+    })
+  }
+}))
+
+// New endpoint for profession-specific skill assessment
+app.post('/api/ai/generate-skill-assessment', asyncHandler(async (req, res) => {
+  const validation = skillAssessmentSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({
+      error: 'Invalid input',
+      details: validation.error.errors
+    })
+  }
+
+  const { cvData, appLanguage } = validation.data
+  const jobTitle = cvData.experience && cvData.experience.length > 0 ?
+    cvData.experience[0].position :
+    'the user s profession'
+
+  const systemPrompt = `You are an AI assistant specializing in career development. Your task is to generate 3-4 specific, multiple-choice skill assessment questions based on a user's profession.
+
+**Instructions:**
+1.  Analyze the provided job title to understand the user's profession.
+2.  Identify 3 or 4 of the most crucial, industry-standard technical skills or software for that profession.
+3.  For each skill, create a question asking about their proficiency level.
+4.  Each question must have the exact same four choices: "İleri", "Orta", "Düşük", "Yok" (if language is 'tr') or "Advanced", "Intermediate", "Beginner", "None" (if language is 'en').
+5.  Return the questions in a valid JSON object with a "questions" key, which is an array of question objects. Each object must have "id", "question", "isMultipleChoice": true, and "choices".
+
+**Language**: Respond in ${appLanguage}.
+
+**Example for "Civil Engineer" (in English):**
+{
+  "questions": [
+    { "id": "skill_autocad", "question": "What is your proficiency level in AutoCAD?", "isMultipleChoice": true, "choices": ["Advanced", "Intermediate", "Beginner", "None"] },
+    { "id": "skill_sap2000", "question": "What is your proficiency level in SAP2000?", "isMultipleChoice": true, "choices": ["Advanced", "Intermediate", "Beginner", "None"] },
+    { "id": "skill_project_management", "question": "What is your proficiency in Project Management software (e.g., MS Project, Primavera)?", "isMultipleChoice": true, "choices": ["Advanced", "Intermediate", "Beginner", "None"] }
+  ]
+}
+`
+
+  const userPrompt = `Generate 3-4 specific skill assessment questions for the profession: "${jobTitle}".`
+
+  try {
+    const result = await callOpenAI([{
+      role: 'system',
+      content: systemPrompt
+    }, {
+      role: 'user',
+      content: userPrompt
+    }], 1000)
+
+    const questionsData = JSON.parse(result)
+    infoLog(`Generated skill assessment for: ${jobTitle}`)
+    res.json(questionsData)
+  } catch (error) {
+    errorLog('Generate skill assessment error:', error)
+    res.status(500).json({
+      error: 'Failed to generate skill assessment questions',
       message: error.message
     })
   }

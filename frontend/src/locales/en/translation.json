@@ -45,6 +45,13 @@
   "askExperienceLocation": "Can you complete the city/country information for your work experiences? (comma separated: Istanbul, Ankara, etc.)",
   "askCurrentJob": "When did you leave your latest job?",
   "emailValidationError": "Please enter a valid email address (e.g. name@domain.com)",
+  "reviseCvButton": "Revise CV",
+  "revisionPrompt": "Please describe the changes you'd like to make to your CV. The AI will intelligently update your entire CV based on your request.",
+  "revisingCvButton": "Revising...",
+  "submitRevisionButton": "Submit Revision",
+  "revisionPlaceholder": "e.g., 'Make my summary more professional' or 'Remove my second job'",
+  "cancelButton": "Cancel",
+  "revisionSuccessMessage": "Your CV has been successfully revised and is ready for download!",
   "settings": {
     "debug": "Debug",
     "logs": "Logs",
