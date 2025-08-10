@@ -889,8 +889,7 @@ function App() {
           }
         } else if (currentQuestion.isSkillAssessment) {
           // Handle skill assessment answers
-          const skillName = currentQuestion.question.match(/proficiency level in (.*?)\?|proficiency in (.*?)\?/i);
-          const skill = skillName ? (skillName[1] || skillName[2]).replace(/software \(e\.g\., MS Project, Primavera\)/i, '').trim() : currentQuestion.id;
+          const skill = currentQuestion.key; // Use the key directly from the backend
 
           if (userAnswer.toLowerCase() !== 'yok' && userAnswer.toLowerCase() !== 'none') {
             // Ensure skills is an array of objects
@@ -898,13 +897,14 @@ function App() {
               updatedCvData.skills = [];
             }
             // Add or update skill with level
-            const existingSkillIndex = updatedCvData.skills.findIndex(s => typeof s === 'object' && s.name === skill);
+            const existingSkillIndex = updatedCvData.skills.findIndex(s => typeof s === 'object' && (s.key === skill || s.name === skill));
             if (existingSkillIndex > -1) {
               updatedCvData.skills[existingSkillIndex].level = userAnswer;
             } else {
               updatedCvData.skills.push({
-                name: skill,
-                level: userAnswer
+                name: skill.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase()), // Convert camelCase to Title Case for display
+                level: userAnswer,
+                key: skill // Keep original key for reference
               });
             }
           }

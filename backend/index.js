@@ -1520,28 +1520,52 @@ app.post('/api/ai/generate-skill-assessment', asyncHandler(async (req, res) => {
 
   const professionContext = getProfessionContext(cvData);
 
-  const systemPrompt = `You are an AI assistant specializing in career development. Your task is to generate 3-4 specific, multiple-choice skill assessment questions based on a user's profession.
+  const systemPrompt = `You are an AI assistant specializing in career development. Your task is to generate a short, multiple-choice skill assessment questionnaire based on a user's professional context.
 
-**Instructions:**
-1.  Analyze the provided professional context (title, summary, existing skills) to understand the user's profession.
-2.  Identify 3 or 4 of the most crucial, industry-standard technical skills or software for that profession that are NOT already listed in their "Existing Skills".
-3.  For each skill, create a question asking about their proficiency level.
-4.  Each question must have the exact same four choices: "İleri", "Orta", "Düşük", "Yok" (if language is 'tr') or "Advanced", "Intermediate", "Beginner", "None" (if language is 'en').
-5.  Return the questions in a valid JSON object with a "questions" key, which is an array of question objects. Each object must have "id", "question", "isMultipleChoice": true, and "choices".
-6.  If you cannot confidently determine the profession or relevant skills from the context, return an empty "questions" array.
+**Primary Goal:** Generate 3-4 **specific, high-value** skill questions relevant to the user's identified profession from their CV context.
+- **Context:**
+  ${professionContext}
 
-**Language**: Respond in ${appLanguage}.
+**Fallback Instruction (Crucial):**
+- If the provided context is too generic or a specific profession cannot be determined, **DO NOT return an empty list.**
+- Instead, generate 3-4 **general professional skill** questions that are valuable across most white-collar jobs.
+- **Examples of good fallback questions:**
+  - "What is your proficiency with project management tools (e.g., Jira, Trello, Asana)?"
+  - "How would you rate your data analysis skills using tools like Excel or Google Sheets?"
+  - "What is your experience level with CRM software (e.g., Salesforce, HubSpot)?"
+  - "How would you describe your public speaking and presentation skills?"
 
-**Example for "Civil Engineer" (in English):**
+**Output Format:**
+- The response MUST be a single JSON object.
+- The object must contain a key named "questions", which is an array of question objects.
+- Each question object must have:
+  1. "key": A unique camelCase identifier for the skill (e.g., "autocadProficiency", "projectManagement").
+  2. "question": The question text, localized in ${appLanguage}.
+  3. "options": An array of four strings for the user to choose from, localized in ${appLanguage}: ["Advanced", "Intermediate", "Beginner", "None"].
+
+**Example for a Software Engineer (in English):**
+\`\`\`json
 {
   "questions": [
-    { "id": "skill_autocad", "question": "What is your proficiency level in AutoCAD?", "isMultipleChoice": true, "choices": ["Advanced", "Intermediate", "Beginner", "None"] },
-    { "id": "skill_sap2000", "question": "What is your proficiency level in SAP2000?", "isMultipleChoice": true, "choices": ["Advanced", "Intermediate", "Beginner", "None"] },
-    { "id": "skill_project_management", "question": "What is your proficiency in Project Management software (e.g., MS Project, Primavera)?", "isMultipleChoice": true, "choices": ["Advanced", "Intermediate", "Beginner", "None"] }
+    {
+      "key": "pythonProficiency",
+      "question": "What is your proficiency level in Python?",
+      "options": ["Advanced", "Intermediate", "Beginner", "None"]
+    },
+    {
+      "key": "cloudComputing",
+      "question": "What is your experience level with cloud platforms like AWS or Azure?",
+      "options": ["Advanced", "Intermediate", "Beginner", "None"]
+    },
+    {
+      "key": "agileMethodologies",
+      "question": "How familiar are you with Agile methodologies?",
+      "options": ["Advanced", "Intermediate", "Beginner", "None"]
+    }
   ]
 }
+\`\`\`
 `
-
   const userPrompt = `Based on the following professional context, generate 3-4 specific skill assessment questions.
 
 Professional Context:

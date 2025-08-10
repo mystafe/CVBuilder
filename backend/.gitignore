@@ -7,3 +7,5 @@ temp_frames
 temp_audio
 .DS_Store
 data
+data/*
+data/logs
