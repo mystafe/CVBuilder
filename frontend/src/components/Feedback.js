@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import packageJson from '../../package.json';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 
 export default function Feedback({ sessionId, language, theme, open, setOpen }) {
   const { t } = useTranslation();
@@ -20,7 +20,7 @@ export default function Feedback({ sessionId, language, theme, open, setOpen }) 
       await axios.post(`${API_BASE_URL}/api/feedback`, {
         name,
         email,
-        description: desc,
+        message: desc,
         language,
         theme,
         deviceInfo: navigator.userAgent,

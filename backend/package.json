@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "1.2508.091900",
+  "version": "1.2508.093000",
   "description": "CV Builder backend",
   "main": "index.js",
   "scripts": {

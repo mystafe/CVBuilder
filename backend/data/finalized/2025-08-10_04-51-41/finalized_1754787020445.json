@@ -1,0 +1,88 @@
+{
+  "sessionId": "1754787020445",
+  "clientInfo": {
+    "ip": "::1",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+    "timestamp": "2025-08-10T00:51:41.729Z",
+    "method": "POST",
+    "path": "/api/ai/coverletter-pdf",
+    "referer": "http://localhost:3000/",
+    "acceptLanguage": "en,tr;q=0.9,en-US;q=0.8,ru;q=0.7"
+  },
+  "cvData": {
+    "personalInfo": {
+      "name": "Emre Demir",
+      "email": "1emredenirr@gmail.com",
+      "phone": "05076561295",
+      "location": "İstanbul"
+    },
+    "summary": "Ekonomi lisans mezunu olarak, bankacılık sektöründe çalışmaktayım. Nakit operasyonları, çek-senet tahsilatları ve satış alanlarında uzmanlaşmış, müşteri odaklı ve analitik yaklaşımla başarılı sonuçlar elde etmiş bir bankacıyım.",
+    "experience": [
+      {
+        "position": "Bireysel Bankacılık Satış Temsilcisi",
+        "company": "Kuveyt Türk",
+        "location": "İstanbul",
+        "startDate": "2022-04",
+        "endDate": "Present",
+        "description": "Nakit Operasyonları: İki farklı şubede nakit akışının yönetilmesinden ve günlük işlemlerin düzgün bir şekilde yürütülmesinden sorumlu oldum. - Çek ve Senet İşlemleri: Çek ve senet tahsilatları ile çek takas işlemlerinin hızlı ve hatasız bir şekilde gerçekleştirilmesini sağladım. - Bireysel Satış: Müşteri ilişkilerini yöneterek bankanın ürün ve hizmetlerinin tanıtımını yaptım, bireysel satış hedeflerine ulaşılmasına katkıda bulundum. - Müşteri Hizmetleri: Gişe işlemlerinde müşterilere kaliteli hizmet sunarak, müşteri memnuniyetini artırmayı hedefledim. - Operasyonel Süreçler: Şubenin operasyonel süreçlerini optimize ederek, verimliliği artırmak için gerekli adımları attım."
+      }
+    ],
+    "education": [
+      {
+        "degree": "iktisat",
+        "institution": "İstanbul Üniversitesi, İktisat Fakültesi",
+        "location": "İstanbul",
+        "startDate": "",
+        "endDate": "",
+        "gpa": ""
+      }
+    ],
+    "skills": [
+      "Analitik düşünme ve problem çözme",
+      "İletişim ve müşteri ilişkileri yönetimi",
+      "Bankacılık operasyonları ve satış stratejileri",
+      "Microsoft Office uygulamaları"
+    ],
+    "projects": [],
+    "links": [],
+    "certificates": [
+      {
+        "name": "SAP FI - 50 SAAT uzman kullanıcı eğitimi",
+        "issuer": "IMPRESS",
+        "date": "",
+        "url": ""
+      }
+    ],
+    "languages": [
+      {
+        "language": "Türkçe",
+        "proficiency": "Anadil"
+      },
+      {
+        "language": "İngilizce",
+        "proficiency": "İyi"
+      },
+      {
+        "language": "Almanca",
+        "proficiency": "Başlangıç"
+      }
+    ],
+    "references": [],
+    "userAdditions": [
+      {
+        "question": "SAP FI eğitiminiz dışında başka hangi sertifikalara sahipsiniz veya hangi teknik becerileri geliştirdiniz? Microsoft Office uygulamalarındaki yeterlilik seviyenizi nasıl tanımlarsınız?",
+        "answer": "Excel ileri düzey"
+      },
+      {
+        "question": "Microsoft Office uygulamalarındaki (özellikle Excel) yeterlilik seviyeniz dışında, bankacılık sektörüne katkı sağlayacak başka hangi teknik becerilere veya sertifikalara sahipsiniz? Hangi araçları kullanmaktasınız?",
+        "answer": "Excel"
+      }
+    ]
+  },
+  "coverLetter": "Sayın İlgili,\n\nİstanbul'da bulunan bankacılık sektöründe kariyerime yön vermek amacıyla başvuruda bulunduğum pozisyona olan heyecanımı dile getirmek isterim. Ekonomi alanındaki lisans eğitimim ve şu anki görevim olan Bireysel Bankacılık Satış Temsilcisi pozisyonunda elde ettiğim deneyimle, şirketinizin değerlerine katkıda bulunma arzusundayım.\n\nKuveyt Türk'teki görevim süresince, iki farklı şubede nakit akışının yönetilmesi ve günlük işlemlerin düzenli bir şekilde yürütülmesi konusunda büyük başarılar elde ettim. Çek ve senet tahsilatlarının hızlı ve hatasız bir şekilde gerçekleştirilmesi, müşteri memnuniyetini artırarak bireysel satış hedeflerine ulaşmamda önemli bir rol oynadı. Ayrıca, operasyonel süreçleri optimize ederek şubemin verimliliğini artırmaya yönelik adımlar attım. Bu süreçte analitik düşünme ve problem çözme becerilerimi etkili bir şekilde kullanarak, bankacılık operasyonlarına değer kattım.\n\nMüşteri odaklı yaklaşımım ve güçlü iletişim becerilerimle, müşteri ilişkilerini yönetme konusunda da başarılı oldum. Bankanın ürün ve hizmetlerini tanıtarak, satış hedeflerine ulaşmamıza katkıda bulundum. Microsoft Office uygulalarındaki ileri düzey Excel bilgimle de raporlama ve veri analizi süreçlerini etkin bir şekilde yürütmekteyim.\n\nSizinle görüşerek, bankacılık alanındaki tecrübelerimi ve şirketinize nasıl değer katabileceğimi paylaşmak için sabırsızlanıyorum. Görüşme fırsatını değerlendirmek adına, en kısa sürede benimle iletişime geçmenizi umuyorum. İlgilendiğiniz için teşekkür ederim.\n\nSaygılarımla,\nEmre Demir\n05076561295\n1emredenirr@gmail.com",
+  "pdfPaths": {
+    "coverLetterPdf": true
+  },
+  "finalizedAt": "2025-08-10T00:51:41.731Z",
+  "timestampFolder": "2025-08-10_04-51-41"
+}

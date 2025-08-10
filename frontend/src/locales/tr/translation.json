@@ -24,7 +24,7 @@
   "improveButton": "CV’mi mükemmelleştir",
   "demoBadge": "Beta",
   "giveFeedback": "geri bildirim ver",
-  "feedbackPrompt": "Hata mı aldın/ Bir fikrin mi var? Geri bildirimin çok değerli.<br/>Bu uygulamamızı geliştirmemize yardımcı olacak.",
+  "feedbackPrompt": "Hata mı aldın/ Bir fikrin mi var?<br/>Geri bildirimin çok değerli.<br/>Bu uygulamamızı geliştirmemize yardımcı olacak.",
   "feedbackNamePlaceholder": "İsim",
   "feedbackEmailPlaceholder": "Mail (Opsiyonel)",
   "feedbackDescPlaceholder": "Açıklama (En az 5 karakter)",

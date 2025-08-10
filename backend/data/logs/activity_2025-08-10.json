@@ -1,0 +1,40 @@
+[
+  {
+    "type": "cover_letter_generated",
+    "timestamp": "2025-08-10T00:51:33.539Z",
+    "clientInfo": {
+      "ip": "::1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+      "timestamp": "2025-08-10T00:51:33.539Z",
+      "method": "POST",
+      "path": "/api/ai/coverletter",
+      "referer": "http://localhost:3000/",
+      "acceptLanguage": "en,tr;q=0.9,en-US;q=0.8,ru;q=0.7"
+    },
+    "data": {
+      "sessionId": "1754787020445",
+      "hasCompanyName": false,
+      "hasPositionName": false,
+      "coverLetterLength": 1628
+    }
+  },
+  {
+    "type": "cv_finalized",
+    "timestamp": "2025-08-10T00:51:41.733Z",
+    "clientInfo": {
+      "ip": "::1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+      "timestamp": "2025-08-10T00:51:41.733Z",
+      "method": "POST",
+      "path": "/api/ai/coverletter-pdf",
+      "referer": "http://localhost:3000/",
+      "acceptLanguage": "en,tr;q=0.9,en-US;q=0.8,ru;q=0.7"
+    },
+    "data": {
+      "sessionId": "1754787020445",
+      "hasCoverLetter": true,
+      "pdfGenerated": true,
+      "timestampFolder": "2025-08-10_04-51-41"
+    }
+  }
+]

@@ -135,20 +135,20 @@ function App() {
   const debugLog = useCallback((...args) => {
     const message = args.join(' ');
     if (DEBUG) {
-      console.log('[DEBUG]', new Date().toISOString(), ...args);
+      // console.log('[DEBUG]', new Date().toISOString(), ...args);
       addToFrontendLogs('DEBUG', message);
     }
   }, [DEBUG, addToFrontendLogs]);
 
   const infoLog = useCallback((...args) => {
     const message = args.join(' ');
-    console.log('[INFO]', new Date().toISOString(), ...args);
+    // console.log('[INFO]', new Date().toISOString(), ...args);
     addToFrontendLogs('INFO', message);
   }, [addToFrontendLogs]);
 
   const errorLog = useCallback((...args) => {
     const message = args.join(' ');
-    console.error('[ERROR]', new Date().toISOString(), ...args);
+    // console.error('[ERROR]', new Date().toISOString(), ...args);
     addToFrontendLogs('ERROR', message);
   }, [addToFrontendLogs]);
 
@@ -233,6 +233,11 @@ function App() {
   const getChatBackgroundStyle = useCallback((intensity = 'normal') => {
     debugLog('Background style requested:', chatBackground, customBackgroundImage, intensity);
 
+    // If custom background image exists, always use it
+    if (customBackgroundImage) {
+      return `url(${customBackgroundImage})`;
+    }
+
     const intensityMultiplier = {
       transient: 0.3,   // For outside areas
       light: 0.6,       // For chat window
@@ -260,7 +265,7 @@ function App() {
       case 'warm2':
         return `linear-gradient(135deg, rgba(239, 68, 68, ${0.1 * mult}) 0%, rgba(252, 165, 165, ${0.05 * mult}) 100%)`;
       case 'custom':
-        return customBackgroundImage ? `url(${customBackgroundImage})` : 'none';
+        return 'none';
       default:
         return 'none';
     }
@@ -813,6 +818,10 @@ function App() {
         }
       }
 
+      // State'leri güncelle
+      if (extractedCompany) setCompanyName(extractedCompany);
+      if (extractedPosition) setPositionName(extractedPosition);
+
       const coverLetterResponse = await axios.post(`${API_BASE_URL}/api/ai/coverletter`, {
         cvData: preparedData,
         appLanguage: cvLanguage,
@@ -980,26 +989,22 @@ function App() {
 
   // Backend log fetcher
   const fetchBackendLogs = useCallback(async () => {
-    if (!superMode) return;
-
     try {
       const response = await axios.get(`${API_BASE_URL}/api/logs`);
       setBackendLogs(response.data.logs || []);
     } catch (error) {
       debugLog('Failed to fetch backend logs:', error.message);
     }
-  }, [superMode, debugLog]);
+  }, [debugLog]);
 
   // Admin stats functionality removed for now
 
   // Backend log polling
   useEffect(() => {
-    if (superMode) {
-      const interval = setInterval(fetchBackendLogs, 2000); // Her 2 saniyede bir
-      fetchBackendLogs(); // İlk fetch
-      return () => clearInterval(interval);
-    }
-  }, [superMode, fetchBackendLogs]);
+    const interval = setInterval(fetchBackendLogs, 2000); // Her 2 saniyede bir
+    fetchBackendLogs(); // İlk fetch
+    return () => clearInterval(interval);
+  }, [fetchBackendLogs]);
 
   // Log viewer auto-scroll effect
   const logContentRef = useRef(null);
@@ -1468,20 +1473,6 @@ function App() {
           {/* iOS Control Center Grid */}
           <div className="ios-control-grid">
 
-            {/* Language Module (1x2) */}
-            <div className="ios-module ios-module-1x2" title="Switch between app interface and CV document languages">
-              <button
-                className="ios-single-control"
-                onClick={() => setShowLanguageSelector(true)}
-              >
-                <div className="ios-module-icon">🌐</div>
-                <div className="ios-module-title">Language</div>
-                <div className="ios-module-subtitle">
-                  {languageCategory === 'app' ? 'App' : 'CV'} • {configAppLanguage === 'tr' ? 'TR' : 'EN'}
-                </div>
-              </button>
-            </div>
-
             {/* Debug Module (1x1) - Only visible in admin mode */}
             {superMode && (
               <div className="ios-module ios-module-1x1" title="Toggle debug logging for frontend and backend">
@@ -1511,8 +1502,6 @@ function App() {
                 </button>
               </div>
             )}
-
-
 
             {/* Camera Module (Background) */}
             <div className="ios-module ios-module-2x2" title="Customize application theme and visual appearance">

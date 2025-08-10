@@ -1,0 +1,70 @@
+{
+  "personalInfo": {
+    "name": "Emre Demir",
+    "email": "1emredenirr@gmail.com",
+    "phone": "05076561295",
+    "location": "İstanbul"
+  },
+  "summary": "Ekonomi lisans mezunu olarak, bankacılık sektöründe çalışmaktayım. Nakit operasyonları, çek-senet tahsilatları ve satış alanlarında uzmanlaşmış, müşteri odaklı ve analitik yaklaşımla başarılı sonuçlar elde etmiş bir bankacıyım.",
+  "experience": [
+    {
+      "position": "Bireysel Bankacılık Satış Temsilcisi",
+      "company": "Kuveyt Türk",
+      "location": "İstanbul",
+      "startDate": "2022-04",
+      "endDate": "Present",
+      "description": "Nakit Operasyonları: İki farklı şubede nakit akışının yönetilmesinden ve günlük işlemlerin düzgün bir şekilde yürütülmesinden sorumlu oldum. - Çek ve Senet İşlemleri: Çek ve senet tahsilatları ile çek takas işlemlerinin hızlı ve hatasız bir şekilde gerçekleştirilmesini sağladım. - Bireysel Satış: Müşteri ilişkilerini yöneterek bankanın ürün ve hizmetlerinin tanıtımını yaptım, bireysel satış hedeflerine ulaşılmasına katkıda bulundum. - Müşteri Hizmetleri: Gişe işlemlerinde müşterilere kaliteli hizmet sunarak, müşteri memnuniyetini artırmayı hedefledim. - Operasyonel Süreçler: Şubenin operasyonel süreçlerini optimize ederek, verimliliği artırmak için gerekli adımları attım."
+    }
+  ],
+  "education": [
+    {
+      "degree": "iktisat",
+      "institution": "İstanbul Üniversitesi, İktisat Fakültesi",
+      "location": "İstanbul",
+      "startDate": "",
+      "endDate": "",
+      "gpa": ""
+    }
+  ],
+  "skills": [
+    "Analitik düşünme ve problem çözme",
+    "İletişim ve müşteri ilişkileri yönetimi",
+    "Bankacılık operasyonları ve satış stratejileri",
+    "Microsoft Office uygulamaları"
+  ],
+  "projects": [],
+  "links": [],
+  "certificates": [
+    {
+      "name": "SAP FI - 50 SAAT uzman kullanıcı eğitimi",
+      "issuer": "IMPRESS",
+      "date": "",
+      "url": ""
+    }
+  ],
+  "languages": [
+    {
+      "language": "Türkçe",
+      "proficiency": "Anadil"
+    },
+    {
+      "language": "İngilizce",
+      "proficiency": "İyi"
+    },
+    {
+      "language": "Almanca",
+      "proficiency": "Başlangıç"
+    }
+  ],
+  "references": [],
+  "userAdditions": [
+    {
+      "question": "SAP FI eğitiminiz dışında başka hangi sertifikalara sahipsiniz veya hangi teknik becerileri geliştirdiniz? Microsoft Office uygulamalarındaki yeterlilik seviyenizi nasıl tanımlarsınız?",
+      "answer": "Excel ileri düzey"
+    },
+    {
+      "question": "Microsoft Office uygulamalarındaki (özellikle Excel) yeterlilik seviyeniz dışında, bankacılık sektörüne katkı sağlayacak başka hangi teknik becerilere veya sertifikalara sahipsiniz? Hangi araçları kullanmaktasınız?",
+      "answer": "Excel"
+    }
+  ]
+}

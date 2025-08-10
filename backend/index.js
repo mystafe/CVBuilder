@@ -1158,7 +1158,11 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
       // Save finalized data
       try {
         const sessionId = req.body.sessionId || `session_${Date.now()}`;
-        await dataStorage.saveFinalizedData(sessionId, cvData, null, { cvPdf: true }, req);
+        await dataStorage.saveFinalizedData(sessionId, {
+          cvData: transformedCvData,
+          cvLanguage,
+          timestamp: new Date().toISOString()
+        });
       } catch (storageError) {
         errorLog('Failed to save finalized data:', storageError);
       }
