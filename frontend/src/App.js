@@ -2353,7 +2353,7 @@ function App() {
 
                 {step === 'review' && (
                   <>
-                    <button onClick={handleFinalizeAndGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
+                    <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
                       {isLoading ? loadingMessage : t('generateCvButton')}
                     </button>
                     {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`accent ${cvScore !== null && cvScore < 80 ? 'highlight' : ''}`}>{t('improveButton')}</button>}

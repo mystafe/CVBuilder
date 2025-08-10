@@ -169,5 +169,62 @@
       "pdfGenerated": false,
       "timestampFolder": "2025-08-10_00-49-04"
     }
+  },
+  {
+    "type": "cv_finalized",
+    "timestamp": "2025-08-10T21:00:19.767Z",
+    "clientInfo": {
+      "ip": "::1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+      "timestamp": "2025-08-10T21:00:19.767Z",
+      "method": "POST",
+      "path": "/api/finalize-and-create-pdf",
+      "referer": "http://localhost:3000/",
+      "acceptLanguage": "en,tr;q=0.9,en-US;q=0.8,ru;q=0.7"
+    },
+    "data": {
+      "sessionId": "1754859436810",
+      "hasCoverLetter": false,
+      "pdfGenerated": false,
+      "timestampFolder": "2025-08-10_01-00-19"
+    }
+  },
+  {
+    "type": "cover_letter_generated",
+    "timestamp": "2025-08-10T21:00:47.495Z",
+    "clientInfo": {
+      "ip": "::1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+      "timestamp": "2025-08-10T21:00:47.495Z",
+      "method": "POST",
+      "path": "/api/ai/coverletter",
+      "referer": "http://localhost:3000/",
+      "acceptLanguage": "en,tr;q=0.9,en-US;q=0.8,ru;q=0.7"
+    },
+    "data": {
+      "sessionId": "1754859436810",
+      "hasCompanyName": true,
+      "hasPositionName": true,
+      "coverLetterLength": 857
+    }
+  },
+  {
+    "type": "cv_finalized",
+    "timestamp": "2025-08-10T21:00:55.960Z",
+    "clientInfo": {
+      "ip": "::1",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+      "timestamp": "2025-08-10T21:00:55.960Z",
+      "method": "POST",
+      "path": "/api/ai/coverletter-pdf",
+      "referer": "http://localhost:3000/",
+      "acceptLanguage": "en,tr;q=0.9,en-US;q=0.8,ru;q=0.7"
+    },
+    "data": {
+      "sessionId": "1754859436810",
+      "hasCoverLetter": true,
+      "pdfGenerated": true,
+      "timestampFolder": "2025-08-10_01-00-55"
+    }
   }
 ]

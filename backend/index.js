@@ -1128,29 +1128,37 @@ Your task is to return the *complete, updated* CV data in the exact same JSON fo
         errorLog(`Could not revise CV data for session ${sessionId}: ${e.message}`);
         // If revision fails, proceed with original data but log the error
       }
-    } else {
-      // 1. Enhance Summary (only if no revision request)
-      if (dataToProcess.userAdditions && dataToProcess.userAdditions.length > 0) {
-        infoLog(`Enhancing summary for session ${sessionId} with ${dataToProcess.userAdditions.length} user additions.`);
-        const userAdditionsText = dataToProcess.userAdditions.join('. ');
-        const summaryPrompt = `Based on the original summary and the user's answers, create a new, professionally rewritten, comprehensive summary in ${cvLanguage}.
-      Original Summary: "${dataToProcess.summary}"
-      User's Answers: "${userAdditionsText}"
-      Combine, rewrite, and enhance this into a single, cohesive, and impactful professional summary. Ensure the output is a single, valid JSON object with one key: "summary".`;
+    } else if (dataToProcess.userAdditions && dataToProcess.userAdditions.length > 0) {
+      // If no manual revision, perform the standard holistic improvement based on Q&A
+      infoLog(`Performing holistic CV improvement for session ${sessionId}`);
+      const answersText = dataToProcess.userAdditions.map(ua => `Q: ${ua.question}\nA: ${ua.answer}`).join('\n\n');
+      const improvementPrompt = `You are an expert CV writer. Your task is to perform a **holistic revision** of a CV based on user-provided answers. You must intelligently integrate the new information, correct typos, and rewrite sections for maximum impact, particularly the summary.
 
-        try {
-          const summaryResponse = await callOpenAI(
-            [{
-              role: 'system',
-              content: summaryPrompt
-            }], 400);
-          const enhancedSummary = JSON.parse(summaryResponse).summary;
-          dataToProcess.summary = enhancedSummary;
-          infoLog(`Successfully generated enhanced summary for session ${sessionId}.`);
-        } catch (e) {
-          errorLog(`Could not enhance summary for session ${sessionId}: ${e.message}`);
-          // If it fails, we just use the original summary. No need to fail the whole request.
-        }
+**Core Instructions:**
+1.  **Analyze**: Review the original CV and all the user's answers to understand the full context.
+2.  **Integrate & Correct**: Integrate the user's answers into the appropriate sections (experience, skills, etc.). Correct any spelling or grammatical errors found in the answers.
+3.  **Rewrite Summary**: Completely rewrite the "summary" section to be a professional, impactful paragraph that synthesizes the original CV and the new information from the user's answers.
+4.  **Consistency**: Ensure the tone and formatting are consistent throughout.
+5.  **Output**: Return **ONLY** the complete, updated CV as a single, valid JSON object, identical in structure to the input.
+
+**Current CV JSON:**
+${JSON.stringify(cvData, null, 2)}
+
+**User's Answers:**
+${answersText}
+
+Now, return the complete, revised CV JSON.`;
+
+      try {
+        const improvedCvResult = await callOpenAI([{
+          role: 'system',
+          content: improvementPrompt
+        }], 3500);
+        dataToProcess = JSON.parse(improvedCvResult);
+        infoLog(`Successfully performed holistic improvement for session ${sessionId}.`);
+      } catch (e) {
+        errorLog(`Could not perform holistic improvement for session ${sessionId}: ${e.message}`);
+        // Proceed with original data if improvement fails
       }
     }
 
@@ -1490,18 +1498,37 @@ app.post('/api/ai/generate-skill-assessment', asyncHandler(async (req, res) => {
   }
 
   const { cvData, appLanguage } = validation.data
-  const jobTitle = cvData.experience && cvData.experience.length > 0 ?
-    cvData.experience[0].position :
-    'the user s profession'
+  const getProfessionContext = (cv) => {
+    const title = cv.experience && cv.experience.length > 0 ? cv.experience[0].position : 'Not specified';
+    const summary = cv.summary || 'Not specified';
+    // Handle both array of strings and array of objects for skills
+    let skills = 'Not specified';
+    if (cv.skills && Array.isArray(cv.skills)) {
+      if (cv.skills.length > 0 && cv.skills.every(s => typeof s === 'string')) {
+        skills = cv.skills.join(', ');
+      } else if (cv.skills.length > 0 && cv.skills.every(s => typeof s === 'object' && s.name)) {
+        skills = cv.skills.map(s => s.name).join(', ');
+      }
+    }
+
+    return `
+      Title: ${title}
+      Summary: ${summary}
+      Existing Skills: ${skills}
+    `;
+  }
+
+  const professionContext = getProfessionContext(cvData);
 
   const systemPrompt = `You are an AI assistant specializing in career development. Your task is to generate 3-4 specific, multiple-choice skill assessment questions based on a user's profession.
 
 **Instructions:**
-1.  Analyze the provided job title to understand the user's profession.
-2.  Identify 3 or 4 of the most crucial, industry-standard technical skills or software for that profession.
+1.  Analyze the provided professional context (title, summary, existing skills) to understand the user's profession.
+2.  Identify 3 or 4 of the most crucial, industry-standard technical skills or software for that profession that are NOT already listed in their "Existing Skills".
 3.  For each skill, create a question asking about their proficiency level.
 4.  Each question must have the exact same four choices: "İleri", "Orta", "Düşük", "Yok" (if language is 'tr') or "Advanced", "Intermediate", "Beginner", "None" (if language is 'en').
 5.  Return the questions in a valid JSON object with a "questions" key, which is an array of question objects. Each object must have "id", "question", "isMultipleChoice": true, and "choices".
+6.  If you cannot confidently determine the profession or relevant skills from the context, return an empty "questions" array.
 
 **Language**: Respond in ${appLanguage}.
 
@@ -1515,7 +1542,11 @@ app.post('/api/ai/generate-skill-assessment', asyncHandler(async (req, res) => {
 }
 `
 
-  const userPrompt = `Generate 3-4 specific skill assessment questions for the profession: "${jobTitle}".`
+  const userPrompt = `Based on the following professional context, generate 3-4 specific skill assessment questions.
+
+Professional Context:
+${professionContext}
+`
 
   try {
     const result = await callOpenAI([{
@@ -1527,7 +1558,7 @@ app.post('/api/ai/generate-skill-assessment', asyncHandler(async (req, res) => {
     }], 1000)
 
     const questionsData = JSON.parse(result)
-    infoLog(`Generated skill assessment for: ${jobTitle}`)
+    infoLog(`Generated skill assessment for context: ${professionContext.replace(/\s+/g, ' ')}`)
     res.json(questionsData)
   } catch (error) {
     errorLog('Generate skill assessment error:', error)
