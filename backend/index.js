@@ -1123,62 +1123,55 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
       })
     }
 
-    // PDF oluşturma ve gönderme
-    try {
-      // 1. Gelişmiş Özet Oluşturma
-      let enhancedSummary = cvData.summary || '';
-      if (cvData.userAdditions && cvData.userAdditions.length > 0) {
-        infoLog(`Enhancing summary for session ${sessionId} with ${cvData.userAdditions.length} user additions.`);
-        const summaryPrompt = `Based on the original summary and the following question-answer pairs, rewrite the summary into a single, professional, and compelling paragraph in ${cvLanguage}. Combine the information smoothly. Do not add labels like "Original Summary".
-        
-Original Summary: "${cvData.summary}"
+    // 1. Enhance Summary
+    let enhancedSummary = cvData.summary; // Default to original
+    if (cvData.userAdditions && cvData.userAdditions.length > 0) {
+      infoLog(`Enhancing summary for session ${sessionId} with ${cvData.userAdditions.length} user additions.`);
+      const userAdditionsText = cvData.userAdditions.join('. ');
+      const summaryPrompt = `Based on the original summary and the user's answers, create a new, professionally rewritten, comprehensive summary in ${cvLanguage}.
+      Original Summary: "${cvData.summary}"
+      User's Answers: "${userAdditionsText}"
+      Combine, rewrite, and enhance this into a single, cohesive, and impactful professional summary. Ensure the output is a single, valid JSON object with one key: "summary".`;
 
-Questions and Answers:
-${cvData.userAdditions.map(qa => `Q: ${qa.question}\\nA: ${qa.answer}`).join('\\n\\n')}
-
-Rewritten Professional Summary (in ${cvLanguage}):`;
-
-        try {
-          const summaryResponse = await callOpenAI([
-            { role: 'system', content: summaryPrompt }
-          ], 400);
-          enhancedSummary = summaryResponse.trim();
-          infoLog(`Successfully generated enhanced summary for session ${sessionId}.`);
-        } catch (e) {
-          errorLog(`Could not enhance summary for session ${sessionId}: ${e.message}`);
-          // If it fails, we just use the original summary. No need to fail the whole request.
-        }
+      try {
+        const summaryResponse = await callOpenAI(
+          [{ role: 'system', content: summaryPrompt }], 400);
+        enhancedSummary = JSON.parse(summaryResponse).summary;
+        infoLog(`Successfully generated enhanced summary for session ${sessionId}.`);
+      } catch (e) {
+        errorLog(`Could not enhance summary for session ${sessionId}: ${e.message}`);
+        // If it fails, we just use the original summary. No need to fail the whole request.
       }
+    }
 
-      // 2. Veriyi PDF için hazırla
-      const finalCvData = {
-        ...cvData,
-        summary: enhancedSummary, // Yeni özeti kullan
-        appLanguage: cvLanguage,
-      };
-
-      // 3. DataStorage kullanarak finalize edilmiş veriyi kaydet
-      const finalizedPath = await dataStorage.saveFinalizedData(sessionId, { cvData: finalCvData, cvLanguage });
-      infoLog(`Finalized CV data for session ${sessionId} saved to ${finalizedPath}`);
-      infoLog(`CV for session ${sessionId} generated using AI model: ${process.env.OPENAI_API_MODEL || 'gpt-4o-mini'}`);
+    // 2. Save Finalized Data (including enhanced summary)
+    try {
+      const finalData = { ...cvData, summary: enhancedSummary };
+      const savedPaths = await dataStorage.saveFinalizedData(sessionId, finalData, req);
+      infoLog(`Finalized data saved for session ${sessionId} at ${savedPaths.jsonDataPath}`);
+    } catch (saveError) {
+      errorLog(`Error saving finalized data: ${saveError}`);
+      // We can still proceed with PDF generation even if saving fails
+    }
 
 
-      // 4. PDF'i oluştur ve gönder
-      const pdfBuffer = await callOpenAI([
-        { role: 'system', content: `You are a professional PDF generator. Create a PDF document from the provided JSON data. The JSON data represents a CV. Use the 'pdfService' module to generate the PDF. Ensure the PDF is in ${cvLanguage} language.` },
-        { role: 'user', content: JSON.stringify(finalCvData) }
-      ], 3000); // Increased max_tokens for PDF generation
+    // 3. Generate PDF using the backend service
+    try {
+      const pdfService = require('./services/pdfService')
+      const pdfBuffer = await pdfService.createCvPdf(finalCvData, cvLanguage);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename=cv.pdf');
       res.send(pdfBuffer);
-    } catch (error) {
-      errorLog(`Backend PDF service failed: ${error.stack}`);
-      res.status(500).json({
-        generateOnFrontend: true,
-        message: 'PDF generation failed on backend.',
-        fallbackReason: error.message
-      });
+      infoLog('CV PDF generated successfully using backend service');
+    } catch (pdfError) {
+      errorLog('Backend CV PDF service failed:', pdfError)
+      // Fallback to simple text response
+      res.json({
+        coverLetter: coverText,
+        message: 'PDF generation failed, returning text only',
+        error: pdfError.message
+      })
     }
   } catch (error) {
     errorLog('PDF generation error:', error)
