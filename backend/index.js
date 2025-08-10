@@ -1114,8 +1114,8 @@ app.post('/api/finalize-and-create-pdf', asyncHandler(async (req, res) => {
       // 3. Generate PDF using the backend service
       try {
         const pdfService = require('./services/pdfService');
-        // Use the 'finalData' variable which is correctly defined
-        const pdfBuffer = await pdfService.createCvPdf(finalData, cvLanguage);
+        // Use the 'finalData' variable which is correctly defined and call the correct function 'createPdf'
+        const pdfBuffer = await pdfService.createPdf(finalData, cvLanguage);
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=cv.pdf');
