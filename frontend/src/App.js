@@ -3,6 +3,7 @@ import axios from 'axios';
 import { set, get } from 'lodash';
 import { useTranslation } from 'react-i18next';
 import Logo from './components/Logo';
+import SaveBar from './components/SaveBar.js';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import Feedback from './components/Feedback';
 import './App.css';
@@ -2303,7 +2304,7 @@ function App() {
             flexDirection: 'column'
           }}>
             <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} /><div className="settings-bar"><button className="config-button" onClick={() => setShowConfig(true)} title="Settings">⚙️</button><LanguageSwitcher /></div></div>
-            <div className="chat-window" ref={chatContainerRef}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
+            <div className="chat-window" ref={chatContainerRef} style={{ paddingBottom: 72 }}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
             <div className="chat-input-area">
               {(step === 'scriptedQuestions' || step === 'aiQuestions' || step === 'skillAssessment') && (() => {
                 const currentQuestion = questionQueue[0];
@@ -2467,8 +2468,11 @@ function App() {
               {error && <p className="error-text">{error}</p>}
             </div>
           </div>
-          <footer>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
+          <footer style={{ paddingBottom: 72 }}>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
+      )}
+      {cvData && (
+        <SaveBar cv={cvData} target={{}} extras={{}} />
       )}
       {showLogViewer && <LogViewer />}
     </div>
