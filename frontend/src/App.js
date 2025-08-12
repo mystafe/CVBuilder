@@ -936,7 +936,7 @@ function App() {
             set(updatedCvData, 'experience[0].endDate', userAnswer);
           }
         } else {
-          set(updatedCvData, currentQuestion.path, userAnswer);
+        set(updatedCvData, currentQuestion.path, userAnswer);
           debugLog(`Updated CV data path: ${currentQuestion.path} with value:`, userAnswer);
         }
       } else if (currentQuestion.isComplex) {
@@ -1129,9 +1129,9 @@ function App() {
         }
 
         // Success - backend generated PDF
-        const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
-        setCvPdfUrl(url);
-        window.open(url, '_blank');
+      const url = window.URL.createObjectURL(new Blob([pdfResponse.data], { type: 'application/pdf' }));
+      setCvPdfUrl(url);
+      window.open(url, '_blank');
         infoLog('PDF generated using backend template system');
       } catch (backendError) {
         errorLog('Backend PDF generation failed, trying frontend:', backendError);
@@ -2305,7 +2305,7 @@ function App() {
           }}>
             <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} /><div className="settings-bar"><button className="config-button" onClick={() => setShowConfig(true)} title="Settings">⚙️</button><LanguageSwitcher /></div></div>
             <div className="chat-window" ref={chatContainerRef} style={{ paddingBottom: 72 }}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
-            <div className="chat-input-area">
+          <div className="chat-input-area">
               {(step === 'scriptedQuestions' || step === 'aiQuestions' || step === 'skillAssessment') && (() => {
                 const currentQuestion = questionQueue[0];
                 const isMultipleChoice = currentQuestion?.isMultipleChoice;
@@ -2362,39 +2362,39 @@ function App() {
                         </div>
                       </div>
                     ) : (
-                      <textarea
-                        value={currentAnswer}
+              <textarea
+                value={currentAnswer}
                         onChange={(e) => {
                           setCurrentAnswer(e.target.value);
                           // Clear any existing error when user starts typing
                           if (error) setError('');
                         }}
-                        placeholder={t('chatPlaceholder')}
-                        disabled={isLoading}
-                        onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), processNextStep())}
-                      />
-                    )}
+                placeholder={t('chatPlaceholder')}
+                disabled={isLoading}
+                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), processNextStep())}
+              />
+            )}
                   </>
                 );
               })()}
-              <div className="button-group">
+            <div className="button-group">
                 {(step === 'scriptedQuestions' || step === 'aiQuestions' || step === 'skillAssessment') && (
-                  <>
-                    <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
-                    <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
-                  </>
-                )}
+                <>
+                  <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
+                  <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
+                </>
+              )}
 
-                {step === 'review' && (
-                  <>
-                    <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
-                      {isLoading ? loadingMessage : t('generateCvButton')}
-                    </button>
-                    {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`accent ${cvScore !== null && cvScore < 80 ? 'highlight' : ''}`}>{t('improveButton')}</button>}
-                  </>
-                )}
+              {step === 'review' && (
+                <>
+                  <button onClick={handleGeneratePdf} disabled={isLoading || !cvData} className={`primary ${isLoading ? 'loading' : ''}`}>
+                    {isLoading ? loadingMessage : t('generateCvButton')}
+                  </button>
+                  {canRefine && <button onClick={handleRefine} disabled={isLoading} className={`accent ${cvScore !== null && cvScore < 80 ? 'highlight' : ''}`}>{t('improveButton')}</button>}
+                </>
+              )}
 
-                {step === 'final' && hasGeneratedPdf && (
+              {step === 'final' && hasGeneratedPdf && (
                   <>
                     {showCoverLetterForm && (
                       <>
@@ -2428,9 +2428,9 @@ function App() {
                     )}
 
                     {!showCoverLetterForm && !isRevising && (
-                      <>
-                        <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`primary ${cvScore !== null && cvScore >= 80 ? 'highlight' : ''}`}>{t('downloadCvButton')}</button>
-                        <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
+                <>
+                  <button onClick={handleDownloadCv} disabled={!cvPdfUrl} className={`primary ${cvScore !== null && cvScore >= 80 ? 'highlight' : ''}`}>{t('downloadCvButton')}</button>
+                  <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
                         <button onClick={handleRevisionRequest} disabled={isLoading} className="accent">{t('reviseCvButton')}</button>
                         <button onClick={handleRestart} className="secondary">{t('restartButton')}</button>
                       </>
@@ -2462,22 +2462,20 @@ function App() {
                         </div>
                       </>
                     )}
-                  </>
-                )}
-              </div>
-              {error && <p className="error-text">{error}</p>}
+                </>
+              )}
             </div>
+            {error && <p className="error-text">{error}</p>}
+          </div>
           </div>
           <footer style={{ paddingBottom: 72 }}>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       )}
       {/* Place FAB within chat container positioning context when chat is visible */}
       {cvData && step !== 'upload' && (
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <div style={{ position: 'absolute', right: 0, bottom: 0, pointerEvents: 'auto' }}>
-              <SaveBar cv={cvData} target={{}} extras={{}} />
-            </div>
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', right: '1rem', bottom: 'calc(1rem + 72px)' }}>
+            <SaveBar cv={cvData} target={{}} extras={{}} />
           </div>
         </div>
       )}

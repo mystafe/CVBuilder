@@ -1868,6 +1868,103 @@ input[type="file"] {
   position: relative;
 }
 
+/* FAB menu aligned with chat theme */
+.fab-menu { position: relative; z-index: 40; }
+.fab-status {
+  position: absolute;
+  right: 0;
+  bottom: 3.25rem;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--background-color);
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+.fab-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-color), #2563eb);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+.fab-button:hover {
+  filter: brightness(1.05);
+}
+.fab-sheet {
+  position: absolute;
+  right: 0;
+  bottom: 3.5rem;
+  min-width: 240px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  transform: translateY(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.18s ease;
+}
+.dark .fab-sheet {
+  background: rgba(20, 25, 40, 0.95);
+}
+.fab-sheet.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.fab-item {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary-color);
+  cursor: pointer;
+}
+.fab-item:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+.dark .fab-item:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+.fab-error {
+  color: #ef4444;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.fab-share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+}
+.fab-share input {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  background: var(--surface-color);
+  color: var(--text-primary-color);
+}
+.fab-share button {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary-color);
+  cursor: pointer;
+}
+
 /* Chat input area - sadece input alanı */
 .chat-input-area {
   padding: 1rem;
