@@ -397,20 +397,20 @@ function App() {
     const handleShareLink = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const shareId = urlParams.get('share');
-      
+
       if (shareId) {
         debugLog('Share link detected:', shareId);
         setLoadingMessage('Loading shared draft...');
-        
+
         try {
           const response = await fetch(`${API_BASE_URL}/api/share/${shareId}`);
           if (response.ok) {
             const data = await response.json();
-            
+
             // Set the shared data
             setCvData(data.cv);
             setSessionId(Date.now().toString());
-            
+
             // Determine the appropriate step
             let nextStep = 'final';
             if (data.extras?.step) {
@@ -432,26 +432,28 @@ function App() {
                 nextStep = 'scriptedQuestions';
               }
             }
-            
+
             setStep(nextStep);
-            
-            // Start appropriate flow
-            if (nextStep === 'scriptedQuestions') {
-              startScriptedQuestions(data.cv);
-            } else if (nextStep === 'aiQuestions') {
-              fetchAiQuestions(data.cv, 4);
-            }
-            
-            // Show success message
+
+            // Show success message first
             setConversation([{
               type: 'ai',
               text: `✅ ${t('shareLoadSuccess', 'Chat öncesi CV oluşturma sürecinize devam ediliyor...')}`
             }]);
-            
+
+            // Start appropriate flow after a delay to show the message
+            setTimeout(() => {
+              if (nextStep === 'scriptedQuestions') {
+                startScriptedQuestions(data.cv);
+              } else if (nextStep === 'aiQuestions') {
+                fetchAiQuestions(data.cv, 4);
+              }
+            }, 2000); // 2 saniye bekle
+
             // Clear the share parameter from URL
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
-            
+
             debugLog('Share link processed successfully');
           } else {
             throw new Error('Failed to load shared draft');
@@ -880,19 +882,19 @@ function App() {
 
       // Set the imported data
       setCvData(importedData.cv);
-      
+
       // Clear states
       setCurrentAnswer('');
       setQuestionQueue([]);
       setAskedAiQuestions([]);
-      
+
       // Generate session ID for the imported data
       const sessionId = Date.now().toString();
       setSessionId(sessionId);
 
       // Determine the appropriate step based on imported data
       let nextStep = 'final';
-      
+
       if (importedData.extras?.step) {
         if (importedData.extras.step === 'chat') {
           // If it was in chat mode, determine if it should go to scripted or AI questions
