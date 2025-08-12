@@ -52,6 +52,9 @@
   "revisionPlaceholder": "e.g., 'Make my summary more professional' or 'Remove my second job'",
   "cancelButton": "Cancel",
   "revisionSuccessMessage": "Your CV has been successfully revised and is ready for download!",
+  "draftContinueMessage": "You have an ongoing application. Would you like to continue?",
+  "draftContinueButton": "Continue",
+  "draftCancelButton": "Cancel",
   "settings": {
     "debug": "Debug",
     "logs": "Logs",

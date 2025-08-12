@@ -249,6 +249,10 @@ function App() {
   const [clickCount, setClickCount] = useState(0);
   const [showConfig, setShowConfig] = useState(false);
   const [isRevising, setIsRevising] = useState(false);
+  const [showDraftContinue, setShowDraftContinue] = useState(false);
+  const [draftId, setDraftId] = useState(() => {
+    try { return localStorage.getItem('cvb:lastDraftId') || '' } catch { return '' }
+  });
   const flowRef = useRef(createFlow('source'));
 
   // Memoize modal states to prevent unnecessary re-renders
@@ -348,6 +352,7 @@ function App() {
   }, [addToFrontendLogs]);
 
   const fileInputRef = useRef(null);
+
   const chatContainerRef = useRef(null);
   const isLoading = !!loadingMessage;
 
@@ -358,6 +363,26 @@ function App() {
   useEffect(() => { localStorage.setItem('frontendDebug', frontendDebug.toString()); }, [frontendDebug]);
   useEffect(() => { localStorage.setItem('backendDebug', backendDebug.toString()); }, [backendDebug]);
   useEffect(() => { localStorage.setItem('autoLogPolling', JSON.stringify(autoLogPolling)); }, [autoLogPolling]);
+
+  // Draft continue check
+  useEffect(() => {
+    const checkForDraft = async () => {
+      if (draftId && step === 'upload') {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/drafts/${draftId}`);
+          if (response.ok) {
+            setShowDraftContinue(true);
+          }
+        } catch (error) {
+          console.log('Draft check failed:', error);
+        }
+      }
+    };
+
+    checkForDraft();
+  }, [draftId, step]);
+
+
 
   // API Configuration Debug
   useEffect(() => {
@@ -744,6 +769,49 @@ function App() {
 
       setError(errorMessage);
     } finally {
+      setLoadingMessage('');
+    }
+  };
+
+  const handleCvbImport = async (file) => {
+    if (!file) return;
+
+    setLoadingMessage('Importing .cvb file...');
+    setError('');
+
+    try {
+      const text = await file.text();
+      const importedData = JSON.parse(text);
+
+      // Validate imported data structure
+      if (!importedData.cv) {
+        throw new Error('Invalid .cvb file: missing CV data');
+      }
+
+      // Set the imported data
+      setCvData(importedData.cv);
+      if (importedData.target) {
+        // You might need to add a target state setter
+        // setTarget(importedData.target);
+      }
+
+      // Generate session ID for the imported data
+      const sessionId = Date.now().toString();
+      setSessionId(sessionId);
+
+      // Move to the appropriate step based on imported data
+      if (importedData.extras?.step) {
+        setStep(importedData.extras.step);
+      } else {
+        // Default to final step if no step info
+        setStep('final');
+      }
+
+      setLoadingMessage('');
+
+    } catch (err) {
+      errorLog('CVB import error:', err);
+      setError('Failed to import .cvb file. Please check if the file is valid.');
       setLoadingMessage('');
     }
   };
@@ -2275,6 +2343,79 @@ function App() {
             {isLoading && <span className="button-spinner"></span>}
             {isLoading ? loadingMessage : t('uploadButtonLabel')}
           </label>
+
+
+
+          {/* Draft continue message */}
+          {showDraftContinue && (
+            <div className="draft-continue-message">
+              <p>{t('draftContinueMessage')}</p>
+              <div className="draft-continue-buttons">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${API_BASE_URL}/api/drafts/${draftId}`);
+                      if (response.ok) {
+                        const data = await response.json();
+                        setCvData(data.cv);
+
+                        // Set session ID
+                        const sessionId = Date.now().toString();
+                        setSessionId(sessionId);
+
+                        // Check if we have step information in extras
+                        let nextStep = 'scriptedQuestions';
+                        if (data.extras && data.extras.step) {
+                          if (data.extras.step === 'chat') {
+                            // If we were in chat step, determine where exactly
+                            if (data.cv && data.cv.experience && data.cv.experience.length > 0) {
+                              nextStep = 'aiQuestions';
+                            } else {
+                              nextStep = 'scriptedQuestions';
+                            }
+                          } else if (data.extras.step === 'upload') {
+                            nextStep = 'scriptedQuestions';
+                          }
+                        } else {
+                          // Fallback: determine based on CV data completeness
+                          if (data.cv && data.cv.experience && data.cv.experience.length > 0) {
+                            nextStep = 'aiQuestions';
+                          }
+                        }
+
+                        setStep(nextStep);
+                        setShowDraftContinue(false);
+
+                        // Start the flow based on the step
+                        if (nextStep === 'scriptedQuestions') {
+                          // Start with basic questions
+                          startScriptedQuestions(data.cv);
+                        } else if (nextStep === 'aiQuestions') {
+                          // Start with AI questions
+                          fetchAiQuestions(data.cv, 4);
+                        }
+                      }
+                    } catch (error) {
+                      console.log('Failed to load draft:', error);
+                    }
+                  }}
+                  className="primary"
+                >
+                  {t('draftContinueButton')}
+                </button>
+                <button
+                  onClick={() => {
+                    // Just hide the message, don't clear the draft
+                    setShowDraftContinue(false);
+                  }}
+                  className="secondary"
+                >
+                  {t('draftCancelButton')}
+                </button>
+              </div>
+            </div>
+          )}
+
           {error && <p className="error-text">{error}</p>}
 
           {/* CV olmadan devam etme butonu - küçük ve dikkat çekmeyen */}
@@ -2383,7 +2524,7 @@ function App() {
                     <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
                     <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
                     <div style={{ marginLeft: 'auto', position: 'relative', zIndex: 1000 }}>
-                      <SaveBar cv={cvData} target={{}} extras={{}} compact={true} />
+                      <SaveBar cv={cvData} target={{}} extras={{}} compact={true} onImport={handleCvbImport} />
                     </div>
                   </>
                 )}
@@ -2436,6 +2577,9 @@ function App() {
                         <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
                         <button onClick={handleRevisionRequest} disabled={isLoading} className="accent">{t('reviseCvButton')}</button>
                         <button onClick={handleRestart} className="secondary">{t('restartButton')}</button>
+                        <div style={{ marginLeft: 'auto', position: 'relative', zIndex: 1000 }}>
+                          <SaveBar cv={cvData} target={{}} extras={{}} compact={true} onImport={handleCvbImport} />
+                        </div>
                       </>
                     )}
                     {isRevising && (

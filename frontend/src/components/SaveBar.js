@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { postDraftSave, postShareCreate } from '../lib/api.js'
 
-export default function SaveBar({ cv, target, extras, compact = false }) {
+export default function SaveBar({ cv, target, extras, compact = false, onImport }) {
   const [draftId, setDraftId] = useState(() => {
     try { return localStorage.getItem('cvb:lastDraftId') || '' } catch { return '' }
   })
@@ -10,6 +10,8 @@ export default function SaveBar({ cv, target, extras, compact = false }) {
   const [error, setError] = useState('')
   const [shareUrl, setShareUrl] = useState('')
   const [open, setOpen] = useState(false)
+  const [showNotification, setShowNotification] = useState(false)
+  const importRef = useRef(null)
 
   const persistDraftId = (id) => {
     try { localStorage.setItem('cvb:lastDraftId', id) } catch { }
@@ -19,10 +21,22 @@ export default function SaveBar({ cv, target, extras, compact = false }) {
   const save = async () => {
     try {
       setLoading('save')
-      const res = await postDraftSave({ draftId: draftId || undefined, cv: cv ?? {}, target: target ?? {}, extras: extras ?? {} })
+      const res = await postDraftSave({ 
+        draftId: draftId || undefined, 
+        cv: cv ?? {}, 
+        target: target ?? {}, 
+        extras: { 
+          ...extras,
+          step: window.location.pathname.includes('upload') ? 'upload' : 'chat',
+          timestamp: new Date().toISOString()
+        } 
+      })
       persistDraftId(res.draftId)
       setLastSavedAt(res.savedAt)
       setError('')
+      // Show success notification
+      setShowNotification(true)
+      setTimeout(() => setShowNotification(false), 3000)
     } catch (e) {
       setError(e.message || 'Save failed')
     } finally { setLoading('') }
@@ -56,6 +70,19 @@ export default function SaveBar({ cv, target, extras, compact = false }) {
     } finally { setLoading('') }
   }
 
+  const handleImport = () => {
+    importRef.current?.click()
+  }
+
+  const handleFileImport = (event) => {
+    const file = event.target.files[0]
+    if (file && onImport) {
+      onImport(file)
+    }
+    // Clear the file input
+    if (importRef.current) importRef.current.value = ''
+  }
+
   if (compact) {
     return (
       <div className="fab-menu-compact" style={{ position: 'relative' }}>
@@ -72,6 +99,19 @@ export default function SaveBar({ cv, target, extras, compact = false }) {
             <button className="fab-item" onClick={save} disabled={!!loading}>{loading === 'save' ? 'Saving…' : 'Save'}</button>
             <button className="fab-item" onClick={exportCvb} disabled={!!loading}>Export</button>
             <button className="fab-item" onClick={share} disabled={!!loading}>{loading === 'share' ? 'Sharing…' : 'Share'}</button>
+            <button className="fab-item" onClick={handleImport} disabled={!!loading}>Import</button>
+            <input
+              type="file"
+              ref={importRef}
+              onChange={handleFileImport}
+              accept=".cvb"
+              style={{ display: 'none' }}
+            />
+          </div>
+        )}
+        {showNotification && (
+          <div className="save-notification">
+            Draft saved successfully!
           </div>
         )}
       </div>
@@ -95,7 +135,20 @@ export default function SaveBar({ cv, target, extras, compact = false }) {
         <button className="fab-item" onClick={save} disabled={!!loading}>{loading === 'save' ? 'Saving…' : 'Save draft'}</button>
         <button className="fab-item" onClick={exportCvb} disabled={!!loading}>Export .cvb</button>
         <button className="fab-item" onClick={share} disabled={!!loading}>{loading === 'share' ? 'Creating link…' : 'Share link'}</button>
+        <button className="fab-item" onClick={handleImport} disabled={!!loading}>Import .cvb</button>
+        <input 
+          type="file" 
+          ref={importRef} 
+          onChange={handleFileImport} 
+          accept=".cvb" 
+          style={{ display: 'none' }} 
+        />
       </div>
+      {showNotification && (
+        <div className="save-notification">
+          Draft saved successfully!
+        </div>
+      )}
     </div>
   )
 }

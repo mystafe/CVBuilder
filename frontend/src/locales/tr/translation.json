@@ -52,6 +52,9 @@
   "revisionPlaceholder": "örn: 'Özetimi daha profesyonel yap' veya 'İkinci işimi kaldır'",
   "cancelButton": "İptal",
   "revisionSuccessMessage": "CV'niz başarıyla revize edildi ve indirilmeye hazır!",
+  "draftContinueMessage": "Devam eden bir başvurunuz var. Devam etmek ister misiniz?",
+  "draftContinueButton": "Devam Et",
+  "draftCancelButton": "İptal Et",
   "settings": {
     "debug": "Debug",
     "logs": "Loglar",

@@ -13,20 +13,21 @@ function getApiBase() {
 
 const API_BASE = getApiBase()
 
+
+
 function buildBaseCandidates() {
   const envBase = process.env.REACT_APP_API_BASE || process.env.NEXT_PUBLIC_API_BASE
   if (envBase) {
     // If an explicit base is set, DO NOT fallback to others.
     return [envBase]
   }
-  // No explicit env base: prefer same-origin, then localhost dev, then hosted backend
+  // No explicit env base: prefer same-origin, then localhost dev
   const list = ['']
   if (typeof window !== 'undefined') {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       list.push('http://localhost:4000')
     }
   }
-  list.push('https://cvbuilder-451v.onrender.com')
   // Deduplicate
   return Array.from(new Set(list))
 }
