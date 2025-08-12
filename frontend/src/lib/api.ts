@@ -1,3 +1,60 @@
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || ""
+
+async function postJson<T = any>(path: string, body: any): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {})
+  })
+  const text = await res.text()
+  let json: any = {}
+  try {
+    json = text ? JSON.parse(text) : {}
+  } catch {
+    json = { error: "invalid_json", raw: text }
+  }
+  if (!res.ok) {
+    const err = (json && (json.error || json.message)) || "request_failed"
+    throw new Error(typeof err === "string" ? err : JSON.stringify(json))
+  }
+  return json as T
+}
+
+export type ApiParseRequest = { text?: string; filePath?: string }
+export type ApiParseResponse = { cv: any }
+export function apiParse(input: ApiParseRequest): Promise<ApiParseResponse> {
+  return postJson("/api/parse", input)
+}
+
+export type ApiTypeDetectRequest = { cv: any }
+export type ApiTypeDetectResponse = {
+  target: {
+    role?: string
+    seniority?: string
+    sector?: string
+    confidence?: number
+  }
+  cv: any
+}
+export function apiTypeDetect(
+  input: ApiTypeDetectRequest
+): Promise<ApiTypeDetectResponse> {
+  return postJson("/api/type-detect", input)
+}
+
+export type ApiFollowupsRequest = {
+  cv: any
+  target?: { role?: string; seniority?: string; sector?: string }
+}
+export type ApiFollowupsResponse = {
+  questions: Array<{ id: string; question: string }>
+}
+export function apiFollowups(
+  input: ApiFollowupsRequest
+): Promise<ApiFollowupsResponse> {
+  return postJson("/api/followups", input)
+}
+
 import { useMutation, useQuery } from "@tanstack/react-query"
 
 // API Base URL - use environment variable or fallback to production

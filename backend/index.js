@@ -8,6 +8,8 @@ const multer = require('multer')
 const pdfParse = require('pdf-parse')
 const mammoth = require('mammoth')
 const { z } = require('zod')
+const fs = require('fs')
+const path = require('path')
 const web_search = require('./services/webSearch'); // Added for web search functionality
 
 // Debug mode configuration
@@ -196,6 +198,41 @@ async function callOpenAI(messages, maxTokens = 2000) {
   }
 }
 
+// Safe JSON-only OpenAI call helper
+async function callJsonPrompt({ system, user, maxTokens = 2000 }) {
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: CURRENT_AI_MODEL,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0,
+        response_format: { type: 'json_object' }
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      throw new Error(`OpenAI API error: ${response.status} - ${errorData}`)
+    }
+
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content || '{}'
+    return JSON.parse(content)
+  } catch (error) {
+    errorLog('callJsonPrompt failed:', error.message)
+    throw error
+  }
+}
+
 // Error handling middleware
 function asyncHandler(fn) {
   return (req, res, next) => {
@@ -238,6 +275,132 @@ async function extractTextFromFile(file) {
     console.error('Error extracting text from file:', error)
     throw new Error(`Failed to extract text from file: ${error.message}`)
   }
+}
+
+// File text extraction by path (supports .pdf, .docx, .txt)
+async function extractTextFromFilePath(filePath) {
+  try {
+    const absolutePath = path.isAbsolute(filePath)
+      ? filePath
+      : path.join(process.cwd(), filePath)
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error(`File not found: ${absolutePath}`)
+    }
+    const ext = path.extname(absolutePath).toLowerCase()
+    const buffer = fs.readFileSync(absolutePath)
+    if (ext === '.pdf') {
+      const out = await pdfParse(buffer)
+      return out.text || ''
+    }
+    if (ext === '.docx' || ext === '.doc') {
+      const out = await mammoth.extractRawText({ buffer })
+      return out.value || ''
+    }
+    if (ext === '.txt') {
+      return buffer.toString('utf8')
+    }
+    throw new Error(`Unsupported file extension: ${ext}`)
+  } catch (err) {
+    errorLog('extractTextFromFilePath error:', err.message)
+    throw err
+  }
+}
+
+// === Unified CV Zod schema for Step 2 APIs ===
+const CvPersonalSchema = z.object({
+  fullName: z.string().optional().default(''),
+  email: z.string().optional().default(''),
+  phone: z.string().optional().default(''),
+  location: z.string().optional().default(''),
+})
+
+const CvExperienceSchema = z.object({
+  title: z.string().optional().default(''),
+  company: z.string().optional().default(''),
+  location: z.string().optional().default(''),
+  startDate: z.string().optional().default(''),
+  endDate: z.string().optional().default(''),
+  current: z.boolean().optional().default(false),
+  bullets: z.array(z.string()).optional().default([]),
+})
+
+const CvEducationSchema = z.object({
+  school: z.string().optional().default(''),
+  degree: z.string().optional().default(''),
+  field: z.string().optional().default(''),
+  startDate: z.string().optional().default(''),
+  endDate: z.string().optional().default(''),
+})
+
+const CvSkillSchema = z.object({
+  key: z.string().optional(),
+  name: z.string().optional().default(''),
+  level: z.string().optional().default(''),
+})
+
+const CvCertificationSchema = z.object({
+  name: z.string().optional().default(''),
+  issuer: z.string().optional().default(''),
+  year: z.string().optional().default(''),
+})
+
+const CvProjectSchema = z.object({
+  name: z.string().optional().default(''),
+  summary: z.string().optional().default(''),
+  tech: z.array(z.string()).optional().default([]),
+})
+
+const CvLanguageSchema = z.object({
+  name: z.string().optional().default(''),
+  level: z.string().optional().default(''),
+})
+
+const CvTargetSchema = z.object({
+  role: z.string().optional().default(''),
+  seniority: z.string().optional().default(''),
+  sector: z.string().optional().default(''),
+})
+
+const UnifiedCvSchema = z.object({
+  personal: CvPersonalSchema.default({}),
+  summary: z.string().optional().default(''),
+  experience: z.array(CvExperienceSchema).optional().default([]),
+  education: z.array(CvEducationSchema).optional().default([]),
+  skills: z.array(CvSkillSchema).optional().default([]),
+  certifications: z.array(CvCertificationSchema).optional().default([]),
+  projects: z.array(CvProjectSchema).optional().default([]),
+  languages: z.array(CvLanguageSchema).optional().default([]),
+  target: CvTargetSchema.optional().default({}),
+})
+
+function safeParseCv(obj) {
+  const parsed = UnifiedCvSchema.safeParse(obj || {})
+  if (!parsed.success) return { success: false, error: parsed.error }
+  return { success: true, data: parsed.data }
+}
+
+function mergeCv(base, patch) {
+  const b = base || {}
+  const p = patch || {}
+  const merged = {
+    personal: { ...(b.personal || {}), ...(p.personal || {}) },
+    summary: p.summary ?? b.summary ?? '',
+    // Arrays overwrite entirely
+    experience: Array.isArray(p.experience) ? p.experience : (b.experience || []),
+    education: Array.isArray(p.education) ? p.education : (b.education || []),
+    skills: Array.isArray(p.skills) ? p.skills : (b.skills || []),
+    certifications: Array.isArray(p.certifications) ? p.certifications : (b.certifications || []),
+    projects: Array.isArray(p.projects) ? p.projects : (b.projects || []),
+    languages: Array.isArray(p.languages) ? p.languages : (b.languages || []),
+    target: { ...(b.target || {}), ...(p.target || {}) },
+  }
+  return UnifiedCvSchema.parse(merged)
+}
+
+// Helpers to read prompt templates
+function readPrompt(fileName) {
+  const promptPath = path.join(__dirname, 'prompts', fileName)
+  return fs.readFileSync(promptPath, 'utf8')
 }
 
 // API Routes
@@ -501,6 +664,101 @@ Return ONLY the JSON object following the exact structure specified in the syste
       error: 'Failed to parse CV',
       message: error.message
     })
+  }
+}))
+
+// === STEP 2 APIs ===
+// POST /api/parse -> normalize raw text (or filePath) into unified CV JSON
+const parseInputSchema = z.object({
+  text: z.string().optional(),
+  filePath: z.string().optional(),
+})
+
+app.post('/api/parse', asyncHandler(async (req, res) => {
+  const validation = parseInputSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  let { text, filePath } = validation.data
+  try {
+    if (filePath && !text) {
+      const extracted = await extractTextFromFilePath(filePath)
+      text = extracted || ''
+    }
+    const raw = (text || '').slice(0, 15000)
+    if (!raw.trim()) {
+      const cv = UnifiedCvSchema.parse({})
+      return res.json({ cv })
+    }
+    const system = readPrompt('normalize.md')
+    const user = raw
+    const json = await callJsonPrompt({ system, user, maxTokens: 3000 })
+    const safe = safeParseCv(json)
+    if (!safe.success) {
+      return res.status(422).json({ error: 'Invalid CV JSON from model', details: safe.error.errors })
+    }
+    return res.json({ cv: safe.data })
+  } catch (err) {
+    return res.status(500).json({ error: 'parse_failed', message: err.message })
+  }
+}))
+
+// POST /api/type-detect -> detect role/seniority/sector
+const typeDetectInputSchema = z.object({ cv: UnifiedCvSchema })
+const typeDetectResultSchema = z.object({
+  role: z.string().optional().default(''),
+  seniority: z.enum(['Intern', 'Junior', 'Mid', 'Senior', 'Lead', 'Manager', 'Director', 'VP', 'C-Level']).optional().default(''),
+  sector: z.string().optional().default(''),
+  confidence: z.number().min(0).max(1).optional().default(0),
+})
+
+app.post('/api/type-detect', asyncHandler(async (req, res) => {
+  const validation = typeDetectInputSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const cv = validation.data.cv
+    const system = readPrompt('typeDetect.md')
+    const user = JSON.stringify(cv)
+    const json = await callJsonPrompt({ system, user, maxTokens: 500 })
+    const out = typeDetectResultSchema.safeParse(json)
+    if (!out.success) {
+      return res.status(422).json({ error: 'Invalid typeDetect JSON from model', details: out.error.errors })
+    }
+    const merged = mergeCv(cv, { target: out.data })
+    return res.json({ target: out.data, cv: merged })
+  } catch (err) {
+    return res.status(500).json({ error: 'type_detect_failed', message: err.message })
+  }
+}))
+
+// POST /api/followups -> generate 4 follow-up questions
+const followupsInputSchema = z.object({
+  cv: UnifiedCvSchema,
+  target: CvTargetSchema.optional(),
+})
+const followupQuestionSchema = z.object({ id: z.string().min(1), question: z.string().min(5).max(300) })
+const followupsResultSchema = z.object({ questions: z.array(followupQuestionSchema).length(4) })
+
+app.post('/api/followups', asyncHandler(async (req, res) => {
+  const validation = followupsInputSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const { cv, target } = validation.data
+    const merged = mergeCv(cv, { target: target || {} })
+    const system = readPrompt('followups.md')
+    const user = JSON.stringify(merged)
+    const json = await callJsonPrompt({ system, user, maxTokens: 800 })
+    const out = followupsResultSchema.safeParse(json)
+    if (!out.success) {
+      return res.status(422).json({ error: 'Invalid followups JSON from model', details: out.error.errors })
+    }
+    return res.json({ questions: out.data.questions })
+  } catch (err) {
+    return res.status(500).json({ error: 'followups_failed', message: err.message })
   }
 }))
 

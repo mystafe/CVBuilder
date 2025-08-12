@@ -6,6 +6,7 @@ import Logo from './components/Logo';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import Feedback from './components/Feedback';
 import './App.css';
+import { createFlow } from './lib/flow';
 
 // --- Debug System Functions ---
 // DEBUG fonksiyonlarını component dışında tanımlayıp, parametreli hale getirelim
@@ -247,6 +248,7 @@ function App() {
   const [clickCount, setClickCount] = useState(0);
   const [showConfig, setShowConfig] = useState(false);
   const [isRevising, setIsRevising] = useState(false);
+  const flowRef = useRef(createFlow('source'));
 
   // Memoize modal states to prevent unnecessary re-renders
   // const modalStates = useMemo(() => ({
@@ -622,6 +624,12 @@ function App() {
     if (skillQuestionObject) {
       queue.unshift(skillQuestionObject);
     }
+
+    // Flow transition: typeDetect -> followups
+    try {
+      const s = flowRef.current.next();
+      debugLog('Flow moved to:', s);
+    } catch { }
   };
 
   const playSuccessSound = useCallback(() => {
@@ -680,6 +688,14 @@ function App() {
 
       setSessionId(sessionId);
       setCvData(parsedCvData); // Set CV data before fetching question
+
+      // Flow transitions: source -> parse -> typeDetect
+      try {
+        const s1 = flowRef.current.next(); // source -> parse
+        debugLog('Flow moved to:', s1);
+        const s2 = flowRef.current.next(); // parse -> typeDetect
+        debugLog('Flow moved to:', s2);
+      } catch { }
 
       // Now, fetch the dynamic skill question
       try {
@@ -984,9 +1000,21 @@ function App() {
       if (step === 'scriptedQuestions') {
         // Show typing indicator immediately when scripted questions end
         setConversation([...newConversation, { type: 'typing' }]);
+        // Flow transition: followups -> assessSkills
+        try {
+          const s = flowRef.current.next();
+          debugLog('Flow moved to:', s);
+        } catch { }
         fetchSkillAssessmentQuestions(updatedCvData); // Go to skill assessment
       } else if (step === 'skillAssessment') {
         setConversation([...newConversation, { type: 'typing' }]);
+        // Flow transition: assessSkills -> assessSector -> polish (skip sector for now)
+        try {
+          const s1 = flowRef.current.next(); // -> assessSector
+          debugLog('Flow moved to:', s1);
+          const s2 = flowRef.current.next(); // -> polish
+          debugLog('Flow moved to:', s2);
+        } catch { }
         // Get the number from the question we just processed.
         const subsequentAiQuestions = currentQuestion.subsequentAiQuestions || 4;
         fetchAiQuestions(updatedCvData, subsequentAiQuestions); // Go to general AI questions
@@ -997,6 +1025,11 @@ function App() {
         setTimeout(() => {
           scoreCv(updatedCvData); // This will add the final combined message
         }, 1000);
+        // Flow transition: polish -> render
+        try {
+          const s = flowRef.current.next();
+          debugLog('Flow moved to:', s);
+        } catch { }
       }
     }
   };
