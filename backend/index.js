@@ -75,10 +75,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }))
 
-// Rate limiting - 60 requests per minute
+// Rate limiting - global: 60 requests per 5 minutes
 const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 60, // limit each IP to 60 requests per windowMs
+  windowMs: 5 * 60 * 1000,
+  max: 60,
   message: {
     error: 'Too many requests from this IP, please try again later.'
   },
@@ -86,6 +86,15 @@ const limiter = rateLimit({
   legacyHeaders: false
 })
 app.use(limiter)
+
+// Additional API limiter: 20 requests per minute on /api/*
+app.use('/api', rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { error: 'Too many API requests, please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+}))
 
 // Multer setup for file uploads
 const upload = multer({
