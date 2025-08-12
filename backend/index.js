@@ -716,7 +716,7 @@ const sectorQuestionsInputSchema = z.object({
   cv: UnifiedCvSchema,
   target: CvTargetSchema,
 })
-const sectorQItemSchema = z.object({ id: z.string().min(1), question: z.string().min(5).max(200), key: z.enum(['metrics','scope','tools','impact','timeline','extras']) })
+const sectorQItemSchema = z.object({ id: z.string().min(1), question: z.string().min(5).max(200), key: z.enum(['metrics', 'scope', 'tools', 'impact', 'timeline', 'extras']) })
 const sectorQuestionsOutputSchema = z.object({ questions: z.array(sectorQItemSchema).length(6) })
 
 app.post('/api/sector-questions', asyncHandler(async (req, res) => {
@@ -743,7 +743,7 @@ app.post('/api/sector-questions', asyncHandler(async (req, res) => {
 const inMemoryAnswerKey = new Map() // sessionId -> Map<id, correct>
 
 const skillAssessGenerateInput = z.object({ cv: UnifiedCvSchema, target: CvTargetSchema })
-const skillAssessItem = z.object({ id: z.string().min(1), topic: z.string().min(1), question: z.string().min(5), options: z.array(z.string()).length(4), answer: z.enum(['A','B','C','D']) })
+const skillAssessItem = z.object({ id: z.string().min(1), topic: z.string().min(1), question: z.string().min(5), options: z.array(z.string()).length(4), answer: z.enum(['A', 'B', 'C', 'D']) })
 const skillAssessGenerateOutput = z.object({ questions: z.array(skillAssessItem).min(6).max(8) })
 
 app.post('/api/skill-assessment/generate', asyncHandler(async (req, res) => {
@@ -772,7 +772,7 @@ app.post('/api/skill-assessment/generate', asyncHandler(async (req, res) => {
   }
 }))
 
-const skillAssessGradeInput = z.object({ sessionId: z.string().min(1), answers: z.array(z.object({ id: z.string().min(1), choice: z.enum(['A','B','C','D']) })) })
+const skillAssessGradeInput = z.object({ sessionId: z.string().min(1), answers: z.array(z.object({ id: z.string().min(1), choice: z.enum(['A', 'B', 'C', 'D']) })) })
 
 app.post('/api/skill-assessment/grade', asyncHandler(async (req, res) => {
   const validation = skillAssessGradeInput.safeParse(req.body)
@@ -1337,7 +1337,7 @@ app.post('/api/ai/coverletter-pdf', asyncHandler(async (req, res) => {
       projects: Array.isArray(cvData.projects) ? cvData.projects : []
     }
     // First get the cover letter content
-  const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
+    const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
 
 ${appLanguage === 'tr' ?
         'IMPORTANT: Respond in Turkish (Türkçe). Generate the cover letter in Turkish language.' :
@@ -1359,7 +1359,7 @@ Structure:
 
 Return JSON with the cover letter content and metadata.`
 
-  const userPrompt = `Create a professional cover letter based on this CV:
+    const userPrompt = `Create a professional cover letter based on this CV:
 
 CV Information:
 ${JSON.stringify(safeCvData, null, 2)}
