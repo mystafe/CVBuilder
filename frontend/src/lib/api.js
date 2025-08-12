@@ -5,8 +5,8 @@ function getApiBase() {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:4000'
     }
-    // Production fallback
-    return 'https://cvbuilder-451v.onrender.com'
+    // Production: use same-origin (assumes reverse proxy or rewrites)
+    return ''
   }
   return process.env.NEXT_PUBLIC_API_BASE || ''
 }

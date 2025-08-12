@@ -60,15 +60,18 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or Postman)
+    // Allow requests with no origin or same-origin
     if (!origin) return callback(null, true)
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true)
-    } else {
-      console.warn(`CORS blocked origin: ${origin}`)
-      return callback(new Error('Not allowed by CORS'), false)
-    }
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    // Fallback: allow same-host different port (Render/Vercel proxy)
+    try {
+      const u = new URL(origin)
+      const host = u.hostname
+      const isRender = host.includes('onrender.com') || host.includes('vercel.app')
+      if (isRender) return callback(null, true)
+    } catch {}
+    console.warn(`CORS blocked origin: ${origin}`)
+    return callback(new Error('Not allowed by CORS'), false)
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -1561,7 +1564,7 @@ app.post('/api/ai/coverletter-pdf', asyncHandler(async (req, res) => {
       projects: Array.isArray(cvData.projects) ? cvData.projects : []
     }
     // First get the cover letter content
-    const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
+  const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
 
 ${appLanguage === 'tr' ?
         'IMPORTANT: Respond in Turkish (Türkçe). Generate the cover letter in Turkish language.' :
@@ -1583,7 +1586,7 @@ Structure:
 
 Return JSON with the cover letter content and metadata.`
 
-    const userPrompt = `Create a professional cover letter based on this CV:
+  const userPrompt = `Create a professional cover letter based on this CV:
 
 CV Information:
 ${JSON.stringify(safeCvData, null, 2)}
