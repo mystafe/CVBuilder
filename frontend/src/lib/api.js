@@ -13,25 +13,80 @@ function getApiBase() {
 
 const API_BASE = getApiBase()
 
-async function postJson(path, body) {
-  try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body ?? {})
-    })
-    const text = await res.text()
-    let json = {}
-    try { json = text ? JSON.parse(text) : {} } catch { json = { error: "invalid_json", raw: text } }
-    if (!res.ok) {
-      const err = (json && (json.error || json.message)) || "request_failed"
-      throw new Error(typeof err === "string" ? err : JSON.stringify(json))
-    }
-    return json
-  } catch (error) {
-    console.error('API call failed:', path, error)
-    throw new Error(`Network error: ${error.message}`)
+function buildBaseCandidates() {
+  const explicit = []
+  if (process.env.REACT_APP_API_BASE) explicit.push(process.env.REACT_APP_API_BASE)
+  if (process.env.NEXT_PUBLIC_API_BASE) explicit.push(process.env.NEXT_PUBLIC_API_BASE)
+  // Common production/backend fallbacks
+  explicit.push('https://cvbuilder-451v.onrender.com')
+  explicit.push('http://localhost:4000')
+  // Deduplicate and remove current API_BASE
+  const seen = new Set([API_BASE])
+  const out = [API_BASE]
+  for (const b of explicit) {
+    if (!b || seen.has(b)) continue
+    seen.add(b)
+    out.push(b)
   }
+  return out
+}
+
+async function tryFetchJson(method, base, path, body, headers) {
+  const res = await fetch(`${base}${path}`, {
+    method,
+    headers: { "Content-Type": "application/json", ...(headers || {}) },
+    body: body !== undefined ? JSON.stringify(body ?? {}) : undefined
+  })
+  const text = await res.text()
+  let json = {}
+  try { json = text ? JSON.parse(text) : {} } catch { json = { error: "invalid_json", raw: text } }
+  return { ok: res.ok, status: res.status, json }
+}
+
+async function postJson(path, body, headers) {
+  const bases = buildBaseCandidates()
+  let lastErr = null
+  for (const base of bases) {
+    try {
+      const { ok, status, json } = await tryFetchJson('POST', base, path, body, headers)
+      if (ok) return json
+      // Retry on 404/route issues
+      const err = (json && (json.error || json.message)) || `http_${status}`
+      if (status === 404 || String(err).toLowerCase().includes('route not found')) {
+        lastErr = `Route not found @ ${base}${path}`
+        continue
+      }
+      lastErr = typeof err === 'string' ? err : JSON.stringify(json)
+    } catch (e) {
+      lastErr = e.message || 'fetch_failed'
+      continue
+    }
+  }
+  throw new Error(lastErr || 'request_failed')
+}
+
+async function getJson(path) {
+  const bases = buildBaseCandidates()
+  let lastErr = null
+  for (const base of bases) {
+    try {
+      const res = await fetch(`${base}${path}`)
+      const text = await res.text()
+      let json = {}
+      try { json = text ? JSON.parse(text) : {} } catch { json = { error: 'invalid_json', raw: text } }
+      if (res.ok) return json
+      const err = (json && (json.error || json.message)) || `http_${res.status}`
+      if (res.status === 404 || String(err).toLowerCase().includes('route not found')) {
+        lastErr = `Route not found @ ${base}${path}`
+        continue
+      }
+      lastErr = typeof err === 'string' ? err : JSON.stringify(json)
+    } catch (e) {
+      lastErr = e.message || 'fetch_failed'
+      continue
+    }
+  }
+  throw new Error(lastErr || 'request_failed')
 }
 
 export function apiParse(input) { return postJson("/api/parse", input) }
@@ -46,16 +101,9 @@ export const postTypeDetect = apiTypeDetect
 export function postSectorQuestions(input) { return postJson("/api/sector-questions", input) }
 
 export function postSkillAssessmentGenerate(input, sessionId) {
-  const headers = { "Content-Type": "application/json" }
+  const headers = {}
   if (sessionId) headers["X-Session-Id"] = sessionId
-  return fetch(`${API_BASE}/api/skill-assessment/generate`, { method: "POST", headers, body: JSON.stringify(input) })
-    .then(async (res) => {
-      const text = await res.text()
-      let json = {}
-      try { json = text ? JSON.parse(text) : {} } catch { json = { error: "invalid_json", raw: text } }
-      if (!res.ok) throw new Error(json?.error || json?.message || "request_failed")
-      return json
-    })
+  return postJson('/api/skill-assessment/generate', input, headers)
 }
 
 export function postSkillAssessmentGrade(input) { return postJson("/api/skill-assessment/grade", input) }
@@ -67,7 +115,7 @@ export function postRenderDocx(input) { return postJson("/api/render/docx", inpu
 export function postCoverLetter(input) { return postJson("/api/cover-letter", input) }
 
 export function postDraftSave(input) { return postJson('/api/drafts/save', input) }
-export function getDraft(draftId) { return fetch(`${API_BASE}/api/drafts/${draftId}`).then((res) => res.json()) }
+export function getDraft(draftId) { return getJson(`/api/drafts/${draftId}`) }
 export function postShareCreate(input) { return postJson('/api/share/create', input) }
 export function postAnalytics(input) { return postJson('/api/analytics/event', input) }
 
