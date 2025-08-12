@@ -1,4 +1,15 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || ""
+function getApiBase() {
+  // CRA injects REACT_APP_* at build
+  if (process.env.REACT_APP_API_BASE) return process.env.REACT_APP_API_BASE
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:4000'
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_BASE || ''
+}
+
+const API_BASE = getApiBase()
 
 async function postJson(path, body) {
   const res = await fetch(`${API_BASE}${path}`, {
