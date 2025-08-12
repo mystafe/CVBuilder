@@ -790,21 +790,54 @@ function App() {
 
       // Set the imported data
       setCvData(importedData.cv);
-      if (importedData.target) {
-        // You might need to add a target state setter
-        // setTarget(importedData.target);
-      }
-
+      
+      // Clear states
+      setCurrentAnswer('');
+      setQuestionQueue([]);
+      setAskedAiQuestions([]);
+      
       // Generate session ID for the imported data
       const sessionId = Date.now().toString();
       setSessionId(sessionId);
 
-      // Move to the appropriate step based on imported data
+      // Determine the appropriate step based on imported data
+      let nextStep = 'final';
+      
       if (importedData.extras?.step) {
-        setStep(importedData.extras.step);
+        if (importedData.extras.step === 'chat') {
+          // If it was in chat mode, determine if it should go to scripted or AI questions
+          if (importedData.cv && importedData.cv.experience && importedData.cv.experience.length > 0) {
+            nextStep = 'aiQuestions';
+          } else {
+            nextStep = 'scriptedQuestions';
+          }
+        } else if (importedData.extras.step === 'upload') {
+          nextStep = 'scriptedQuestions';
+        } else {
+          nextStep = importedData.extras.step;
+        }
       } else {
-        // Default to final step if no step info
-        setStep('final');
+        // If no step info, determine based on CV completeness
+        if (importedData.cv && importedData.cv.experience && importedData.cv.experience.length > 0) {
+          nextStep = 'aiQuestions';
+        } else {
+          nextStep = 'scriptedQuestions';
+        }
+      }
+
+      setStep(nextStep);
+
+      // If going to scripted questions, start them
+      if (nextStep === 'scriptedQuestions') {
+        startScriptedQuestions(importedData.cv);
+      } else if (nextStep === 'aiQuestions') {
+        fetchAiQuestions(importedData.cv, 4);
+      } else {
+        // Show success message only if going to final step
+        setConversation([{
+          type: 'ai',
+          text: `✅ ${t('importSuccessMessage')}`
+        }]);
       }
 
       setLoadingMessage('');
@@ -2405,7 +2438,13 @@ function App() {
                 </button>
                 <button
                   onClick={() => {
-                    // Just hide the message, don't clear the draft
+                    // Clear draft from localStorage and hide the message
+                    try {
+                      localStorage.removeItem('cvb:lastDraftId');
+                    } catch (error) {
+                      console.log('Failed to clear draft from localStorage:', error);
+                    }
+                    setDraftId('');
                     setShowDraftContinue(false);
                   }}
                   className="secondary"

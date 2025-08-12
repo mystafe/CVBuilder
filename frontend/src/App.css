@@ -1909,11 +1909,13 @@ input[type="file"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .fab-button-compact:hover {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+  filter: brightness(1.1);
 }
 
 .fab-sheet-compact {
@@ -1923,15 +1925,15 @@ input[type="file"] {
   min-width: 160px;
   max-width: 200px;
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(15px);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-  padding: 6px;
-  transform: translateY(8px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  transform: translateY(10px) scale(0.95);
   opacity: 0;
   pointer-events: none;
-  transition: all 0.18s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000;
 }
 
@@ -1940,7 +1942,7 @@ input[type="file"] {
 }
 
 .fab-sheet-compact.open {
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
   opacity: 1;
   pointer-events: auto;
   z-index: 1000;
@@ -1967,9 +1969,12 @@ input[type="file"] {
   cursor: pointer;
   font-size: 22px;
   line-height: 1;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .fab-button:hover {
-  filter: brightness(1.05);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 15px 35px rgba(37, 99, 235, 0.4);
+  filter: brightness(1.1);
 }
 .fab-sheet {
   position: absolute;
@@ -1978,21 +1983,21 @@ input[type="file"] {
   min-width: 240px;
   max-width: calc(100vw - 2rem);
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(15px);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
-  padding: 8px;
-  transform: translateY(8px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  padding: 12px;
+  transform: translateY(10px) scale(0.95);
   opacity: 0;
   pointer-events: none;
-  transition: all 0.18s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .dark .fab-sheet {
   background: rgba(20, 25, 40, 0.95);
 }
 .fab-sheet.open {
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
   opacity: 1;
   pointer-events: auto;
 }
@@ -2005,12 +2010,35 @@ input[type="file"] {
   border: none;
   color: var(--text-primary-color);
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
 }
 .fab-item:hover {
   background: rgba(59, 130, 246, 0.08);
+  transform: translateX(2px);
 }
 .dark .fab-item:hover {
   background: rgba(59, 130, 246, 0.15);
+}
+
+.dark .fab-share {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.15) 0%,
+    rgba(147, 197, 253, 0.08) 100%
+  );
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .fab-share input {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #e2e8f0;
+}
+
+.dark .fab-share input:focus {
+  background: rgba(30, 41, 59, 1);
+  border-color: rgba(59, 130, 246, 0.7);
 }
 .fab-error {
   color: #ef4444;
@@ -2021,24 +2049,89 @@ input[type="file"] {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
+  padding: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.1) 0%,
+    rgba(147, 197, 253, 0.05) 100%
+  );
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  backdrop-filter: blur(10px);
 }
 .fab-share input {
   flex: 1;
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
-  padding: 6px 8px;
+  padding: 8px 12px;
   font-size: 12px;
-  background: var(--surface-color);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--text-primary-color);
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  transition: all 0.2s ease;
+}
+
+.fab-share input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: rgba(255, 255, 255, 1);
 }
 .fab-share button {
-  padding: 6px 10px;
+  padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: transparent;
-  color: var(--text-primary-color);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.15) 0%,
+    rgba(147, 197, 253, 0.1) 100%
+  );
+  color: #3b82f6;
   cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.fab-share button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.fab-share button:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.25) 0%,
+    rgba(147, 197, 253, 0.15) 100%
+  );
+  border-color: rgba(59, 130, 246, 0.6);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25);
+}
+
+.fab-share button:hover::before {
+  left: 100%;
+}
+
+.fab-share button:active {
+  transform: translateY(-1px) scale(0.98);
 }
 
 .save-notification {

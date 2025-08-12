@@ -55,6 +55,7 @@
   "draftContinueMessage": "You have an ongoing application. Would you like to continue?",
   "draftContinueButton": "Continue",
   "draftCancelButton": "Cancel",
+  "importSuccessMessage": "CV successfully imported! You can continue.",
   "settings": {
     "debug": "Debug",
     "logs": "Logs",

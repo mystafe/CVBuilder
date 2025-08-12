@@ -55,6 +55,7 @@
   "draftContinueMessage": "Devam eden bir başvurunuz var. Devam etmek ister misiniz?",
   "draftContinueButton": "Devam Et",
   "draftCancelButton": "İptal Et",
+  "importSuccessMessage": "CV başarıyla içe aktarıldı! Devam edebilirsiniz.",
   "settings": {
     "debug": "Debug",
     "logs": "Loglar",
