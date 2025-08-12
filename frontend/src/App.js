@@ -19,9 +19,19 @@ const getApiBaseUrl = () => {
     return process.env.REACT_APP_API_BASE;
   }
 
+  // Vercel environment variables
+  if (process.env.NEXT_PUBLIC_API_BASE) {
+    return process.env.NEXT_PUBLIC_API_BASE;
+  }
+
   // İkinci öncelik: Local development otomatik tespit
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:4000';
+  }
+
+  // Vercel preview deployments
+  if (window.location.hostname.includes('vercel.app')) {
+    return 'https://cvbuilder-451v.onrender.com';
   }
 
   // Son çare: Production URL
@@ -381,6 +391,86 @@ function App() {
 
     checkForDraft();
   }, [draftId, step]);
+
+  // Share link handler
+  useEffect(() => {
+    const handleShareLink = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const shareId = urlParams.get('share');
+      
+      if (shareId) {
+        debugLog('Share link detected:', shareId);
+        setLoadingMessage('Loading shared draft...');
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/share/${shareId}`);
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Set the shared data
+            setCvData(data.cv);
+            setSessionId(Date.now().toString());
+            
+            // Determine the appropriate step
+            let nextStep = 'final';
+            if (data.extras?.step) {
+              if (data.extras.step === 'chat') {
+                if (data.cv && data.cv.experience && data.cv.experience.length > 0) {
+                  nextStep = 'aiQuestions';
+                } else {
+                  nextStep = 'scriptedQuestions';
+                }
+              } else if (data.extras.step === 'upload') {
+                nextStep = 'scriptedQuestions';
+              } else {
+                nextStep = data.extras.step;
+              }
+            } else {
+              if (data.cv && data.cv.experience && data.cv.experience.length > 0) {
+                nextStep = 'aiQuestions';
+              } else {
+                nextStep = 'scriptedQuestions';
+              }
+            }
+            
+            setStep(nextStep);
+            
+            // Start appropriate flow
+            if (nextStep === 'scriptedQuestions') {
+              startScriptedQuestions(data.cv);
+            } else if (nextStep === 'aiQuestions') {
+              fetchAiQuestions(data.cv, 4);
+            }
+            
+            // Show success message
+            setConversation([{
+              type: 'ai',
+              text: `✅ ${t('shareLoadSuccess', 'Chat öncesi CV oluşturma sürecinize devam ediliyor...')}`
+            }]);
+            
+            // Clear the share parameter from URL
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            
+            debugLog('Share link processed successfully');
+          } else {
+            throw new Error('Failed to load shared draft');
+          }
+        } catch (error) {
+          errorLog('Failed to load shared draft:', error);
+          setError(t('shareLoadError', 'Failed to load shared draft. It may have expired or been deleted.'));
+          setConversation([{
+            type: 'ai',
+            text: `❌ ${t('shareLoadError', 'Paylaşılan taslak yüklenemedi. Süresi dolmuş veya silinmiş olabilir.')}`
+          }]);
+        } finally {
+          setLoadingMessage('');
+        }
+      }
+    };
+
+    handleShareLink();
+  }, [debugLog, errorLog, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
 
