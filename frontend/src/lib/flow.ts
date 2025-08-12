@@ -1,22 +1,16 @@
 export type FlowState =
-  | "source"
-  | "parse"
-  | "typeDetect"
-  | "followups"
-  | "assessSkills"
-  | "assessSector"
-  | "polish"
-  | "render"
+  | "PARSE"
+  | "TYPE_DETECT"
+  | "SECTOR_QS"
+  | "SKILL_ASSESS"
+  | "FINALIZE"
 
 const ORDER: FlowState[] = [
-  "source",
-  "parse",
-  "typeDetect",
-  "followups",
-  "assessSkills",
-  "assessSector",
-  "polish",
-  "render"
+  "PARSE",
+  "TYPE_DETECT",
+  "SECTOR_QS",
+  "SKILL_ASSESS",
+  "FINALIZE"
 ]
 
 export interface FlowController {
@@ -27,7 +21,7 @@ export interface FlowController {
   reset(): FlowState
 }
 
-export function createFlow(initial: FlowState = "source"): FlowController {
+export function createFlow(initial: FlowState = "PARSE"): FlowController {
   let index = Math.max(0, ORDER.indexOf(initial))
 
   return {

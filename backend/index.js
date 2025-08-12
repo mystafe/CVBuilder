@@ -104,7 +104,8 @@ const upload = multer({
 })
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }))
+// Tighten body limit per requirements
+app.use(express.json({ limit: '2mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
 // Logging middleware
@@ -280,14 +281,21 @@ async function extractTextFromFile(file) {
 // File text extraction by path (supports .pdf, .docx, .txt)
 async function extractTextFromFilePath(filePath) {
   try {
-    const absolutePath = path.isAbsolute(filePath)
-      ? filePath
-      : path.join(process.cwd(), filePath)
-    if (!fs.existsSync(absolutePath)) {
+    const base = path.join(process.cwd(), 'data')
+    // sanitize path: no absolute outside base, no '..'
+    if (!filePath || filePath.includes('..')) {
+      throw new Error('Invalid file path')
+    }
+    const absolutePath = path.join(base, filePath)
+    const resolved = path.resolve(absolutePath)
+    if (!resolved.startsWith(base)) {
+      throw new Error('Access outside data directory is not allowed')
+    }
+    if (!fs.existsSync(resolved)) {
       throw new Error(`File not found: ${absolutePath}`)
     }
-    const ext = path.extname(absolutePath).toLowerCase()
-    const buffer = fs.readFileSync(absolutePath)
+    const ext = path.extname(resolved).toLowerCase()
+    const buffer = fs.readFileSync(resolved)
     if (ext === '.pdf') {
       const out = await pdfParse(buffer)
       return out.text || ''
@@ -703,6 +711,93 @@ app.post('/api/parse', asyncHandler(async (req, res) => {
   }
 }))
 
+// POST /api/sector-questions { cv, target }
+const sectorQuestionsInputSchema = z.object({
+  cv: UnifiedCvSchema,
+  target: CvTargetSchema,
+})
+const sectorQItemSchema = z.object({ id: z.string().min(1), question: z.string().min(5).max(200), key: z.enum(['metrics','scope','tools','impact','timeline','extras']) })
+const sectorQuestionsOutputSchema = z.object({ questions: z.array(sectorQItemSchema).length(6) })
+
+app.post('/api/sector-questions', asyncHandler(async (req, res) => {
+  const validation = sectorQuestionsInputSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const { cv, target } = validation.data
+    const system = readPrompt('sectorQuestions.md')
+    const user = JSON.stringify({ cv, target })
+    const json = await callJsonPrompt({ system, user, maxTokens: 800 })
+    const out = sectorQuestionsOutputSchema.safeParse(json)
+    if (!out.success) {
+      return res.status(422).json({ error: 'Invalid sector questions JSON from model', details: out.error.errors })
+    }
+    return res.json({ questions: out.data.questions })
+  } catch (err) {
+    return res.status(500).json({ error: 'sector_questions_failed', message: err.message })
+  }
+}))
+
+// === Skill Assessment (generate + grade) ===
+const inMemoryAnswerKey = new Map() // sessionId -> Map<id, correct>
+
+const skillAssessGenerateInput = z.object({ cv: UnifiedCvSchema, target: CvTargetSchema })
+const skillAssessItem = z.object({ id: z.string().min(1), topic: z.string().min(1), question: z.string().min(5), options: z.array(z.string()).length(4), answer: z.enum(['A','B','C','D']) })
+const skillAssessGenerateOutput = z.object({ questions: z.array(skillAssessItem).min(6).max(8) })
+
+app.post('/api/skill-assessment/generate', asyncHandler(async (req, res) => {
+  const validation = skillAssessGenerateInput.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const sessionId = req.header('X-Session-Id') || `sess_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    res.setHeader('X-Session-Id', sessionId)
+    const { cv, target } = validation.data
+    const system = readPrompt('skillAssessment.md')
+    const user = JSON.stringify({ cv, target })
+    const json = await callJsonPrompt({ system, user, maxTokens: 1200 })
+    const out = skillAssessGenerateOutput.safeParse(json)
+    if (!out.success) {
+      return res.status(422).json({ error: 'Invalid skill assessment JSON from model', details: out.error.errors })
+    }
+    const key = new Map()
+    for (const q of out.data.questions) key.set(q.id, q.answer)
+    inMemoryAnswerKey.set(sessionId, key)
+    const questions = out.data.questions.map(({ answer, ...rest }) => rest)
+    return res.json({ questions })
+  } catch (err) {
+    return res.status(500).json({ error: 'skill_assess_generate_failed', message: err.message })
+  }
+}))
+
+const skillAssessGradeInput = z.object({ sessionId: z.string().min(1), answers: z.array(z.object({ id: z.string().min(1), choice: z.enum(['A','B','C','D']) })) })
+
+app.post('/api/skill-assessment/grade', asyncHandler(async (req, res) => {
+  const validation = skillAssessGradeInput.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const { sessionId, answers } = validation.data
+    const key = inMemoryAnswerKey.get(sessionId)
+    if (!key) {
+      return res.status(400).json({ error: 'session_not_found', message: 'Assessment session not found or expired' })
+    }
+    let correct = 0
+    const breakdown = answers.map(a => {
+      const isCorrect = key.get(a.id) === a.choice
+      if (isCorrect) correct += 1
+      return { id: a.id, correct: isCorrect }
+    })
+    const total = key.size
+    const pct = total > 0 ? (correct / total) * 100 : 0
+    return res.json({ score: { correct, total, pct }, breakdown })
+  } catch (err) {
+    return res.status(500).json({ error: 'skill_assess_grade_failed', message: err.message })
+  }
+}))
 // POST /api/type-detect -> detect role/seniority/sector
 const typeDetectInputSchema = z.object({ cv: UnifiedCvSchema })
 const typeDetectResultSchema = z.object({
@@ -1242,7 +1337,7 @@ app.post('/api/ai/coverletter-pdf', asyncHandler(async (req, res) => {
       projects: Array.isArray(cvData.projects) ? cvData.projects : []
     }
     // First get the cover letter content
-    const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
+  const systemPrompt = `You are a professional cover letter writer. Create compelling, personalized cover letters based on CV information.
 
 ${appLanguage === 'tr' ?
         'IMPORTANT: Respond in Turkish (Türkçe). Generate the cover letter in Turkish language.' :
@@ -1264,7 +1359,7 @@ Structure:
 
 Return JSON with the cover letter content and metadata.`
 
-    const userPrompt = `Create a professional cover letter based on this CV:
+  const userPrompt = `Create a professional cover letter based on this CV:
 
 CV Information:
 ${JSON.stringify(safeCvData, null, 2)}

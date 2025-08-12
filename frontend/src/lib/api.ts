@@ -55,6 +55,40 @@ export function apiFollowups(
   return postJson("/api/followups", input)
 }
 
+// New aliases as requested (post* helpers)
+export const postParse = apiParse
+export const postTypeDetect = apiTypeDetect
+
+export type SectorQuestionsReq = { cv: any; target: { role?: string; seniority?: string; sector?: string } }
+export type SectorQuestionsRes = { questions: Array<{ id: string; question: string; key: string }> }
+export function postSectorQuestions(input: SectorQuestionsReq): Promise<SectorQuestionsRes> {
+  return postJson("/api/sector-questions", input)
+}
+
+export type SkillAssessGenReq = { cv: any; target: { role?: string; seniority?: string; sector?: string } }
+export type SkillAssessGenRes = { questions: Array<{ id: string; topic: string; question: string; options: string[] }> }
+export function postSkillAssessmentGenerate(input: SkillAssessGenReq, sessionId?: string): Promise<SkillAssessGenRes> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  if (sessionId) headers["X-Session-Id"] = sessionId
+  return fetch(`${API_BASE}/api/skill-assessment/generate`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(input)
+  }).then(async (res) => {
+    const text = await res.text()
+    let json: any = {}
+    try { json = text ? JSON.parse(text) : {} } catch { json = { error: "invalid_json", raw: text } }
+    if (!res.ok) throw new Error(json?.error || json?.message || "request_failed")
+    return json as SkillAssessGenRes
+  })
+}
+
+export type SkillAssessGradeReq = { sessionId: string; answers: Array<{ id: string; choice: string }> }
+export type SkillAssessGradeRes = { score: { correct: number; total: number; pct: number }, breakdown: Array<{ id: string; correct: boolean }> }
+export function postSkillAssessmentGrade(input: SkillAssessGradeReq): Promise<SkillAssessGradeRes> {
+  return postJson("/api/skill-assessment/grade", input)
+}
+
 import { useMutation, useQuery } from "@tanstack/react-query"
 
 // API Base URL - use environment variable or fallback to production
