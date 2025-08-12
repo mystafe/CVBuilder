@@ -1864,6 +1864,11 @@ app.get('/api/config', asyncHandler(async (req, res) => {
   })
 }))
 
+// Optional helper to avoid confusing 404 when user opens share URL directly
+app.get('/s/:shareId', (req, res) => {
+  res.status(404).json({ error: 'Route not found', message: 'Open this app URL in the frontend. API for shared draft is /api/share/:shareId' })
+})
+
 // Get backend logs endpoint
 app.get('/api/logs', asyncHandler(async (req, res) => {
   res.json({

@@ -46,7 +46,8 @@ export default function SaveBar({ cv, target, extras }) {
       const did = draftId || (await postDraftSave({ cv, target, extras })).draftId
       persistDraftId(did)
       const res = await postShareCreate({ draftId: did, ttlDays: 14 })
-      setShareUrl(res.shareUrl)
+      const finalUrl = `${window.location.origin}/s/${res.shareId}`
+      setShareUrl(finalUrl)
       setError('')
     } catch (e) {
       setError(e.message || 'Share failed')
@@ -54,7 +55,7 @@ export default function SaveBar({ cv, target, extras }) {
   }
 
   return (
-    <div className="fixed bottom-3 right-3 z-40">
+    <div className="absolute bottom-20 right-3 z-40">
       {/* Floating FAB with menu */}
       <div className="relative">
         {/* Status bubble */}
@@ -67,10 +68,13 @@ export default function SaveBar({ cv, target, extras }) {
               <span className="text-xl leading-none">…</span>
             </div>
           </summary>
-          <div className="absolute bottom-14 right-0 min-w-[220px] rounded-xl border bg-white dark:bg-neutral-900 shadow-lg p-2 space-y-2">
+          <div className="absolute bottom-14 right-0 min-w-[240px] rounded-xl border bg-white dark:bg-neutral-900 shadow-lg p-2 space-y-2">
             {error && <div className="text-xs text-red-600 px-2">{error}</div>}
             {shareUrl && (
-              <a className="block text-xs text-blue-600 underline px-2 truncate" href={shareUrl} target="_blank" rel="noreferrer">{shareUrl}</a>
+              <div className="flex items-center gap-2 px-2">
+                <input className="flex-1 rounded-md border px-2 py-1 text-xs" value={shareUrl} readOnly />
+                <button className="px-2 py-1 rounded-md border text-xs" onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy</button>
+              </div>
             )}
             <button className="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={save} disabled={!!loading}>
               {loading==='save' ? 'Saving…' : 'Save draft'}

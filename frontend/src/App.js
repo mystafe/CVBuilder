@@ -2471,8 +2471,15 @@ function App() {
           <footer style={{ paddingBottom: 72 }}>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       )}
-      {cvData && (
-        <SaveBar cv={cvData} target={{}} extras={{}} />
+      {/* Place FAB within chat container positioning context when chat is visible */}
+      {cvData && step !== 'upload' && (
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <div style={{ position: 'absolute', right: 0, bottom: 0, pointerEvents: 'auto' }}>
+              <SaveBar cv={cvData} target={{}} extras={{}} />
+            </div>
+          </div>
+        </div>
       )}
       {showLogViewer && <LogViewer />}
     </div>
