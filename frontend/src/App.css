@@ -1880,6 +1880,8 @@ input[type="file"] {
 .fab-menu-compact {
   position: relative;
   z-index: 40;
+  max-width: 200px;
+  overflow: visible;
 }
 
 .fab-button-compact {
@@ -1908,7 +1910,7 @@ input[type="file"] {
   right: 0;
   bottom: 2.5rem;
   min-width: 160px;
-  max-width: calc(100vw - 2rem);
+  max-width: 200px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid var(--border-color);
@@ -2285,6 +2287,8 @@ input[type="file"] {
   gap: 0.5rem;
   margin-top: 0.5rem;
   flex-wrap: wrap;
+  position: relative;
+  overflow: visible;
 }
 .button-group button {
   padding: 0.5rem 0.9rem;
