@@ -5,6 +5,8 @@ function getApiBase() {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:4000'
     }
+    // Production fallback
+    return 'https://cvbuilder-451v.onrender.com'
   }
   return process.env.NEXT_PUBLIC_API_BASE || ''
 }
@@ -12,19 +14,24 @@ function getApiBase() {
 const API_BASE = getApiBase()
 
 async function postJson(path, body) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body ?? {})
-  })
-  const text = await res.text()
-  let json = {}
-  try { json = text ? JSON.parse(text) : {} } catch { json = { error: "invalid_json", raw: text } }
-  if (!res.ok) {
-    const err = (json && (json.error || json.message)) || "request_failed"
-    throw new Error(typeof err === "string" ? err : JSON.stringify(json))
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body ?? {})
+    })
+    const text = await res.text()
+    let json = {}
+    try { json = text ? JSON.parse(text) : {} } catch { json = { error: "invalid_json", raw: text } }
+    if (!res.ok) {
+      const err = (json && (json.error || json.message)) || "request_failed"
+      throw new Error(typeof err === "string" ? err : JSON.stringify(json))
+    }
+    return json
+  } catch (error) {
+    console.error('API call failed:', path, error)
+    throw new Error(`Network error: ${error.message}`)
   }
-  return json
 }
 
 export function apiParse(input) { return postJson("/api/parse", input) }
