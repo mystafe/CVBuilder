@@ -122,6 +122,23 @@ export function postSkillAssessmentGrade(
   return postJson("/api/skill-assessment/grade", input)
 }
 
+// Finalize-stage client helpers
+export function postPolish(input: { cv: any; target: any }): Promise<{ cv: any; notes: string[] }> {
+  return postJson('/api/polish', input)
+}
+export function postAtsKeywords(input: { cv: any; jobText: string }): Promise<{ missing: string[]; suggested: string[]; score: number }> {
+  return postJson('/api/ats/keywords', input)
+}
+export function postRenderPdf(input: { cv: any; template: 'modern'|'compact'|'classic' }): Promise<{ filename: string; mime: string; base64: string }> {
+  return postJson('/api/render/pdf', input)
+}
+export function postRenderDocx(input: { cv: any; template: 'modern'|'compact'|'classic' }): Promise<{ filename: string; mime: string; base64: string }> {
+  return postJson('/api/render/docx', input)
+}
+export function postCoverLetter(input: { cv: any; target: any; jobText?: string }): Promise<{ letter: string }> {
+  return postJson('/api/cover-letter', input)
+}
+
 import { useMutation, useQuery } from "@tanstack/react-query"
 
 // API Base URL - use environment variable or fallback to production

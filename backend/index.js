@@ -807,6 +807,121 @@ app.post('/api/skill-assessment/grade', asyncHandler(async (req, res) => {
     return res.status(500).json({ error: 'skill_assess_grade_failed', message: err.message })
   }
 }))
+
+// === FINALIZE STAGE ENDPOINTS ===
+const { renderPdfBuffer } = require('./src/renderers/pdf')
+const { renderDocxBuffer } = require('./src/renderers/docx')
+
+// POST /api/polish { cv, target } -> { cv, notes }
+const polishInputSchema = z.object({ cv: UnifiedCvSchema, target: CvTargetSchema })
+const polishOutputSchema = z.object({ cv: UnifiedCvSchema, notes: z.array(z.string()).max(10) })
+
+app.post('/api/polish', asyncHandler(async (req, res) => {
+  const validation = polishInputSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const { cv, target } = validation.data
+    const system = readPrompt('polish.md')
+    const user = JSON.stringify({ cv, target })
+    const json = await callJsonPrompt({ system, user, maxTokens: 1800 })
+    const out = polishOutputSchema.safeParse(json)
+    if (!out.success) {
+      return res.status(422).json({ error: 'Invalid polish JSON from model', details: out.error.errors })
+    }
+    return res.json(out.data)
+  } catch (err) {
+    return res.status(500).json({ error: 'polish_failed', message: err.message })
+  }
+}))
+
+// POST /api/ats/keywords { cv, jobText } -> { missing, suggested, score }
+const atsInputSchema = z.object({ cv: UnifiedCvSchema, jobText: z.string().min(1) })
+const atsOutputSchema = z.object({ missing: z.array(z.string()), suggested: z.array(z.string()), score: z.number().min(0).max(100) })
+
+app.post('/api/ats/keywords', asyncHandler(async (req, res) => {
+  const validation = atsInputSchema.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const { cv, jobText } = validation.data
+    const system = readPrompt('atsKeywords.md')
+    const user = JSON.stringify({ cv, jobText })
+    const json = await callJsonPrompt({ system, user, maxTokens: 800 })
+    const out = atsOutputSchema.safeParse(json)
+    if (!out.success) {
+      return res.status(422).json({ error: 'Invalid ATS JSON from model', details: out.error.errors })
+    }
+    return res.json(out.data)
+  } catch (err) {
+    return res.status(500).json({ error: 'ats_failed', message: err.message })
+  }
+}))
+
+// POST /api/render/pdf { cv, template } -> { filename, mime, base64 }
+const renderPdfInput = z.object({ cv: UnifiedCvSchema, template: z.enum(['modern','compact','classic']) })
+app.post('/api/render/pdf', asyncHandler(async (req, res) => {
+  const validation = renderPdfInput.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const { cv, template } = validation.data
+    const buffer = await renderPdfBuffer(cv, template)
+    const base64 = buffer.toString('base64')
+    return res.json({ filename: `cv_${template}.pdf`, mime: 'application/pdf', base64 })
+  } catch (err) {
+    return res.status(500).json({ error: 'render_pdf_failed', message: err.message })
+  }
+}))
+
+// POST /api/render/docx { cv, template } -> { filename, mime, base64 }
+const renderDocxInput = z.object({ cv: UnifiedCvSchema, template: z.enum(['modern','compact','classic']) })
+app.post('/api/render/docx', asyncHandler(async (req, res) => {
+  const validation = renderDocxInput.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const { cv, template } = validation.data
+    const buffer = await renderDocxBuffer(cv, template)
+    const base64 = buffer.toString('base64')
+    return res.json({ filename: `cv_${template}.docx`, mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', base64 })
+  } catch (err) {
+    return res.status(500).json({ error: 'render_docx_failed', message: err.message })
+  }
+}))
+
+// POST /api/cover-letter { cv, target, jobText } -> { letter }
+const coverLetterInput = z.object({ cv: UnifiedCvSchema, target: CvTargetSchema, jobText: z.string().optional().default('') })
+app.post('/api/cover-letter', asyncHandler(async (req, res) => {
+  const validation = coverLetterInput.safeParse(req.body)
+  if (!validation.success) {
+    return res.status(400).json({ error: 'Invalid input', details: validation.error.errors })
+  }
+  try {
+    const { cv, target, jobText } = validation.data
+    const system = readPrompt('coverLetter.md')
+    const user = JSON.stringify({ cv, target, jobText })
+    // Request plain text; still force JSON mode off by expecting string
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: CURRENT_AI_MODEL, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: 700, temperature: 0 })
+    })
+    if (!response.ok) {
+      const errTxt = await response.text()
+      throw new Error(`OpenAI error: ${response.status} ${errTxt}`)
+    }
+    const data = await response.json()
+    const letter = data.choices?.[0]?.message?.content || ''
+    return res.json({ letter: letter.trim() })
+  } catch (err) {
+    return res.status(500).json({ error: 'cover_letter_failed', message: err.message })
+  }
+}))
 // POST /api/type-detect -> detect role/seniority/sector
 const typeDetectInputSchema = z.object({ cv: UnifiedCvSchema })
 const typeDetectResultSchema = z.object({
