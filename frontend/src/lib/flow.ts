@@ -1,3 +1,53 @@
+export type FlowState =
+  | "source"
+  | "parse"
+  | "typeDetect"
+  | "followups"
+  | "assessSkills"
+  | "assessSector"
+  | "polish"
+  | "render"
+
+const ORDER: FlowState[] = [
+  "source",
+  "parse",
+  "typeDetect",
+  "followups",
+  "assessSkills",
+  "assessSector",
+  "polish",
+  "render"
+]
+
+export interface FlowController {
+  get(): FlowState
+  next(): FlowState
+  prev(): FlowState
+  canProceed(): boolean
+  reset(): FlowState
+}
+
+export function createFlow(initial: FlowState = "source"): FlowController {
+  let index = Math.max(0, ORDER.indexOf(initial))
+
+  return {
+    get: () => ORDER[index],
+    next: () => {
+      if (index < ORDER.length - 1) index += 1
+      return ORDER[index]
+    },
+    prev: () => {
+      if (index > 0) index -= 1
+      return ORDER[index]
+    },
+    canProceed: () => index < ORDER.length - 1,
+    reset: () => {
+      index = 0
+      return ORDER[index]
+    }
+  }
+}
+
 // Finite State Machine for CV Builder Wizard Flow
 
 export enum WizardStep {
