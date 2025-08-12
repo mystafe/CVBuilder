@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { postDraftSave, postShareCreate } from '../lib/api'
+import { postDraftSave, postShareCreate } from '../lib/api.js'
 
 export default function SaveBar({ cv, target, extras }) {
   const [draftId, setDraftId] = useState(() => {
