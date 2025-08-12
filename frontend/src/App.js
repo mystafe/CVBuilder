@@ -2433,9 +2433,6 @@ function App() {
                         <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
                         <button onClick={handleRevisionRequest} disabled={isLoading} className="accent">{t('reviseCvButton')}</button>
                         <button onClick={handleRestart} className="secondary">{t('restartButton')}</button>
-                        <div style={{ marginLeft: 'auto', position: 'relative', zIndex: 1000 }}>
-                          <SaveBar cv={cvData} target={{}} extras={{}} compact={true} />
-                        </div>
                       </>
                     )}
                     {isRevising && (
@@ -2475,7 +2472,7 @@ function App() {
         </div>
       )}
       {/* Place FAB within chat container positioning context when chat is visible */}
-      {cvData && step !== 'upload' && step !== 'final' && (
+      {cvData && step !== 'upload' && (
         <div style={{ position: 'fixed', right: '1rem', bottom: 'calc(1rem + 72px)', zIndex: 50, maxWidth: 'calc(100vw - 2rem)' }}>
           <SaveBar cv={cvData} target={{}} extras={{}} />
         </div>
