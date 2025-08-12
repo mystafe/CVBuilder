@@ -6,7 +6,7 @@ import Logo from './components/Logo';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import Feedback from './components/Feedback';
 import './App.css';
-import { createFlow } from './lib/flow';
+import { createFlow } from './lib/flow.js';
 
 // --- Debug System Functions ---
 // DEBUG fonksiyonlarını component dışında tanımlayıp, parametreli hale getirelim
