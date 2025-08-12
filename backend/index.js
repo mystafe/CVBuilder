@@ -861,7 +861,7 @@ app.post('/api/ats/keywords', asyncHandler(async (req, res) => {
 }))
 
 // POST /api/render/pdf { cv, template } -> { filename, mime, base64 }
-const renderPdfInput = z.object({ cv: UnifiedCvSchema, template: z.enum(['modern','compact','classic']) })
+const renderPdfInput = z.object({ cv: UnifiedCvSchema, template: z.enum(['modern', 'compact', 'classic']) })
 app.post('/api/render/pdf', asyncHandler(async (req, res) => {
   const validation = renderPdfInput.safeParse(req.body)
   if (!validation.success) {
@@ -878,7 +878,7 @@ app.post('/api/render/pdf', asyncHandler(async (req, res) => {
 }))
 
 // POST /api/render/docx { cv, template } -> { filename, mime, base64 }
-const renderDocxInput = z.object({ cv: UnifiedCvSchema, template: z.enum(['modern','compact','classic']) })
+const renderDocxInput = z.object({ cv: UnifiedCvSchema, template: z.enum(['modern', 'compact', 'classic']) })
 app.post('/api/render/docx', asyncHandler(async (req, res) => {
   const validation = renderDocxInput.safeParse(req.body)
   if (!validation.success) {
