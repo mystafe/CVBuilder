@@ -2290,8 +2290,8 @@ input[type="file"] {
   margin-top: 0.5rem;
   flex-wrap: wrap;
   position: relative;
-  overflow: visible;
-  z-index: 1;
+  overflow: visible; /* allow SaveBar sheet to overflow within chat container */
+  z-index: 10;
 }
 .button-group button {
   padding: 0.5rem 0.9rem;

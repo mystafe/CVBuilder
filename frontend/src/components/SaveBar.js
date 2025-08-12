@@ -58,10 +58,10 @@ export default function SaveBar({ cv, target, extras, compact = false }) {
 
   if (compact) {
     return (
-      <div className="fab-menu-compact">
+      <div className="fab-menu-compact" style={{ position: 'relative' }}>
         <button className="fab-button-compact" onClick={() => setOpen(!open)} aria-label="More actions">💾</button>
         {open && (
-          <div className="fab-sheet-compact open">
+          <div className="fab-sheet-compact open" style={{ right: 0, bottom: '2.5rem' }}>
             {error && <div className="fab-error">{error}</div>}
             {shareUrl && (
               <div className="fab-share">

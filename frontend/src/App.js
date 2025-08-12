@@ -2305,7 +2305,7 @@ function App() {
           }}>
             <div className="chat-header"><Logo onBadgeClick={() => setFeedbackOpen(true)} onLogoClick={handleLogoClick} superMode={superMode} /><div className="settings-bar"><button className="config-button" onClick={() => setShowConfig(true)} title="Settings">⚙️</button><LanguageSwitcher /></div></div>
             <div className="chat-window" ref={chatContainerRef} style={{ paddingBottom: 72 }}>{conversation.map((msg, index) => msg.type === 'typing' ? <TypingIndicator key={index} /> : <div key={index} className={`message ${msg.type}`}>{msg.text}</div>)}</div>
-            <div className="chat-input-area">
+              <div className="chat-input-area">
               {(step === 'scriptedQuestions' || step === 'aiQuestions' || step === 'skillAssessment') && (() => {
                 const currentQuestion = questionQueue[0];
                 const isMultipleChoice = currentQuestion?.isMultipleChoice;
@@ -2377,11 +2377,14 @@ function App() {
                   </>
                 );
               })()}
-              <div className="button-group">
+                <div className="button-group">
                 {(step === 'scriptedQuestions' || step === 'aiQuestions' || step === 'skillAssessment') && (
                   <>
                     <button onClick={() => processNextStep()} disabled={isLoading || !currentAnswer} className="reply-button">{t('answerButton')} <SendIcon /></button>
                     <button onClick={() => processNextStep(true)} disabled={isLoading} className="secondary">{t('skipButton')}</button>
+                      <div style={{ marginLeft: 'auto', position: 'relative', zIndex: 1000 }}>
+                        <SaveBar cv={cvData} target={{}} extras={{}} compact={true} />
+                      </div>
                   </>
                 )}
 
@@ -2471,12 +2474,7 @@ function App() {
           <footer style={{ paddingBottom: 72 }}>{`${t('footerText')} - ${new Date().getFullYear()}`}</footer>
         </div>
       )}
-      {/* Place FAB within chat container positioning context when chat is visible */}
-      {cvData && step !== 'upload' && (
-        <div style={{ position: 'fixed', right: '1rem', bottom: 'calc(1rem + 72px)', zIndex: 50, maxWidth: 'calc(100vw - 2rem)' }}>
-          <SaveBar cv={cvData} target={{}} extras={{}} />
-        </div>
-      )}
+      {/* SaveBar is now rendered inside .chat-container -> .chat-input-area -> .button-group */}
       {showLogViewer && <LogViewer />}
     </div>
   );
