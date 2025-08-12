@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { postDraftSave, postShareCreate } from '../lib/api.js'
 
-export default function SaveBar({ cv, target, extras }) {
+export default function SaveBar({ cv, target, extras, compact = false }) {
   const [draftId, setDraftId] = useState(() => {
     try { return localStorage.getItem('cvb:lastDraftId') || '' } catch { return '' }
   })
@@ -54,6 +54,26 @@ export default function SaveBar({ cv, target, extras }) {
     } catch (e) {
       setError(e.message || 'Share failed')
     } finally { setLoading('') }
+  }
+
+  if (compact) {
+    return (
+      <div className="fab-menu-compact">
+        <button className="fab-button-compact" onClick={() => setOpen(!open)} aria-label="More actions">💾</button>
+        <div className={`fab-sheet-compact ${open ? 'open' : ''}`}>
+          {error && <div className="fab-error">{error}</div>}
+          {shareUrl && (
+            <div className="fab-share">
+              <input value={shareUrl} readOnly onFocus={(e) => e.target.select()} />
+              <button onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy</button>
+            </div>
+          )}
+          <button className="fab-item" onClick={save} disabled={!!loading}>{loading === 'save' ? 'Saving…' : 'Save'}</button>
+          <button className="fab-item" onClick={exportCvb} disabled={!!loading}>Export</button>
+          <button className="fab-item" onClick={share} disabled={!!loading}>{loading === 'share' ? 'Sharing…' : 'Share'}</button>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -1869,7 +1869,64 @@ input[type="file"] {
 }
 
 /* FAB menu aligned with chat theme */
-.fab-menu { position: relative; z-index: 40; }
+.fab-menu {
+  position: relative;
+  z-index: 40;
+}
+
+/* Compact FAB for button groups */
+.fab-menu-compact {
+  position: relative;
+  z-index: 40;
+}
+
+.fab-button-compact {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-color), #2563eb);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab-button-compact:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.fab-sheet-compact {
+  position: absolute;
+  right: 0;
+  bottom: 2.5rem;
+  min-width: 160px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  transform: translateY(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.18s ease;
+}
+
+.dark .fab-sheet-compact {
+  background: rgba(20, 25, 40, 0.95);
+}
+
+.fab-sheet-compact.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
 .fab-status {
   position: absolute;
   right: 0;
@@ -2223,6 +2280,7 @@ input[type="file"] {
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.5rem;
+  flex-wrap: wrap;
 }
 .button-group button {
   padding: 0.5rem 0.9rem;
