@@ -56,7 +56,7 @@
   "draftContinueButton": "Devam Et",
   "draftCancelButton": "İptal Et",
   "importSuccessMessage": "CV başarıyla içe aktarıldı! Devam edebilirsiniz.",
-  "shareLoadSuccess": "Chat öncesi CV oluşturma sürecinize devam ediliyor...",
+  "shareLoadSuccess": "CV oluşturma öncesi sohbete devam ediliyor...",
   "shareLoadError": "Paylaşılan taslak yüklenemedi. Süresi dolmuş veya silinmiş olabilir.",
   "settings": {
     "debug": "Debug",

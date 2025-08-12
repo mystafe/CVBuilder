@@ -56,7 +56,7 @@
   "draftContinueButton": "Continue",
   "draftCancelButton": "Cancel",
   "importSuccessMessage": "CV successfully imported! You can continue.",
-  "shareLoadSuccess": "Continuing your pre-chat CV creation process...",
+  "shareLoadSuccess": "Continuing the conversation before CV creation...",
   "shareLoadError": "Failed to load shared draft. It may have expired or been deleted.",
   "settings": {
     "debug": "Debug",

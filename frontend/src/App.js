@@ -438,7 +438,7 @@ function App() {
             // Show success message first
             setConversation([{
               type: 'ai',
-              text: `✅ ${t('shareLoadSuccess', 'Chat öncesi CV oluşturma sürecinize devam ediliyor...')}`
+              text: `✅ ${t('shareLoadSuccess', 'CV oluşturma öncesi sohbete devam ediliyor...')}`
             }]);
 
             // Start appropriate flow after a delay to show the message
