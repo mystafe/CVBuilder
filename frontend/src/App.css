@@ -1879,7 +1879,7 @@ input[type="file"] {
 /* Compact FAB for button groups */
 .fab-menu-compact {
   position: relative;
-  z-index: 40;
+  z-index: 1000;
   max-width: 200px;
   overflow: visible;
 }
@@ -1921,6 +1921,7 @@ input[type="file"] {
   opacity: 0;
   pointer-events: none;
   transition: all 0.18s ease;
+  z-index: 1000;
 }
 
 .dark .fab-sheet-compact {
@@ -1931,6 +1932,7 @@ input[type="file"] {
   transform: translateY(0);
   opacity: 1;
   pointer-events: auto;
+  z-index: 1000;
 }
 .fab-status {
   position: absolute;
@@ -2289,6 +2291,7 @@ input[type="file"] {
   flex-wrap: wrap;
   position: relative;
   overflow: visible;
+  z-index: 1;
 }
 .button-group button {
   padding: 0.5rem 0.9rem;

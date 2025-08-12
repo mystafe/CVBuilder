@@ -60,18 +60,20 @@ export default function SaveBar({ cv, target, extras, compact = false }) {
     return (
       <div className="fab-menu-compact">
         <button className="fab-button-compact" onClick={() => setOpen(!open)} aria-label="More actions">💾</button>
-        <div className={`fab-sheet-compact ${open ? 'open' : ''}`}>
-          {error && <div className="fab-error">{error}</div>}
-          {shareUrl && (
-            <div className="fab-share">
-              <input value={shareUrl} readOnly onFocus={(e) => e.target.select()} />
-              <button onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy</button>
-            </div>
-          )}
-          <button className="fab-item" onClick={save} disabled={!!loading}>{loading === 'save' ? 'Saving…' : 'Save'}</button>
-          <button className="fab-item" onClick={exportCvb} disabled={!!loading}>Export</button>
-          <button className="fab-item" onClick={share} disabled={!!loading}>{loading === 'share' ? 'Sharing…' : 'Share'}</button>
-        </div>
+        {open && (
+          <div className="fab-sheet-compact open">
+            {error && <div className="fab-error">{error}</div>}
+            {shareUrl && (
+              <div className="fab-share">
+                <input value={shareUrl} readOnly onFocus={(e) => e.target.select()} />
+                <button onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy</button>
+              </div>
+            )}
+            <button className="fab-item" onClick={save} disabled={!!loading}>{loading === 'save' ? 'Saving…' : 'Save'}</button>
+            <button className="fab-item" onClick={exportCvb} disabled={!!loading}>Export</button>
+            <button className="fab-item" onClick={share} disabled={!!loading}>{loading === 'share' ? 'Sharing…' : 'Share'}</button>
+          </div>
+        )}
       </div>
     )
   }

@@ -2433,7 +2433,7 @@ function App() {
                         <button onClick={handleDownloadCoverLetter} disabled={!coverLetterPdfUrl} className="blue">{t('downloadCoverLetterButton')}</button>
                         <button onClick={handleRevisionRequest} disabled={isLoading} className="accent">{t('reviseCvButton')}</button>
                         <button onClick={handleRestart} className="secondary">{t('restartButton')}</button>
-                        <div style={{ marginLeft: 'auto', position: 'relative' }}>
+                        <div style={{ marginLeft: 'auto', position: 'relative', zIndex: 1000 }}>
                           <SaveBar cv={cvData} target={{}} extras={{}} compact={true} />
                         </div>
                       </>
