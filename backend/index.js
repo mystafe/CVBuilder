@@ -922,6 +922,106 @@ app.post('/api/cover-letter', asyncHandler(async (req, res) => {
     return res.status(500).json({ error: 'cover_letter_failed', message: err.message })
   }
 }))
+
+// === SAVE/SHARE/ANALYTICS (Step-5) ===
+const { randomId } = require('./src/lib/ids')
+const { readJsonSafe, writeJsonAtomic, listJson } = require('./src/lib/fsdb')
+const { BASE, DRAFTS_DIR, SHARES_DIR, LOGS_DIR, safeJoin, ensureBase } = require('./src/lib/paths')
+ensureBase()
+
+// Extra limiter on share endpoints
+app.use('/api/share', rateLimit({ windowMs: 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many share requests' } }))
+
+function maskIp(ip) {
+  if (!ip) return ''
+  const parts = ip.split('.')
+  if (parts.length === 4) return `${parts[0]}.${parts[1]}.${parts[2]}.0`
+  return ip
+}
+
+const draftSaveInput = z.object({ draftId: z.string().optional(), cv: UnifiedCvSchema, target: CvTargetSchema.optional(), extras: z.any().optional() })
+app.post('/api/drafts/save', asyncHandler(async (req, res) => {
+  const v = draftSaveInput.safeParse(req.body)
+  if (!v.success) return res.status(400).json({ error: { code: 'bad_request', message: v.error.message } })
+  const now = new Date().toISOString()
+  const id = v.data.draftId || randomId()
+  const file = safeJoin(DRAFTS_DIR, `${id}.json`)
+  const existing = await readJsonSafe(file)
+  const payload = { draftId: id, cv: v.data.cv, target: v.data.target || existing?.target || {}, extras: v.data.extras || existing?.extras || {}, createdAt: existing?.createdAt || now, updatedAt: now, version: '1' }
+  const { size } = await writeJsonAtomic(file, payload)
+  return res.json({ draftId: id, savedAt: now, size })
+}))
+
+app.get('/api/drafts/:id', asyncHandler(async (req, res) => {
+  const id = req.params.id
+  if (!id || id.includes('..')) return res.status(400).json({ error: { code: 'bad_request', message: 'Invalid id' } })
+  const file = safeJoin(DRAFTS_DIR, `${id}.json`)
+  const data = await readJsonSafe(file)
+  if (!data) return res.status(404).json({ error: { code: 'not_found', message: 'Draft not found' } })
+  return res.json({ draftId: data.draftId, cv: data.cv, target: data.target || {}, extras: data.extras || {}, savedAt: data.updatedAt || data.createdAt })
+}))
+
+const shareCreateInput = z.object({ draftId: z.string().min(1), ttlDays: z.number().int().min(1).max(30).optional() })
+app.post('/api/share/create', asyncHandler(async (req, res) => {
+  const v = shareCreateInput.safeParse(req.body)
+  if (!v.success) return res.status(400).json({ error: { code: 'bad_request', message: v.error.message } })
+  const draftFile = safeJoin(DRAFTS_DIR, `${v.data.draftId}.json`)
+  const draft = await readJsonSafe(draftFile)
+  if (!draft) return res.status(404).json({ error: { code: 'not_found', message: 'Draft not found' } })
+  const shareId = randomId()
+  const createdAt = new Date().toISOString()
+  const ttl = (v.data.ttlDays || 14)
+  const expiresAt = new Date(Date.now() + ttl * 24 * 60 * 60 * 1000).toISOString()
+  const mapFile = safeJoin(SHARES_DIR, `${shareId}.json`)
+  await writeJsonAtomic(mapFile, { shareId, draftId: v.data.draftId, createdAt, expiresAt })
+  const base = process.env.BASE_URL || ''
+  const shareUrl = `${base}/s/${shareId}`
+  return res.json({ shareId, shareUrl, expiresAt })
+}))
+
+app.get('/api/share/:shareId', asyncHandler(async (req, res) => {
+  const shareId = req.params.shareId
+  if (!shareId || shareId.includes('..')) return res.status(400).json({ error: { code: 'bad_request', message: 'Invalid id' } })
+  const mapFile = safeJoin(SHARES_DIR, `${shareId}.json`)
+  const map = await readJsonSafe(mapFile)
+  if (!map) return res.status(404).json({ error: { code: 'not_found', message: 'Share not found' } })
+  if (new Date(map.expiresAt).getTime() < Date.now()) return res.status(410).json({ error: { code: 'expired', message: 'Share expired' } })
+  const draftFile = safeJoin(DRAFTS_DIR, `${map.draftId}.json`)
+  const draft = await readJsonSafe(draftFile)
+  if (!draft) return res.status(404).json({ error: { code: 'not_found', message: 'Draft not found' } })
+  return res.json({ draftId: map.draftId, cv: draft.cv, target: draft.target || {}, extras: draft.extras || {}, createdAt: map.createdAt, expiresAt: map.expiresAt })
+}))
+
+const analyticsInput = z.object({ type: z.string().min(1), payload: z.any().optional() })
+app.post('/api/analytics/event', asyncHandler(async (req, res) => {
+  const v = analyticsInput.safeParse(req.body)
+  if (!v.success) return res.status(400).json({ error: { code: 'bad_request', message: v.error.message } })
+  const ym = new Date().toISOString().slice(0, 7).replace('-', '')
+  const logFile = safeJoin(LOGS_DIR, `events-${ym}.jsonl`)
+  const ipRaw = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString() || ''
+  const ip = maskIp(ipRaw.split(',')[0].trim())
+  const ua = (req.headers['user-agent'] || '').toString().slice(0, 160)
+  const line = JSON.stringify({ ts: new Date().toISOString(), ip, ua, type: v.data.type, payload: v.data.payload || {} }) + '\n'
+  await fs.promises.appendFile(logFile, line, 'utf8')
+  return res.json({ ok: true })
+}))
+
+// hourly cleanup for expired shares
+setInterval(async () => {
+  try {
+    const files = await listJson(SHARES_DIR)
+    const now = Date.now()
+    for (const f of files) {
+      const m = await readJsonSafe(f)
+      if (!m) continue
+      if (new Date(m.expiresAt).getTime() < now) {
+        await fs.promises.unlink(f).catch(() => {})
+      }
+    }
+  } catch (e) {
+    errorLog('Share cleanup failed:', e.message)
+  }
+}, 60 * 60 * 1000)
 // POST /api/type-detect -> detect role/seniority/sector
 const typeDetectInputSchema = z.object({ cv: UnifiedCvSchema })
 const typeDetectResultSchema = z.object({
