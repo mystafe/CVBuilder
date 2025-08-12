@@ -2476,7 +2476,7 @@ function App() {
       )}
       {/* Place FAB within chat container positioning context when chat is visible */}
       {cvData && step !== 'upload' && step !== 'final' && (
-        <div style={{ position: 'fixed', right: '1rem', bottom: 'calc(1rem + 72px)', zIndex: 50 }}>
+        <div style={{ position: 'fixed', right: '1rem', bottom: 'calc(1rem + 72px)', zIndex: 50, maxWidth: 'calc(100vw - 2rem)' }}>
           <SaveBar cv={cvData} target={{}} extras={{}} />
         </div>
       )}

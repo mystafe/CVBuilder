@@ -1872,6 +1872,8 @@ input[type="file"] {
 .fab-menu {
   position: relative;
   z-index: 40;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* Compact FAB for button groups */
@@ -1906,6 +1908,7 @@ input[type="file"] {
   right: 0;
   bottom: 2.5rem;
   min-width: 160px;
+  max-width: calc(100vw - 2rem);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid var(--border-color);
@@ -1958,6 +1961,7 @@ input[type="file"] {
   right: 0;
   bottom: 3.5rem;
   min-width: 240px;
+  max-width: calc(100vw - 2rem);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid var(--border-color);

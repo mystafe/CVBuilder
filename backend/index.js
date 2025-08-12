@@ -1866,7 +1866,7 @@ app.get('/api/config', asyncHandler(async (req, res) => {
 
 // Optional helper to avoid confusing 404 when user opens share URL directly
 app.get('/s/:shareId', (req, res) => {
-  res.status(200).json({ 
+  res.status(200).json({
     success: true,
     message: 'Share link accessed. Use /api/share/:shareId to get the actual data.',
     shareId: req.params.shareId,
