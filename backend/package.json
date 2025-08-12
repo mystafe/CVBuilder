@@ -15,14 +15,15 @@
     "node": "20.x"
   },
   "dependencies": {
-    "@sparticuz/chromium": "^123.0.1",
     "@react-pdf/renderer": "^3.4.0",
+    "@sparticuz/chromium": "^123.0.1",
+    "axios": "^1.7.2",
     "cors": "^2.8.5",
+    "docx": "^8.5.0",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "express-rate-limit": "^8.0.1",
     "helmet": "^8.1.0",
-    "docx": "^8.5.0",
     "mammoth": "^1.8.0",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
@@ -30,8 +31,8 @@
     "pdf-parse": "^1.1.1",
     "puppeteer": "^22.13.1",
     "puppeteer-core": "^22.13.1",
-    "zod": "^4.0.16",
-    "axios": "^1.7.2"
+    "react": "^18.3.1",
+    "zod": "^4.0.16"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

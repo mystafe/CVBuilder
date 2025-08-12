@@ -14,21 +14,21 @@ function getApiBase() {
 const API_BASE = getApiBase()
 
 function buildBaseCandidates() {
-  const explicit = []
-  if (process.env.REACT_APP_API_BASE) explicit.push(process.env.REACT_APP_API_BASE)
-  if (process.env.NEXT_PUBLIC_API_BASE) explicit.push(process.env.NEXT_PUBLIC_API_BASE)
-  // Common production/backend fallbacks
-  explicit.push('https://cvbuilder-451v.onrender.com')
-  explicit.push('http://localhost:4000')
-  // Deduplicate and remove current API_BASE
-  const seen = new Set([API_BASE])
-  const out = [API_BASE]
-  for (const b of explicit) {
-    if (!b || seen.has(b)) continue
-    seen.add(b)
-    out.push(b)
+  const envBase = process.env.REACT_APP_API_BASE || process.env.NEXT_PUBLIC_API_BASE
+  if (envBase) {
+    // If an explicit base is set, DO NOT fallback to others.
+    return [envBase]
   }
-  return out
+  // No explicit env base: prefer same-origin, then localhost dev, then hosted backend
+  const list = ['']
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      list.push('http://localhost:4000')
+    }
+  }
+  list.push('https://cvbuilder-451v.onrender.com')
+  // Deduplicate
+  return Array.from(new Set(list))
 }
 
 async function tryFetchJson(method, base, path, body, headers) {
