@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create } from "zustand"
 
 type Target = { role?: string; seniority?: string; sector?: string }
 
@@ -18,8 +18,12 @@ type CvState = {
 }
 
 const initialDraftId = (() => {
-  if (typeof window === 'undefined') return undefined
-  try { return localStorage.getItem('cvb:lastDraftId') || undefined } catch { return undefined }
+  if (typeof window === "undefined") return undefined
+  try {
+    return localStorage.getItem("cvb:lastDraftId") || undefined
+  } catch {
+    return undefined
+  }
 })()
 
 export const useCvStore = create<CvState>((set, get) => ({
@@ -34,8 +38,8 @@ export const useCvStore = create<CvState>((set, get) => ({
     setExtras: (e) => set({ extras: e }),
     setDraftId: (id) => {
       try {
-        if (id) localStorage.setItem('cvb:lastDraftId', id)
-        else localStorage.removeItem('cvb:lastDraftId')
+        if (id) localStorage.setItem("cvb:lastDraftId", id)
+        else localStorage.removeItem("cvb:lastDraftId")
       } catch {}
       set({ draftId: id })
     },

@@ -1015,7 +1015,7 @@ setInterval(async () => {
       const m = await readJsonSafe(f)
       if (!m) continue
       if (new Date(m.expiresAt).getTime() < now) {
-        await fs.promises.unlink(f).catch(() => {})
+        await fs.promises.unlink(f).catch(() => { })
       }
     }
   } catch (e) {

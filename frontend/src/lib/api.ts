@@ -123,34 +123,67 @@ export function postSkillAssessmentGrade(
 }
 
 // Finalize-stage client helpers
-export function postPolish(input: { cv: any; target: any }): Promise<{ cv: any; notes: string[] }> {
-  return postJson('/api/polish', input)
+export function postPolish(input: {
+  cv: any
+  target: any
+}): Promise<{ cv: any; notes: string[] }> {
+  return postJson("/api/polish", input)
 }
-export function postAtsKeywords(input: { cv: any; jobText: string }): Promise<{ missing: string[]; suggested: string[]; score: number }> {
-  return postJson('/api/ats/keywords', input)
+export function postAtsKeywords(input: {
+  cv: any
+  jobText: string
+}): Promise<{ missing: string[]; suggested: string[]; score: number }> {
+  return postJson("/api/ats/keywords", input)
 }
-export function postRenderPdf(input: { cv: any; template: 'modern'|'compact'|'classic' }): Promise<{ filename: string; mime: string; base64: string }> {
-  return postJson('/api/render/pdf', input)
+export function postRenderPdf(input: {
+  cv: any
+  template: "modern" | "compact" | "classic"
+}): Promise<{ filename: string; mime: string; base64: string }> {
+  return postJson("/api/render/pdf", input)
 }
-export function postRenderDocx(input: { cv: any; template: 'modern'|'compact'|'classic' }): Promise<{ filename: string; mime: string; base64: string }> {
-  return postJson('/api/render/docx', input)
+export function postRenderDocx(input: {
+  cv: any
+  template: "modern" | "compact" | "classic"
+}): Promise<{ filename: string; mime: string; base64: string }> {
+  return postJson("/api/render/docx", input)
 }
-export function postCoverLetter(input: { cv: any; target: any; jobText?: string }): Promise<{ letter: string }> {
-  return postJson('/api/cover-letter', input)
+export function postCoverLetter(input: {
+  cv: any
+  target: any
+  jobText?: string
+}): Promise<{ letter: string }> {
+  return postJson("/api/cover-letter", input)
 }
 
 // Drafts & sharing & analytics
-export function postDraftSave(input: { draftId?: string; cv: any; target?: any; extras?: any }): Promise<{ draftId: string; savedAt: string; size: number }> {
-  return postJson('/api/drafts/save', input)
+export function postDraftSave(input: {
+  draftId?: string
+  cv: any
+  target?: any
+  extras?: any
+}): Promise<{ draftId: string; savedAt: string; size: number }> {
+  return postJson("/api/drafts/save", input)
 }
-export function getDraft(draftId: string): Promise<{ draftId: string; cv: any; target: any; extras: any; savedAt: string }> {
-  return fetch(`${API_BASE}/api/drafts/${draftId}`).then(res => res.json())
+export function getDraft(draftId: string): Promise<{
+  draftId: string
+  cv: any
+  target: any
+  extras: any
+  savedAt: string
+}> {
+  return fetch(`${API_BASE}/api/drafts/${draftId}`).then((res) => res.json())
 }
-export function postShareCreate(input: { draftId: string; ttlDays?: number }): Promise<{ shareId: string; shareUrl: string; expiresAt: string }> {
-  return postJson('/api/share/create', input)
+export function postShareCreate(input: {
+  draftId: string
+  ttlDays?: number
+}): Promise<{ shareId: string; shareUrl: string; expiresAt: string }> {
+  return postJson("/api/share/create", input)
 }
-export function postAnalytics(input: { type: string; payload?: any }): Promise<{ ok: true }> {
-  return postJson('/api/analytics/event', input)
+export function postAnalytics(input: {
+  type: string
+  payload?: any
+}): Promise<{ ok: true }> {
+  return postJson("/api/analytics/event", input)
 }
 
 import { useMutation, useQuery } from "@tanstack/react-query"

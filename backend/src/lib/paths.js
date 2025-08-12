@@ -15,7 +15,7 @@ function safeJoin(base, ...parts) {
 
 function ensureBase() {
   [BASE, DRAFTS_DIR, SHARES_DIR, LOGS_DIR].forEach((dir) => {
-    try { fs.mkdirSync(dir, { recursive: true }) } catch {}
+    try { fs.mkdirSync(dir, { recursive: true }) } catch { }
   })
 }
 
