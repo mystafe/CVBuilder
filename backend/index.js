@@ -63,11 +63,11 @@ app.use(cors({
     // Allow requests with no origin or same-origin
     if (!origin) return callback(null, true)
     if (allowedOrigins.includes(origin)) return callback(null, true)
-    // Fallback: allow same-host different port (Render/Vercel proxy)
+    // Fallback: allow Vercel preview/production frontends
     try {
       const u = new URL(origin)
       const host = u.hostname
-      const isRender = host.includes('onrender.com') || host.includes('vercel.app')
+      const isRender = host.includes('vercel.app')
       if (isRender) return callback(null, true)
     } catch { }
     console.warn(`CORS blocked origin: ${origin}`)

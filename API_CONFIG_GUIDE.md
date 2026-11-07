@@ -70,7 +70,7 @@ Console'da şu bilgileri görebilirsin:
 Eğer environment variable set edilmemişse:
 
 - `localhost` veya `127.0.0.1` → `http://localhost:4000`
-- Diğer durumlarda → `https://cvbuilder-451v.onrender.com`
+- Diğer durumlarda → `https://cvbuilder-api.evleksiz.me`
 
 ## Örnekler
 

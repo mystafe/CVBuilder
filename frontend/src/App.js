@@ -31,11 +31,11 @@ const getApiBaseUrl = () => {
 
   // Vercel preview deployments
   if (window.location.hostname.includes('vercel.app')) {
-    return 'https://cvbuilder-451v.onrender.com';
+    return 'https://cvbuilder-api.evleksiz.me';
   }
 
   // Son çare: Production URL
-  return 'https://cvbuilder-451v.onrender.com';
+  return 'https://cvbuilder-api.evleksiz.me';
 };
 
 const API_BASE_URL = getApiBaseUrl();

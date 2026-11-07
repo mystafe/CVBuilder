@@ -20,6 +20,6 @@
     }
   ],
   "env": {
-    "REACT_APP_API_BASE": "https://cvbuilder-451v.onrender.com"
+    "REACT_APP_API_BASE": "https://cvbuilder-api.evleksiz.me"
   }
 }

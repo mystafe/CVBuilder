@@ -206,7 +206,7 @@ const getApiBase = () => {
   }
 
   // Son çare: Production URL
-  return "https://cvbuilder-451v.onrender.com"
+  return "https://cvbuilder-api.evleksiz.me"
 }
 
 const API_BASE = getApiBase()
